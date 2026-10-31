@@ -358,7 +358,9 @@ function setContactOpacity(c, o) {
 function unregisterGroup(g) { g.traverse(o => thermalReg.delete(o)); }
 
 // ───────────────────────── Terrain ─────────────────────────
-const WORLD = 7800, SEG = 320, WATER_Y = 1.4, PAD_H = 7;
+// ARENA = half-width of the playable square (8.4 km across). A mountain wall rises just outside it and nothing may leave it.
+const ARENA = 4200, WORLD = 2 * (ARENA + 1300), SEG = 440, WATER_Y = 1.4, PAD_H = 7;
+const randInside = m => (Math.random() - .5) * 2 * (ARENA - m);   // random coordinate at least m inside the border
 function hash2(ix, iz) { let h = Math.imul(ix, 374761393) ^ Math.imul(iz, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 function vnoise(x, z) {
   const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz, u = fx*fx*(3-2*fx), v = fz*fz*(3-2*fz);
@@ -375,7 +377,7 @@ function terrainHeight(x, z) {
   let h = 1.5 + ridge + rolling + (broad - .5) * 90 + Math.pow(rid, 3) * 46 * smoothstep(.4, .7, broad) + (fbm(x*.018, z*.018, 3) - .5) * 9;
   for (const p of PEAKS) h += p[4] * Math.exp(-(((x-p[0])/p[2])**2 + ((z-p[1])/p[3])**2) * 1.7);
   const edge = Math.max(Math.abs(x), Math.abs(z));                       // natural mountain wall around the play area
-  h += smoothstep(2300, 3300, edge) * 150 * (.65 + fbm(x*.004 + 3, z*.004 - 8, 3) * .7);
+  h += smoothstep(ARENA - 250, ARENA + 750, edge) * 150 * (.65 + fbm(x*.004 + 3, z*.004 - 8, 3) * .7);
   if (h < 4) h = 4 - (4 - h) * .24;                                         // soft floor: shallow lake basins
   return PAD_H + (h - PAD_H) * smoothstep(60, 240, Math.hypot(x, z));    // flat launch area
 }
@@ -429,8 +431,8 @@ let seed = 7823; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; re
   const lowGeo = new THREE.ConeGeometry(1, 1, 7).translate(0, .5, 0), upGeo = new THREE.ConeGeometry(.72, .8, 7).translate(0, .4, 0);
   const trunkMat = mat(0x514333, .95, 0), greens = [0x244d32, 0x315f39, 0x3d7041, 0x526f42].map(c => new THREE.MeshStandardMaterial({color:c, roughness:.95, flatShading:true}));
   const trees = [[], [], [], []];
-  for (let a = 0; a < 46000 && trees.reduce((n, t) => n + t.length, 0) < 7000; a++) {
-    const x = (rnd() - .5) * 6200, z = (rnd() - .5) * 6200;
+  for (let a = 0; a < 92000 && trees.reduce((n, t) => n + t.length, 0) < 14000; a++) {
+    const x = (rnd() - .5) * (2 * ARENA + 400), z = (rnd() - .5) * (2 * ARENA + 400);
     if (Math.hypot(x, z) < 130) continue;
     const f = forestField(x, z); if (f < .05 || rnd() > f * .9 + .04) continue;
     const y = terrainHeight(x, z); if (y < WATER_Y + 1.6 || y > 88) continue;
@@ -452,8 +454,8 @@ let seed = 7823; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; re
   });
   trunkIM.count = total; scene.add(trunkIM); th(trunkIM, .3);
   const rockGeo = new THREE.IcosahedronGeometry(1, 0), rocks = [];
-  for (let a = 0; a < 9000 && rocks.length < 450; a++) {
-    const x = (rnd() - .5) * 6000, z = (rnd() - .5) * 6000, y = terrainHeight(x, z);
+  for (let a = 0; a < 18000 && rocks.length < 900; a++) {
+    const x = (rnd() - .5) * (2 * ARENA + 200), z = (rnd() - .5) * (2 * ARENA + 200), y = terrainHeight(x, z);
     if (Math.hypot(x, z) < 130 || y < WATER_Y + 1) continue;
     const sl = Math.abs(terrainHeight(x + 6, z) - y) + Math.abs(terrainHeight(x, z + 6) - y);
     if (sl > 3 || y > 60 || rnd() < .5) rocks.push({x, y, z, s:1.5 + rnd() * 5, r:rnd() * TAU});
@@ -702,11 +704,12 @@ function createPassengerPlane(x, y, z, planeType) {
   const a = {type:'plane', kind:'plane', isAmbient:true, group:g, pos:new THREE.Vector3(x,y,z), prev:new THREE.Vector3(x,y,z), vel:new THREE.Vector3(),
     altBase:altTarget, altPhase:Math.random()*TAU, altAmp: 10 + Math.random()*30,
     speed:sMin + Math.random()*(sMax-sMin), yaw:0, size:PLANE_SIZES[t], detect:2600, sig:.88, curiosity:Math.random()*.5, identified:false, planeType:t};
-  aimPlane(a, (Math.random()-.5)*4800, (Math.random()-.5)*4800); ambientActors.push(a); return a;
+  aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
 }
 function aimPlane(a, tx, tz) { const dx = tx - a.pos.x, dz = tz - a.pos.z, l = Math.hypot(dx, dz) || 1; a.vel.set(dx/l*a.speed, 0, dz/l*a.speed); a.yaw = Math.atan2(-a.vel.x, -a.vel.z); }
 createBirdFlock(-180, -100, 8, 260); createBirdFlock(520, -450, 10, 320); createBirdFlock(-650, 350, 7, 280); createBirdFlock(150, 700, 9, 300);
 createPassengerPlane(-1400, 320, -1700, 0); createPassengerPlane(1700, 450, -900, 1); createPassengerPlane(300, 260, 1900, 2);
+createBirdFlock(-2600, 1900, 9, 300); createBirdFlock(2800, 2400, 8, 280); createBirdFlock(2300, -2900, 10, 320);
 
 // ───────────────────────── State ─────────────────────────
 const state = {pos:new THREE.Vector3(0, PAD_H + 2.6, 0), prevPos:new THREE.Vector3(0, PAD_H + 2.6, 0), vel:new THREE.Vector3(), rot:new THREE.Euler(0,0,0,'YXZ'), prevYaw:0, prevPitch:0, prevRoll:0,
@@ -856,7 +859,7 @@ $('normalCam').onclick = () => setThermal(false); $('thermalCam').onclick = () =
 $('thermalBtn').onclick = () => setThermal(!thermalOn); $('paletteBtn').onclick = cyclePalette;
 
 // ── Live Map overlay ─────────────────────────────────────────────────────────
-const MAP_WORLD = 5200, MAP_SIZE = 600;
+const MAP_WORLD = 2 * ARENA + 500, MAP_SIZE = 600;
 let mapWaypoint = null, mapTerrainCache = null, mapOpen = false;
 
 function worldToMap(wx, wz) { return [(wx / MAP_WORLD + .5) * MAP_SIZE, (wz / MAP_WORLD + .5) * MAP_SIZE]; }
@@ -898,8 +901,12 @@ function buildTerrainCache() {
   ctx.fillStyle='rgba(80,140,160,.55)'; ctx.font='bold 8px ui-monospace,monospace';
   for (let i2 = 0; i2 <= 8; i2++) for (let j2 = 0; j2 <= 8; j2++) {
     const [wx2, wz2] = mapToWorld(i2/8*MAP_SIZE, j2/8*MAP_SIZE);
-    if ((i2 + j2) % 2 === 0) ctx.fillText(Math.round(wx2/100)+'k', i2/8*MAP_SIZE+2, j2/8*MAP_SIZE+9);
+    if ((i2 + j2) % 2 === 0) ctx.fillText((wx2 / 1000).toFixed(1) + ' km', i2/8*MAP_SIZE+2, j2/8*MAP_SIZE+9);
   }
+  // arena border: nothing flies beyond this line
+  { const [b0] = worldToMap(-ARENA, -ARENA), [b1] = worldToMap(ARENA, ARENA);
+    ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(255,120,100,.65)'; ctx.lineWidth = 1.5; ctx.strokeRect(b0, b0, b1 - b0, b1 - b0); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,140,120,.8)'; ctx.fillText('AREA BOUNDARY', b0 + 4, b1 - 4); }
   mapTerrainCache = offscreen;
 }
 
@@ -1074,12 +1081,12 @@ function spawnScoutAhead(kind, diff, minD = 700, maxD = 1400) {
   for (let tries = 0; tries < 24; tries++) {
     const a = state.rot.y + (Math.random() - .5) * 1.6, d = minD + Math.random() * (maxD - minD);
     const x = state.pos.x - Math.sin(a) * d, z = state.pos.z - Math.cos(a) * d;
-    if (Math.abs(x) > 2450 || Math.abs(z) > 2450) continue;
+    if (Math.abs(x) > ARENA - 300 || Math.abs(z) > ARENA - 300) continue;
     const y = Math.max(terrainHeight(x, z) + 150, state.pos.y + 40) + Math.random() * 110;
     if (y > 440) continue;
     const s = createScout(kind, diff, new THREE.Vector3(x, y, z)); return {s, d, y};
   }
-  const x = clamp(state.pos.x + (Math.random() - .5) * 1200, -2400, 2400), z = clamp(state.pos.z + (Math.random() - .5) * 1200, -2400, 2400);
+  const x = clamp(state.pos.x + (Math.random() - .5) * 1200, -(ARENA - 400), ARENA - 400), z = clamp(state.pos.z + (Math.random() - .5) * 1200, -(ARENA - 400), ARENA - 400);
   const y = terrainHeight(x, z) + 170; const s = createScout(kind, diff, new THREE.Vector3(x, y, z));
   return {s, d:Math.hypot(x - state.pos.x, z - state.pos.z), y};
 }
@@ -1230,7 +1237,7 @@ function aiThink() {
 function pickSearchWaypoint() {
   for (let tries = 0; tries < 16; tries++) {
     const a = state.rot.y + (Math.random() - .5) * 2.4, d = 700 + Math.random() * 1200;
-    const x = clamp(state.pos.x - Math.sin(a) * d, -2100, 2100), z = clamp(state.pos.z - Math.cos(a) * d, -2100, 2100);
+    const x = clamp(state.pos.x - Math.sin(a) * d, -(ARENA - 500), ARENA - 500), z = clamp(state.pos.z - Math.cos(a) * d, -(ARENA - 500), ARENA - 500);
     if (Math.hypot(x - state.pos.x, z - state.pos.z) < 500) continue;
     state.searchWp = new THREE.Vector3(x, 0, z); state.searchTimer = 24 + Math.random() * 10; return;
   }
@@ -1253,7 +1260,7 @@ function chooseScoutWaypoint(s) {
   // Target absolute altitude 200-600m, vary by scout kind
   const [minAlt, maxAlt] = s.kind === 'fast' ? [350, 600] : s.kind === 'heavy' ? [220, 500] : [200, 420];
   for (let tries = 0; tries < 28; tries++) {
-    const x = clamp(from.x + (Math.random() - .5) * 2400, -2200, 2200), z = clamp(from.z + (Math.random() - .5) * 2400, -2200, 2200);
+    const x = clamp(from.x + (Math.random() - .5) * 3000, -(ARENA - 500), ARENA - 500), z = clamp(from.z + (Math.random() - .5) * 3000, -(ARENA - 500), ARENA - 500);
     if (Math.hypot(x - from.x, z - from.z) < 400) continue;
     let peak = 0; for (let k = 1; k <= 16; k++) { const t = k / 16; peak = Math.max(peak, terrainHeight(from.x+(x-from.x)*t, from.z+(z-from.z)*t)); }
     // pick a random altitude in the band, but clear any terrain
@@ -1266,6 +1273,11 @@ function chooseScoutWaypoint(s) {
 function stepScout(s, h) {
   s.prev.copy(s.pos); s.waypointTimer -= h; s.routeTimer -= h;
   if (!s.waypoint || s.waypointTimer <= 0 || s.pos.distanceToSquared(s.waypoint) < 110 * 110) chooseScoutWaypoint(s);
+  // Look ~20 s ahead: if that point is near the border, head back towards the middle now (turn circle up to ~0.8 km).
+  const lx = s.pos.x + s.vel.x * 20, lz = s.pos.z + s.vel.z * 20;
+  if (Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.hypot(s.waypoint.x - s.pos.x * .3, s.waypoint.z - s.pos.z * .3) > 50) {
+    s.waypoint.set(s.pos.x * .3, s.waypoint.y, s.pos.z * .3); s.waypointTimer = 30;   // near the border → head back in
+  }
   else if (s.hdg !== undefined) {
     // Waypoint inside our turn circle and off to the side → can't reach it without orbiting: count it as passed.
     const r = s.spd * s.spd / (9.81 * Math.tan(.52)), wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z;
@@ -1292,6 +1304,7 @@ function stepScout(s, h) {
   s.vy = moveToward(s.vy || 0, vy, 2 * h);
   s.vel.set(-Math.sin(s.hdg) * s.spd + wind.x, s.vy + wind.y * .6, -Math.cos(s.hdg) * s.spd + wind.z);   // ground velocity
   s.pos.addScaledVector(s.vel, h);
+  s.pos.x = clamp(s.pos.x, -ARENA, ARENA); s.pos.z = clamp(s.pos.z, -ARENA, ARENA);   // hard border
   const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 60) { s.pos.y = lerp(s.pos.y, gh + 60, .05); s.vy = Math.max(s.vy || 0, 4); } if (s.pos.y > 650) s.pos.y = lerp(s.pos.y, 620, .05);
   s.yaw = s.hdg; s.roll = s.bank;
   s.pitch = damp(s.pitch, Math.asin(clamp((s.vy || 0) / Math.max(1, s.spd), -.3, .3)), 3, h);   // nose on the flight path
@@ -1308,15 +1321,25 @@ function stepBird(a, h) {
   const x = a.center.x + c * a.rx, z = a.center.z + s * a.rz, y = terrainHeight(x, z) + a.hoverH + Math.sin(state.time * .35 + a.phase) * 6;
   a.vel.set(-s * a.rx * a.angSpeed, (y - a.pos.y) / h, c * a.rz * a.angSpeed); a.pos.set(x, y, z); a.yaw = Math.atan2(-a.vel.x, -a.vel.z);
 }
+// Airliners fly between destinations inside the arena with standard-rate-ish turns (~25° bank). They look ~25 s ahead
+// and pick a new destination toward the middle before they would cross the border — nothing leaves the map.
 function stepPlane(a, h) {
+  if (a.hdg === undefined) a.hdg = a.yaw;
+  const fx = -Math.sin(a.hdg), fz = -Math.cos(a.hdg), lookX = a.pos.x + fx * a.speed * 40, lookZ = a.pos.z + fz * a.speed * 40;
+  const leaving = Math.max(Math.abs(lookX), Math.abs(lookZ)) > ARENA - 300;   // ~40 s look-ahead: turn circle is ~1 km
+  if (!a.goal || Math.hypot(a.goal.x - a.pos.x, a.goal.z - a.pos.z) < 700 || (leaving && !a.turningIn)) {
+    a.goal = leaving ? {x:randInside(ARENA * .55), z:randInside(ARENA * .55)} : {x:randInside(900), z:randInside(900)}; a.turningIn = leaving;
+  }
+  if (!leaving) a.turningIn = false;
+  const want = Math.atan2(-(a.goal.x - a.pos.x), -(a.goal.z - a.pos.z)), maxRate = 9.81 * Math.tan(.44) / a.speed;
+  a.turn = moveToward(a.turn || 0, clamp(wrapAngle(want - a.hdg) * .4, -maxRate, maxRate), maxRate * .3 * h);
+  a.hdg += a.turn * h;
+  a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
   a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
+  a.pos.x = clamp(a.pos.x, -ARENA, ARENA); a.pos.z = clamp(a.pos.z, -ARENA, ARENA);
   // smooth altitude oscillation — stays 200–600m
   a.altPhase += h * .06; const targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);
   a.pos.y += (targetY - a.pos.y) * (1 - Math.exp(-0.4 * h));
-  if (Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z)) > 4000) {
-    const ang = Math.random() * TAU; a.pos.set(Math.cos(ang) * 3800, clamp(a.altBase, 200, 600), Math.sin(ang) * 3800);
-    aimPlane(a, (Math.random()-.5)*4800, (Math.random()-.5)*4800); a.prev.copy(a.pos); a.identified = false; state.ignoredTargets.delete(a);
-  }
 }
 function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
@@ -1339,7 +1362,7 @@ function spawnRandomTraffic() {
   for (let tries = 0; tries < 12; tries++) {
     const a = Math.random() * TAU, d = 1600 + Math.random() * 1000;
     const x = state.pos.x + Math.cos(a) * d, z = state.pos.z + Math.sin(a) * d;
-    if (Math.max(Math.abs(x), Math.abs(z)) > 2200) continue;
+    if (Math.max(Math.abs(x), Math.abs(z)) > ARENA - 400) continue;
     if (kind === 'scout') { const k = ['light', 'heavy', 'fast'][Math.floor(Math.random() * 3)]; createScout(k, 'normal', new THREE.Vector3(x, terrainHeight(x, z) + 140 + Math.random() * 180, z)); }
     else if (kind === 'birds') createBirdFlock(x, z, 6 + Math.floor(Math.random() * 6), 200 + Math.random() * 150);
     else createPassengerPlane(x, 240 + Math.random() * 320, z);
@@ -1580,7 +1603,12 @@ function attackGuidance(t, G) {
   // Gentle closure (planned 1.5 m/s² braking), and slower still while the target is turning so we don't fly
   // through its turn and weave across its track (the S-shape).
   const turning = smoothstep(.03, .1, Math.abs(t.turnRate || 0)) * (1 - smoothstep(250, 600, R3));
-  const closure = Math.min(V_DASH - Vt, Math.max(4, (Math.sqrt(2 * 1.5 * Math.max(0, R3 - 15)) + 5) * (1 - .4 * turning)));
+  // Closing-speed profile. Far behind: catch up fast but arrive at its tail (~350 m) at a calm +10 m/s.
+  // Then — only once established on its tail — build up steadily to a fast +32 m/s finish so the hit is certain.
+  const onTail = smoothstep(.55, .85, est);
+  const approach = Math.sqrt(100 + 2 * 1.5 * Math.max(0, R3 - 350));          // = 10 m/s at 350 m
+  const sprint = 10 + 22 * smoothstep(350, 25, R3);                            // 10 → 32 m/s while closing in
+  const closure = Math.min(V_DASH - Vt, R3 > 350 ? approach : lerp(Math.min(8, approach), sprint, onTail) * (1 - .25 * turning));
   const vTurn = Math.max(Vt + 12, 58), vFit = clamp(Math.sqrt(.45 * R * 9.81 * Math.tan(BANK_COMBAT)), vTurn, V_DASH);
   const turnLeft = smoothstep(.15, .6, (1 - align) / 2);
   const vBehind = Vt + closure, vAround = lerp(V_DASH, vFit, turnLeft);
@@ -1648,7 +1676,7 @@ function stepPowerLoss(h) {
   const sp = state.vel.length(), drag = .0009 * sp;   // quadratic drag, terminal velocity ~105 m/s
   state.vel.multiplyScalar(Math.max(0, 1 - drag * h));
   state.cruiseSpeed = Math.hypot(state.vel.x, state.vel.z);
-  state.pos.addScaledVector(state.vel, h); state.pos.x += wind.x * h; state.pos.z += wind.z * h;
+  state.pos.addScaledVector(state.vel, h); state.pos.x = clamp(state.pos.x + wind.x * h, -ARENA, ARENA); state.pos.z = clamp(state.pos.z + wind.z * h, -ARENA, ARENA);
   // Nose follows the flight path down; slight uncommanded roll and yaw drift as it tumbles.
   const fpa = Math.atan2(state.vel.y, Math.max(1, state.cruiseSpeed));
   state.modeBlend = damp(state.modeBlend, 0, 1.5, h);
@@ -1773,7 +1801,9 @@ function physicsStep(h) {
   }
   // Keep inside the play area.
   // Keep inside the play area (mountain wall beyond ~2.6 km). A chase may run closer to the wall.
-  if (Math.max(Math.abs(px), Math.abs(pz)) > (state.pursuitMode ? 2750 : 2550)) { G_.aim.set(0, G_.alt, 0); if (!state.pursuitMode) G_.speed = Math.min(G_.speed, V_CRUISE); }
+  if (Math.max(Math.abs(px), Math.abs(pz)) > ARENA - (state.pursuitMode ? 150 : 400)) { G_.aim.set(0, G_.alt, 0); if (!state.pursuitMode) G_.speed = Math.min(G_.speed, V_CRUISE); }
+  // Never fly at the border: steer the aim point back inside.
+  G_.aim.x = clamp(G_.aim.x, -(ARENA - 200), ARENA - 200); G_.aim.z = clamp(G_.aim.z, -(ARENA - 200), ARENA - 200);
   // Terrain floor along the remaining straight route to the aim point (refreshed 4×/s).
   state.floorTimer = (state.floorTimer || 0) - h;
   if (state.floorTimer <= 0) {
@@ -1822,6 +1852,7 @@ function physicsStep(h) {
   // Ground velocity = air velocity along the flight path + wind (incl. gusts and vertical turbulence).
   state.vel.set(fx * cg * state.cruiseSpeed + wind.x, sg * state.cruiseSpeed + wind.y, fz * cg * state.cruiseSpeed + wind.z);
   state.pos.addScaledVector(state.vel, h);
+  state.pos.x = clamp(state.pos.x, -ARENA, ARENA); state.pos.z = clamp(state.pos.z, -ARENA, ARENA);   // hard border
   state.altCmd = goalY;
   const groundY = terrainHeight(state.pos.x, state.pos.z);
   if (state.pos.y < groundY + 3) {
@@ -2000,7 +2031,7 @@ function updateEnvironment(rdt) {
   hemi.intensity = lerp(.42, 2.0, daylight) * (1 - ws * .35); sun.intensity = lerp(.18, 3.0, daylight) * (1 - ws * .5); fill.intensity = lerp(.18, .7, daylight);
   renderer.toneMappingExposure = lerp(.78, 1.05, daylight);
   cloudMat.opacity = .28 + ws * .5; cloudMat.color.setRGB(1, 1, 1).lerp(tmpC2.set(0x2a3342), 1 - daylight);
-  for (const c of cloudGroup.children) { c.position.x += 6 * edt; if (c.position.x > 4200) c.position.x -= 8400; }
+  for (const c of cloudGroup.children) { c.position.x += 6 * edt; if (c.position.x > ARENA + 1500) c.position.x -= 2 * (ARENA + 1500); }
   scene.background.copy(skyU.uHorizon.value); scene.fog.color.copy(skyU.uHorizon.value);
   if (thermalOn) { paletteRGB(.03); scene.background.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); scene.fog.color.copy(scene.background); scene.fog.near = 250; scene.fog.far = lerp(2600, 1100, ws); }
   skyGroup.visible = !thermalOn; cloudGroup.visible = !thermalOn; skyGroup.position.copy(camera.position);
@@ -2040,6 +2071,8 @@ function updateVisuals(alpha, rdt) {
 // shapeRange = distance where the shape is about half-resolved (doubled twice vs. the first version).
 const SHAPE_RANGE = {light:800, fast:850, heavy:1000, plane:1200, birds:440};
 function shapeRange(c) { return SHAPE_RANGE[truthClass(c)] * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
+// Beyond this the eye/sensor simply can't pick it out — nothing is drawn; it fades in over the last quarter.
+function visualRange(c) { return shapeRange(c) * 1.4; }
 function blurAmount(c, d) { return smoothstep(shapeRange(c) * .15, shapeRange(c) * 1.6, d); }   // 0 sharp … 1 unresolved
 const IMP_RES = 128;
 const impScene = new THREE.Scene();
@@ -2055,8 +2088,7 @@ const IMP_FS = `uniform sampler2D map; uniform float bias, gain, roundness, fogN
     float r = length(vUv - 0.5);
     float mask = 1.0 - smoothstep(mix(0.5, 0.12, roundness), 0.5, r);   // blurry → round spot, not a square
     t *= mask * gain;
-    float f = smoothstep(fogNear, fogFar, vDepth);
-    t.rgb = mix(t.rgb, fogColor * t.a, f);
+    t *= 1.0 - 0.9 * smoothstep(fogNear, fogFar, vDepth);   // haze fades it out (no bright fog-coloured glare)
     gl_FragColor = t;
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -2084,7 +2116,9 @@ const _ip = new THREE.Vector3();
 function updateContactView(c) {
   const g = c.group, alive = !(c.destroyed || c.tagged || c.removed);
   if (!alive) { if (c.imp) c.imp.quad.visible = false; return; }
-  const d = camera.position.distanceTo(g.position), bt = blurAmount(c, d);
+  const d = camera.position.distanceTo(g.position), bt = blurAmount(c, d), vr = visualRange(c);
+  if (d > vr) { if (g.parent === scene) scene.remove(g); if (c.imp) c.imp.quad.visible = false; if (c.trail) c.trail.visible = false; return; }
+  const appear = 1 - smoothstep(vr * .75, vr, d);
   if (bt < .02) {                                             // sharp: draw the real model
     if (g.parent !== scene) scene.add(g);
     g.visible = true; if (c.trail) c.trail.visible = thermalOn; if (c.imp) c.imp.quad.visible = false; return;
@@ -2108,8 +2142,8 @@ function updateContactView(c) {
   const u = imp.mat.uniforms;
   u.bias.value = bt * 6.5; u.roundness.value = smoothstep(.25, .8, bt);
   // Spreading the light over a bigger spot keeps it visible; visibility itself depends on sensor conditions.
-  const vis = thermalOn ? lerp(1, Math.exp(-d / lerp(2600, 800, ws)) * 1.4, bt) : lerp(1, (.25 + .75 * daylight) * (1 - .6 * ws), bt);
-  u.gain.value = (1 + bt * 1.6) * vis;
+  const vis = thermalOn ? lerp(1, Math.min(1, Math.exp(-d / lerp(2600, 800, ws)) * 1.3), bt) : lerp(1, (.25 + .75 * daylight) * (1 - .6 * ws), bt);
+  u.gain.value = Math.min(1, vis) * appear;
   const fg = scene.fog; u.fogNear.value = fg.near; u.fogFar.value = fg.far; u.fogColor.value.copy(fg.color);
   if (imp.mat.toneMapped === thermalOn) { imp.mat.toneMapped = !thermalOn; imp.mat.needsUpdate = true; }
 }
