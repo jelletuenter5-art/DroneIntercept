@@ -161,7 +161,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div><div class="hudfoot" id="sensorHud">SENSOR</div></div><div id="eventLog"></div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option><option value="cessna">Light aircraft (civil)</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -489,6 +489,49 @@ for (let i = 0; i < 16; i++) {
   const cx = (Math.random() - .5) * 7000, cz = (Math.random() - .5) * 7000, cy = 620 + Math.random() * 260;
   for (let k = 0; k < 4; k++) { const s = new THREE.Sprite(cloudMat); const w = 600 + Math.random() * 600; s.scale.set(w, w * (.3 + Math.random() * .15), 1); s.position.set(cx + (Math.random() - .5) * 700, cy + (Math.random() - .5) * 40, cz + (Math.random() - .5) * 500); cloudGroup.add(s); }
 }
+// ── Cloud banks you can fly through ──
+// Soft ellipsoid cloud volumes at 300-650 m drifting with the wind. More (and denser) in poor weather. Inside one the
+// view whites out; looking through one blocks the camera (thermal sees through partly); radar is unaffected.
+// Scouts flying in or behind a cloud are hidden from the eye — but not from radar.
+const cloudBanks = [];
+for (let i = 0; i < 20; i++) {
+  const b = {c:new THREE.Vector3(randInside(300), 300 + Math.random() * 300, randInside(300)), rx:220 + Math.random() * 230, rz:190 + Math.random() * 210, ry:45 + Math.random() * 40, rank:Math.random(), sprites:[]};
+  const g = new THREE.Group(); scene.add(g); b.group = g;
+  const n = 14 + Math.floor(Math.random() * 8);
+  for (let k = 0; k < n; k++) {
+    const m = new THREE.Sprite(new THREE.SpriteMaterial({map:cloudMat.map, transparent:true, depthWrite:false, opacity:.6, fog:true}));
+    const u = Math.random() * TAU, v = Math.acos(2 * Math.random() - 1), r = Math.cbrt(Math.random()) * .75;
+    m.position.set(Math.sin(v) * Math.cos(u) * r * b.rx, Math.cos(v) * r * b.ry * .8, Math.sin(v) * Math.sin(u) * r * b.rz);
+    const w = (b.rx + b.rz) * (.35 + Math.random() * .3); m.scale.set(w, w * (.45 + Math.random() * .2), 1); m.renderOrder = 3;
+    g.add(m); b.sprites.push(m);
+  }
+  cloudBanks.push(b);
+}
+const cloudCover = () => .35 + .9 * (state.weatherStrength || 0);    // share of banks present: ~35 % clear … all in rain
+// Cloud density at a point (0 = clear air … 1 = deep inside).
+function cloudDensity(x, y, z) {
+  let d = 0; const cov = cloudCover();
+  for (const b of cloudBanks) { if (b.rank > cov) continue;
+    const q = ((x - b.c.x) / b.rx) ** 2 + ((y - b.c.y) / b.ry) ** 2 + ((z - b.c.z) / b.rz) ** 2; if (q < 1) d = Math.max(d, 1 - q); }
+  return d;
+}
+// How much cloud lies between two points (0 = clear line of sight; ~1 = through a whole cloud).
+function cloudBetween(a, b) {
+  let sum = 0; const n = 10;
+  for (let i = 1; i < n; i++) { const t = i / n; sum += cloudDensity(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t); }
+  return sum / n * Math.min(4, a.distanceTo(b) / 150);
+}
+function updateCloudBanks(edt, daylight) {
+  const cov = cloudCover();
+  for (const b of cloudBanks) {
+    b.c.x += wind.x * edt * .8; b.c.z += wind.z * edt * .8;
+    if (b.c.x > ARENA + 600) b.c.x -= 2 * (ARENA + 600); if (b.c.x < -ARENA - 600) b.c.x += 2 * (ARENA + 600);
+    if (b.c.z > ARENA + 600) b.c.z -= 2 * (ARENA + 600); if (b.c.z < -ARENA - 600) b.c.z += 2 * (ARENA + 600);
+    b.group.position.copy(b.c); b.group.visible = !thermalOn && b.rank <= cov;
+    const op = .68 + .22 * (state.weatherStrength || 0);
+    for (const m of b.sprites) { m.material.opacity = op; m.material.color.setRGB(1, 1, 1).lerp(tmpC2.set(0x2a3342), 1 - daylight); }
+  }
+}
 
 // ───────────────────────── Launch pad & player aircraft ─────────────────────────
 const launchPadY = terrainHeight(0, 0);
@@ -690,8 +733,44 @@ const LIVERIES = [
 ];
 const PLANE_BUILDERS = [buildWidebody, buildNarrowbody, buildRegional];
 const PLANE_SCALES   = [2.1, 1.75, 1.4];   // ~12 % smaller than before
-const PLANE_SPEEDS   = [[52,68],[58,78],[64,88]];
+const PLANE_SPEEDS   = [[188,200],[182,196],[175,190]];   // ~650-720 km/h: they pass through the area
 const PLANE_SIZES    = [48, 37, 26];
+// ── Aircraft lights (airliners): red nav light on the left wingtip, green on the right, white on the tail,
+// a flashing red anti-collision beacon on top & bottom and white double-flash wingtip strobes.
+// Bright at night, strobes faintly visible by day; not visible in thermal. Drawn as glow sprites so they also show
+// when the aircraft itself is a blurred far-away spot.
+const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.2, 'rgba(255,255,255,.8)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const LIGHT_LAYOUT = [ // [wingtip x, wingtip z, tail y, tail z, body top y] in builder units per airliner type
+  [22.2, 1.0, 2.9, 11.6, 1.05], [17.6, .6, 2.4, 9.6, .85], [12.6, 1.3, 1.9, 7.8, .7]];
+function addAircraftLights(a) {
+  const [wx, wz, ty, tz, by] = LIGHT_LAYOUT[a.planeType] || LIGHT_LAYOUT[1];
+  const L = (x, y, z, color, kind, size) => { const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false, toneMapped:false}));
+    spr.renderOrder = 4; scene.add(spr); return {p:new THREE.Vector3(x, y, z), kind, size, spr}; };
+  a.lights = [L(-wx, 0, wz, 0xff2020, 'nav', 1.6), L(wx, 0, wz, 0x20ff50, 'nav', 1.6), L(0, ty, tz, 0xffffff, 'nav', 1.3),
+    L(0, by, -1, 0xff2a10, 'beacon', 2.2), L(0, -by, -1, 0xff2a10, 'beacon', 2.2), L(-wx, 0, wz + .3, 0xffffff, 'strobe', 3), L(wx, 0, wz + .3, 0xffffff, 'strobe', 3)];
+  a.lightPhase = Math.random() * 3;
+}
+const _lw = new THREE.Vector3();
+function updateAircraftLights() {
+  const daylight = clamp((Math.cos(state.dayClock || 0) + .28) / .75, 0, 1), dark = 1 - daylight, ws = state.weatherStrength || 0;
+  for (const a of ambientActors) {
+    if (!a.lights) continue;
+    a.group.updateMatrixWorld(true);
+    const t = state.time + a.lightPhase;
+    const beacon = (t % 1.2) < .12 ? 1 : 0, strobe = ((t % 1.4) < .05 || ((t % 1.4) > .12 && (t % 1.4) < .17)) ? 1 : 0;
+    for (const l of a.lights) {
+      _lw.copy(l.p).applyMatrix4(a.group.matrixWorld); l.spr.position.copy(_lw);
+      const d = camera.position.distanceTo(_lw), att = Math.exp(-d / lerp(9000, 2500, ws));
+      const on = l.kind === 'nav' ? .2 + .8 * dark : l.kind === 'beacon' ? beacon * (.35 + .65 * dark) : strobe * (.6 + .4 * dark);
+      l.spr.visible = !thermalOn && on * att > .02;
+      if (!l.spr.visible) continue;
+      l.spr.material.opacity = Math.min(1, on * att * (l.kind === 'nav' ? 1 : 1.3));
+      l.spr.scale.setScalar(Math.max(l.size, d * (l.kind === 'strobe' ? .013 : l.kind === 'beacon' ? .011 : .009)));   // stays a visible point far away
+    }
+  }
+}
 function createPassengerPlane(x, y, z, planeType) {
   const t = planeType !== undefined ? planeType : Math.floor(Math.random() * 3);
   const g = new THREE.Group(); scene.add(g);
@@ -699,12 +778,13 @@ function createPassengerPlane(x, y, z, planeType) {
   PLANE_BUILDERS[t](g, livery);
   g.scale.setScalar(PLANE_SCALES[t]); registerGroup(g, .28, true); g.position.set(x, y, z);
   const [sMin, sMax] = PLANE_SPEEDS[t];
-  // Altitude 200–600m, smooth slow variation in flight
-  const altTarget = 220 + Math.random() * 360;
+  // Altitude 280–750 m, smooth slow variation in flight
+  const altTarget = 280 + Math.random() * 470;
   const a = {type:'plane', kind:'plane', isAmbient:true, group:g, pos:new THREE.Vector3(x,y,z), prev:new THREE.Vector3(x,y,z), vel:new THREE.Vector3(),
     altBase:altTarget, altPhase:Math.random()*TAU, altAmp: 10 + Math.random()*30,
-    speed:sMin + Math.random()*(sMax-sMin), yaw:0, size:PLANE_SIZES[t], detect:2600, sig:.88, curiosity:Math.random()*.5, identified:false, planeType:t};
-  aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
+    speed:sMin + Math.random()*(sMax-sMin), yaw:0, size:PLANE_SIZES[t], detect:2600, sig:.88, curiosity:Math.random()*.5, identified:false, planeType:t, transit:true};
+  // Airliners are through-traffic: a straight line across the area, then they leave and are removed.
+  aimPlane(a, randInside(ARENA * .55), randInside(ARENA * .55)); a.hdg = a.yaw; ambientActors.push(a); addAircraftLights(a); return a;
 }
 // Small civilian hobby plane (high wing, ~11 m span) — about the size of a prop scout, so they are easy to mix up.
 function createLightPlane(x, z) {
@@ -964,6 +1044,7 @@ function drawMap() {
   const drawMapContact = c => {
     if (!hasTrack(c)) return;
     const live = c.detected, e = trackPos(c, _est), [mx, mz] = worldToMap(e.x, e.z);
+    if (c.transit && Math.max(Math.abs(e.x), Math.abs(e.z)) > ARENA - 100) { c.trk.lost = true; return; }   // estimate has left the area
     const isT = c === tgt && state.pursuitMode, sig = trackSigma(c) / MAP_WORLD * MAP_SIZE, age = state.time - c.trk.seen;
     if (!live) {
       // uncertainty circle, clipped to the area (nothing can be outside it)
@@ -1123,16 +1204,31 @@ function spawnScoutAhead(kind, diff, minD = 700, maxD = 1400) {
   const y = terrainHeight(x, z) + 170; const s = createScout(kind, diff, new THREE.Vector3(x, y, z));
   return {s, d:Math.hypot(x - state.pos.x, z - state.pos.z), y};
 }
+// New through-traffic: appears beyond one edge of the area and heads across it.
+function spawnTransitAirliner() {
+  const side = Math.floor(Math.random() * 4), along = randInside(600), off = ARENA + 1400;
+  const x = side === 0 ? -off : side === 1 ? off : along, z = side === 2 ? -off : side === 3 ? off : along;
+  return createPassengerPlane(x, 280 + Math.random() * 470, z);
+}
+// Spawn button: an airliner 2.5-3.5 km out that will pass near the drone.
 function spawnAirlinerNearby() {
-  const a = Math.random() * Math.PI * 2, d = 1200 + Math.random() * 1200;
-  const x = clamp(state.pos.x + Math.cos(a) * d, -2800, 2800), z = clamp(state.pos.z + Math.sin(a) * d, -2800, 2800);
-  const y = 220 + Math.random() * 360;
-  createPassengerPlane(x, y, z);
-  toast('Civilian airliner spawned ' + Math.round(d) + ' m out');
+  const ang = Math.random() * TAU, d = 2500 + Math.random() * 1000;
+  const a = createPassengerPlane(state.pos.x + Math.cos(ang) * d, 280 + Math.random() * 470, state.pos.z + Math.sin(ang) * d);
+  aimPlane(a, state.pos.x + randInside(ARENA - 400), state.pos.z + randInside(ARENA - 400)); a.hdg = a.yaw;
+  toast('Civilian airliner spawned ' + Math.round(d) + ' m out · passing through');
 }
 function spawnSelected() {
   const kind = $('quickScoutType')?.value || 'heavy';
   if (kind === 'airliner') { spawnAirlinerNearby(); return; }
+  if (kind === 'cessna') {                                  // civilian hobby plane ahead of the drone, random livery
+    for (let tries = 0; tries < 12; tries++) {
+      const a = state.rot.y + (Math.random() - .5) * 1.6, d = 900 + Math.random() * 600;
+      const x = state.pos.x - Math.sin(a) * d, z = state.pos.z - Math.cos(a) * d;
+      if (Math.max(Math.abs(x), Math.abs(z)) > ARENA - 400) continue;
+      createLightPlane(x, z); toast('Light aircraft spawned · ' + Math.round(d) + ' m out'); return;
+    }
+    toast('No room to spawn here'); return;
+  }
   const diff = $('difficulty')?.value || 'normal';
   const r = spawnScoutAhead(kind, diff);
   if (r) toast(`${SCOUT_SPEC[kind].label} spawned · ${Math.round(r.d)} m out · ${Math.round(r.y)} m altitude`);
@@ -1170,23 +1266,77 @@ function getInput() {
   for (const pad of pads) { if (pad) { if (Math.abs(pad.axes[0] || 0) > .12) r = -pad.axes[0]; if (Math.abs(pad.axes[1] || 0) > .12) p = -pad.axes[1]; if (pad.buttons[7]?.pressed) z = 1; if (pad.buttons[6]?.pressed) z = -1; break; } }
   return {p, r, y, z, boost};
 }
-function explodeAt(position, scale = 1) {
-  const g = new THREE.Group(); g.position.copy(position); scene.add(g);
-  const core = new THREE.Mesh(new THREE.SphereGeometry(1,12,10), new THREE.MeshBasicMaterial({color:0xffb24b, transparent:true, opacity:.95})); g.add(core);
-  const particles = [];
-  for (let i = 0; i < 22; i++) {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(.12 + rnd()*.2, 6, 5), new THREE.MeshBasicMaterial({color:i%3===0?0xffe6a1:i%3===1?0xff6a26:0x555a60, transparent:true, opacity:.95}));
-    m.position.set((rnd()-.5)*1.2, (rnd()-.5)*1.2, (rnd()-.5)*1.2); g.add(m); particles.push({mesh:m, v:new THREE.Vector3((rnd()-.5)*18, rnd()*13, (rnd()-.5)*18)});
+// Explosion: bright flash, rolling fireball, rising/expanding smoke that drifts with the wind, and tumbling debris
+// (partly in the wreck's own colour) that keeps some of the aircraft's momentum, trails smoke while falling, kicks up
+// dust where it lands and then lies on the ground for a while. Debris glows in thermal; smoke is invisible there.
+function explodeAt(position, scale = 1, vel = null, tint = 0x3a3f46) {
+  const g = new THREE.Group(); scene.add(g);
+  const ex = {group:g, age:0, scale, fire:[], smoke:[], debris:[], trails:[], life:13};
+  const V0 = vel ? vel.clone().multiplyScalar(.35) : new THREE.Vector3();
+  const spr = (color, add, opacity) => { const m = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color, transparent:true, depthWrite:false, opacity,
+    blending:add ? THREE.AdditiveBlending : THREE.NormalBlending, toneMapped:!add})); g.add(m); return m; };
+  const rdir = () => new THREE.Vector3(rnd() - .5, rnd() - .5, rnd() - .5).normalize();
+  ex.flash = spr(0xfff0c8, true, 1); ex.flash.position.copy(position); ex.flash.scale.setScalar(26 * scale);
+  for (let i = 0; i < 10; i++) {
+    const f = spr(i % 3 === 0 ? 0xffd27a : i % 3 === 1 ? 0xff8a2a : 0xff5a14, true, .95);
+    f.position.copy(position).addScaledVector(rdir(), 1.5 * scale);
+    ex.fire.push({s:f, v:rdir().multiplyScalar((3 + rnd() * 6) * scale).add(V0), grow:(5 + rnd() * 7) * scale, life:.8 + rnd() * .7});
   }
-  state.explosions.push({group:g, core, particles, age:0, scale});
+  for (let i = 0; i < 12; i++) {
+    const m = spr(i % 2 ? 0x2b2d30 : 0x3a3c40, false, 0); m.position.copy(position).addScaledVector(rdir(), 2 * scale);
+    ex.smoke.push({s:m, v:rdir().multiplyScalar((1 + rnd() * 3) * scale).add(new THREE.Vector3(0, 2 + rnd() * 2, 0)).addScaledVector(V0, .4),
+      delay:.1 + rnd() * .6, grow:(10 + rnd() * 12) * scale, life:6 + rnd() * 4, op:.45 + rnd() * .2});
+  }
+  const n = Math.round(10 + 6 * scale);
+  for (let i = 0; i < n; i++) {
+    const sz = (.25 + rnd() * .9) * Math.sqrt(scale);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sz * (.6 + rnd()), sz * (.2 + rnd() * .4), sz * (.5 + rnd())), new THREE.MeshStandardMaterial({color:rnd() < .55 ? tint : 0x1a1c1f, roughness:.85, metalness:.2}));
+    m.position.copy(position); th(m, .82); g.add(m);
+    ex.debris.push({m, v:rdir().multiplyScalar((10 + rnd() * 26) * Math.sqrt(scale)).add(new THREE.Vector3(0, 4 + rnd() * 12, 0)).add(V0),
+      w:new THREE.Vector3((rnd() - .5) * 14, (rnd() - .5) * 14, (rnd() - .5) * 14), landed:false, trailT:0});
+  }
+  ex.spr = spr;
+  state.explosions.push(ex);
 }
 function updateExplosions(h) {
   if (!state.explosions.length) return;
   for (const ex of state.explosions) {
-    ex.age += h; ex.core.scale.setScalar(1 + ex.age * 9 * ex.scale); ex.core.material.opacity = Math.max(0, 1 - ex.age * 1.8);
-    for (const p of ex.particles) { p.mesh.position.addScaledVector(p.v, h); p.v.y -= 9.8 * h; p.mesh.material.opacity = Math.max(0, 1 - ex.age * 1.5); }
+    ex.age += h; const a = ex.age;
+    ex.flash.material.opacity = Math.max(0, 1 - a * 7); ex.flash.scale.setScalar(26 * ex.scale * (1 + a * 3)); ex.flash.visible = a < .2;
+    for (const f of ex.fire) {
+      const t = a / f.life; f.s.visible = t < 1; if (!f.s.visible) continue;
+      f.v.multiplyScalar(Math.exp(-2.2 * h)); f.v.y += 3 * h; f.s.position.addScaledVector(f.v, h);
+      f.s.scale.setScalar(f.grow * (.35 + .65 * Math.sqrt(t))); f.s.material.opacity = .95 * (1 - t) ** 1.5;
+    }
+    for (const sm of ex.smoke) {
+      const ts = (a - sm.delay) / sm.life; sm.s.visible = !thermalOn && ts > 0 && ts < 1; if (!sm.s.visible) continue;
+      sm.v.multiplyScalar(Math.exp(-.4 * h)); sm.s.position.addScaledVector(sm.v, h); sm.s.position.x += wind.x * .8 * h; sm.s.position.z += wind.z * .8 * h;
+      sm.s.scale.setScalar(sm.grow * (.25 + .75 * Math.sqrt(ts))); sm.s.material.opacity = sm.op * (1 - ts) * Math.min(1, ts * 8);
+    }
+    for (const d of ex.debris) {
+      if (d.landed) continue;
+      d.v.y -= 9.81 * h; d.v.multiplyScalar(Math.exp(-.12 * h)); d.m.position.addScaledVector(d.v, h);
+      d.m.rotation.x += d.w.x * h; d.m.rotation.y += d.w.y * h; d.m.rotation.z += d.w.z * h;
+      const gy = terrainHeight(d.m.position.x, d.m.position.z) + .15;
+      if (d.m.position.y < gy) {                           // hits the ground: stop, dust puff
+        d.m.position.y = gy; d.landed = true;
+        const p = ex.spr(0x8a8070, false, .5); p.position.copy(d.m.position); ex.trails.push({s:p, age:0, life:2.2, grow:6 * Math.sqrt(ex.scale), op:.45});
+      } else if (a < 4) {                                  // smoke trail while falling
+        d.trailT -= h; if (d.trailT <= 0) { d.trailT = .07; const p = ex.spr(0x4a4c50, false, .4); p.position.copy(d.m.position); ex.trails.push({s:p, age:0, life:1.5, grow:2.5 * Math.sqrt(ex.scale), op:.4}); }
+      }
+    }
+    for (const tr of ex.trails) {
+      tr.age += h; const t = tr.age / tr.life; tr.s.visible = !thermalOn && t < 1;
+      if (t >= 1) { if (tr.s.parent) { ex.group.remove(tr.s); tr.s.material.dispose(); } continue; }
+      tr.s.position.y += .8 * h; tr.s.scale.setScalar(tr.grow * (.3 + .7 * t)); tr.s.material.opacity = tr.op * (1 - t);
+    }
+    ex.trails = ex.trails.filter(tr => tr.age < tr.life);
   }
-  state.explosions = state.explosions.filter(ex => { if (ex.age > 1.4) { scene.remove(ex.group); ex.group.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); }); return false; } return true; });
+  state.explosions = state.explosions.filter(ex => { if (ex.age > ex.life) { disposeExplosion(ex); return false; } return true; });
+}
+function disposeExplosion(ex) {
+  scene.remove(ex.group);
+  ex.group.traverse(o => { if (o.isMesh) thermalReg.delete(o); if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
 }
 
 // ───────────────────────── AI: contact search, classification, pursuit ─────────────────────────
@@ -1367,6 +1517,14 @@ function stepBird(a, h) {
 // and pick a new destination toward the middle before they would cross the border — nothing leaves the map.
 function stepPlane(a, h) {
   if (a.hdg === undefined) a.hdg = a.yaw;
+  if (a.transit) {                                         // straight through the area at cruise speed, then gone
+    a.bank = 0; a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
+    a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
+    a.altPhase += h * .06; const ty = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 250, 800), py = a.pos.y;
+    a.pos.y += (ty - a.pos.y) * (1 - Math.exp(-0.4 * h)); a.vel.y = (a.pos.y - py) / h;
+    if (Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z)) > ARENA + 1800 && a.pos.x * a.vel.x + a.pos.z * a.vel.z > 0) a.gone = true;
+    return;
+  }
   const fx = -Math.sin(a.hdg), fz = -Math.cos(a.hdg), lookX = a.pos.x + fx * a.speed * 40, lookZ = a.pos.z + fz * a.speed * 40;
   const leaving = Math.max(Math.abs(lookX), Math.abs(lookZ)) > ARENA - 300;   // ~40 s look-ahead: turn circle is ~1 km
   const out = Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z));
@@ -1392,6 +1550,7 @@ function stepPlane(a, h) {
 function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
   for (const a of ambientActors) { a.prev.copy(a.pos); if (a.type === 'birds') stepBird(a, h); else stepPlane(a, h); }
+  for (const a of ambientActors.filter(x => x.gone)) removeAmbient(a);
   // Random traffic: every 15-45 s something new appears 1.6-2.6 km from the drone (usually outside radar range).
   // No announcement — the radar has to find it.
   state.replenishTimer -= h;
@@ -1402,6 +1561,12 @@ function updateWorld(h) {
 
 }
 
+function removeAmbient(a) {
+  if (state.aiTarget === a) { if (state.pursuitMode) endPursuit('TARGET LEFT THE AREA · pursuit ended'); else state.aiTarget = null; }
+  state.ignoredTargets.delete(a);
+  const i = ambientActors.indexOf(a); if (i >= 0) ambientActors.splice(i, 1);
+  scene.remove(a.group); unregisterGroup(a.group); disposeImpostor(a); if (a.lights) for (const l of a.lights) scene.remove(l.spr);
+}
 function spawnRandomTraffic() {
   const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length, nC = ambientActors.filter(x => x.type === 'cessna').length;
   const opts = []; if (nS < 6) opts.push('scout', 'scout'); if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane'); if (nC < 4) opts.push('cessna');
@@ -1414,7 +1579,7 @@ function spawnRandomTraffic() {
     if (kind === 'scout') { const k = ['light', 'heavy', 'fast'][Math.floor(Math.random() * 3)]; createScout(k, 'normal', new THREE.Vector3(x, terrainHeight(x, z) + 140 + Math.random() * 180, z)); }
     else if (kind === 'birds') createBirdFlock(x, z, 6 + Math.floor(Math.random() * 6), 200 + Math.random() * 150);
     else if (kind === 'cessna') createLightPlane(x, z);
-    else createPassengerPlane(x, 240 + Math.random() * 320, z);
+    else spawnTransitAirliner();
     return;
   }
 }
@@ -1450,6 +1615,7 @@ function trackPos(c, out) {
   const k = c.trk; if (!k) return out.copy(c.pos);
   const dt = Math.min(state.time - k.seen, 300), V = Math.hypot(k.vx, k.vz), y = k.y + k.vy * Math.min(dt, 10);
   if (V < 1 || dt <= 0) return out.set(k.x, y, k.z);
+  if (c.transit) return out.set(k.x + k.vx * dt, y, k.z + k.vz * dt);   // through-traffic: straight on (hidden once it leaves the area)
   if (k.retX === undefined) { const r1 = Math.sin(k.seen * 12.9898 + c.curiosity * 78.2) * 43758.5453, r2 = Math.sin(k.seen * 39.3468 + c.curiosity * 11.1) * 24634.6345;
     k.retX = (r1 - Math.floor(r1) - .5) * ARENA; k.retZ = (r2 - Math.floor(r2) - .5) * ARENA; }   // random way back in
   const wMax = 9.81 * Math.tan(.7) / Math.max(20, V), w0 = k.w || 0;
@@ -1482,8 +1648,9 @@ const confPct = c => Math.round((c.conf || 0) * 100);
 // but resolves less shape detail than the camera in clear daylight.
 function sensorQuality(c) {
   const ws = state.weatherStrength || 0, cosC = Math.cos(state.dayClock || 0), daylight = clamp((cosC + .28) / .75, 0, 1);
-  if (thermalOn) return .78 * (1 - .45 * ws) * (c ? .85 + .3 * c.sig : 1);
-  return (.15 + .85 * daylight) * (1 - .85 * ws);
+  const inCl = state.cloudHere || 0;                      // flying inside a cloud: camera nearly blind, thermal halved
+  if (thermalOn) return .78 * (1 - .45 * ws) * (c ? .85 + .3 * c.sig : 1) * (1 - .5 * inCl);
+  return (.15 + .85 * daylight) * (1 - .85 * ws) * (1 - .9 * inCl);
 }
 function classifyTick(c, d) {
   // Identification only happens while the drone is working on this object: before it is identified (passive
@@ -1492,7 +1659,8 @@ function classifyTick(c, d) {
   const active = c === state.aiTarget, blur = blurAmount(c, d), closeLook = blur < .3;
   if (c.identified && !active && !closeLook) return;
   // Reading quality follows what the sensor actually resolves: the sharper the image, the better the reading.
-  const q = sensorQuality(c) * (1 - blur);
+  // Cloud in the way: the camera can't see through it; thermal partly can.
+  const cb = cloudBetween(state.pos, c.pos), q = sensorQuality(c) * (1 - blur) * Math.exp(-(thermalOn ? 1.4 : 5) * cb);
   if (q < .05) return;
   // While tracked or seen up close, older readings fade so the current view drives the confidence
   // (~20 s normally, a few seconds when it's right in front of the sensor).
@@ -1516,10 +1684,12 @@ const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.41
 function radarDetectRange(c) { return Math.min(2400, radarRange() * RCS[truthClass(c)]); }
 function radarScan(h) {
   state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = SCAN_DT;
+  state.cloudHere = smoothstep(0, .25, cloudDensity(state.pos.x, state.pos.y, state.pos.z));
   state.sweepT = (state.sweepT || 0) - SCAN_DT; const sweep = state.sweepT <= 0; if (sweep) state.sweepT = RADAR_SWEEP;
   const on = !state.crashed && !state.returning && !state.batteryDead;
   for (const c of [...scouts, ...ambientActors]) {
     if (c.destroyed || c.tagged) { c.detected = false; continue; }
+    if (c.transit && Math.max(Math.abs(c.pos.x), Math.abs(c.pos.z)) > ARENA) { c.detected = false; if (c.trk) c.trk.lost = true; continue; }   // outside the area
     const d = state.pos.distanceTo(c.pos), los = losPoint(c.pos.x, c.pos.y, c.pos.z);
     // Camera / thermal identification: needs line of sight and a visible image (independent of the radar).
     if (on && los) classifyTick(c, d);
@@ -1574,7 +1744,10 @@ function crabHeading(track, V) {
   return track - Math.asin(clamp(cross / Math.max(V, 1), -.9, .9));   // point into the wind
 }
 // ───────────────────────── Flight envelope & guidance ─────────────────────────
-const V_CRUISE = 69, V_DASH = 111, V_MIN = 30;           // m/s: ~250 km/h efficient cruise, 400 km/h pursuit dash
+const V_CRUISE = 69, V_DASH = 111, V_MIN = 38;            // V_MIN = lowest speed the AI will command (above stall)
+const V_STALL = 31;                                       // 1-g wing stall speed (~112 km/h); rises with √(load factor) in turns
+const thrustAccel = V => 2 + 10 * (1 - Math.min(1, (V / 125) ** 2));   // available thrust (m/s²) falls with airspeed
+const inducedDecel = (V, n) => .6 * Math.max(0, n - 1) * (40 / Math.max(20, V)) ** 2 * 9.81;   // turn drag           // m/s: ~250 km/h efficient cruise, 400 km/h pursuit dash
 const ACCEL = 8, DECEL = 10;                             // m/s² available from thrust / drag + airbrake
 const BANK_CRUISE = 1.13, BANK_COMBAT = 1.27, BANK_RATE = 1.7;   // 65° / 73° bank limit, roll rate rad/s
 const GAMMA_UP = .38, GAMMA_DN = -.45, GAMMA_RATE = .35;          // climb/dive angle limits (22° / 26°), rad/s
@@ -1765,7 +1938,7 @@ function resetToPad(reason) {
   state.aiTarget = null; state.pursuitMode = false; state.manualWaypointActive = false; mapWaypoint = null;
   $('cancelTrackBtn').style.display = 'none'; $('cancelWpBtn').style.display = 'none';
   state.launchStage = 'parked'; state.aiActivated = false; state.aiActivationTime = 0; state.hover = true; state.modeBlend = 1; state.takeoffT = 0;
-  state.gamma = 0; state.bank = 0; state.searchAltFor = null; state.attack = {phase:'intercept', side:0};
+  state.gamma = 0; state.bank = 0; state.searchAltFor = null; state.attack = {phase:'intercept', side:0}; state.stalled = false;
   state.battery = 1;   // recharged on the pad
   for (const sc of scouts) if (sc.destroyed) sc.removeAt = Math.min(sc.removeAt, state.time + .1);
   if (reason === 'battery') for (const c of [...scouts, ...ambientActors]) { c.identified = false; c.guess = null; c.conf = 0; c.votes = null; c.trk = null; }
@@ -1890,7 +2063,10 @@ function physicsStep(h) {
   const desiredYaw = crabHeading(Math.atan2(-(G_.aim.x - px), -(G_.aim.z - pz)), Math.max(V_MIN, state.cruiseSpeed));
   const hErr = wrapAngle(desiredYaw - state.rot.y);
   const wantRate = clamp((G_.rateCmd !== null ? G_.rateCmd : hErr * 1.1) + inp.r * .3, -1.2, 1.2);
-  const bankCmd = clamp(Math.atan(wantRate * V / 9.81), -G_.bank, G_.bank);
+  // Energy-aware bank limit: keep the turn's stall speed (V_STALL·√n) at least 30 % below the current airspeed.
+  const nMaxE = (V / (1.3 * V_STALL)) ** 2, bankMaxE = nMaxE > 1.05 ? Math.acos(1 / nMaxE) : .3;
+  const bankLim = state.stalled ? 0 : Math.min(G_.bank, bankMaxE);   // stalled: roll authority gone, wings level
+  const bankCmd = clamp(Math.atan(wantRate * V / 9.81), -bankLim, bankLim);
   state.bank = moveToward(damp(state.bank || 0, bankCmd, 5, h), bankCmd, BANK_RATE * h);
   state.rot.y += 9.81 * Math.tan(state.bank) / V * h;
   // Tight manoeuvre needed close in: bleed speed so the turn radius shrinks (r = V²/(g·tan φ)).
@@ -1899,10 +2075,18 @@ function physicsStep(h) {
   if (state.pursuitMode && tgt && range < 800 && Math.abs(hErr) > .6 && state.attack.phase === 'intercept')
     G_.speed = Math.min(G_.speed, lerp(V_DASH, Math.max(Math.hypot(tgt.vel.x, tgt.vel.z) + 10, 58), smoothstep(.6, 1.2, Math.abs(hErr))));
 
-  // ── Speed: thrust/drag limited acceleration; climbing trades a little speed ──
-  const vTarget = clamp(G_.speed, V_MIN, V_DASH);
-  state.cruiseSpeed = moveToward(state.cruiseSpeed, vTarget, (vTarget > state.cruiseSpeed ? ACCEL : DECEL) * h) - 9.81 * Math.sin(state.gamma || 0) * .25 * h;
-  state.cruiseSpeed = clamp(state.cruiseSpeed, V_MIN, V_DASH + 5);
+  // ── Speed & energy: throttle can only add what the propulsion has (falls with speed); climbing costs the full
+  //    gravity component, hard turns cost induced drag. The throttle feeds those forward but is thrust-limited,
+  //    so a steep climb or a max-g turn at high speed bleeds airspeed. ──
+  const vTarget = clamp(G_.speed, V_MIN, V_DASH), nLoad = 1 / Math.max(.3, Math.cos(state.bank)), sgam = Math.sin(state.gamma || 0);
+  const aMax = thrustAccel(state.cruiseSpeed), aInd = inducedDecel(state.cruiseSpeed, nLoad);
+  const throttle = clamp((vTarget - state.cruiseSpeed) * 1.5 + 9.81 * sgam + aInd, -DECEL, state.stalled ? aMax : aMax);
+  state.cruiseSpeed += (throttle - 9.81 * sgam - aInd) * h;
+  state.cruiseSpeed = clamp(state.cruiseSpeed, 15, V_DASH + 5);
+  // ── Stall: below the (load-factor dependent) stall speed the wing stops lifting → nose drops, dive to regain speed ──
+  const vStall = V_STALL * Math.sqrt(nLoad);
+  if (!state.stalled && state.cruiseSpeed < vStall) { state.stalled = true; radioMessage('STALL · NOSE DOWN · RECOVERING'); }
+  else if (state.stalled && state.cruiseSpeed > V_STALL * 1.3 && state.gamma > -.5) { state.stalled = false; logEvent('Stall recovered', 'ok'); }
 
   // ── Vertical: constant-slope path that arrives at the planned altitude, never below the route's terrain floor ──
   const distH = Math.hypot(G_.aim.x - px, G_.aim.z - pz);
@@ -1917,8 +2101,12 @@ function physicsStep(h) {
   const minY = state.routePeak + 45;                       // short-range terrain safety (lookahead along heading)
   if (state.pos.y < minY) vs = Math.max(vs, (minY + 20 - state.pos.y) * .8);
   const gLim = G_.track ? .7 : 1;                        // pursuit allows ~31°/37° climb/dive and quicker pitch
-  const gammaCmd = clamp(Math.asin(clamp(vs / V, -1, 1)), GAMMA_DN / gLim, GAMMA_UP / gLim);
-  state.gamma = moveToward(damp(state.gamma || 0, gammaCmd, G_.track ? 4 : 3, h), gammaCmd, GAMMA_RATE * (G_.track ? 1.8 : 1) * h);
+  let gammaCmd = clamp(Math.asin(clamp(vs / V, -1, 1)), GAMMA_DN / gLim, GAMMA_UP / gLim);
+  // Energy-aware climb: when slow, only climb as steeply as the spare thrust can sustain (don't trade into a stall).
+  const spareSin = clamp((thrustAccel(V) - inducedDecel(V, 1 / Math.max(.3, Math.cos(state.bank)))) / 9.81, -.2, .6);
+  if (V < 1.6 * V_STALL * Math.sqrt(1 / Math.max(.3, Math.cos(state.bank)))) gammaCmd = Math.min(gammaCmd, Math.asin(spareSin));
+  if (state.stalled) gammaCmd = -.45;                      // stalled: nose drops ~26° until flying speed is back
+  state.gamma = moveToward(damp(state.gamma || 0, gammaCmd, G_.track ? 4 : 3, h), gammaCmd, GAMMA_RATE * (state.stalled ? 2.5 : G_.track ? 1.8 : 1) * h);
 
   // ── Integrate: velocity is always along the flight path ──
   const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y), cg = Math.cos(state.gamma), sg = Math.sin(state.gamma);
@@ -1991,7 +2179,7 @@ function recordFrame(h) {
 function impact(target, label) {
   recordFrame(1);   // force the final frame
   const tScale = target.type === 'plane' ? 6 : target.type === 'birds' ? 1.2 : target.type === 'cessna' ? 2.6 : 2.4;
-  explodeAt(state.pos.clone(), 1.8); explodeAt(target.pos.clone(), tScale);
+  explodeAt(state.pos.clone(), 1.8, state.vel, 0x10151c); explodeAt(target.pos.clone(), tScale, target.vel, target.type === 'cessna' ? 0xe6eaee : target.type === 'plane' ? 0xeef0f0 : 0x4a5563);
   craft.visible = false; target.group.visible = false; if (target.trail) target.trail.visible = false;
   if (target.isAmbient) { const i = ambientActors.indexOf(target); if (i >= 0) ambientActors.splice(i, 1); target.removed = true; }
   if (target.imp) target.imp.quad.visible = false;
@@ -2006,7 +2194,7 @@ const _rq = new THREE.Vector3(), _rc = new THREE.Vector3(), _rf = new THREE.Vect
 function startReplay(rp, thenReset) {
   if (!rp || rp.frames.length < 4 || replay.active) { if (thenReset) resetToPad('intercept'); return; }
   // Clear live explosions so they don't hang frozen in the scene during playback.
-  for (const ex of state.explosions) { scene.remove(ex.group); } state.explosions = [];
+  for (const ex of state.explosions) disposeExplosion(ex); state.explosions = [];
   Object.assign(replay, {active:true, rp, thenReset, t:rp.frames[0].t, t0:rp.frames[0].t, tEnd:rp.frames[rp.frames.length - 1].t, boomed:false, hold:0, side:null, close:null,
     wasPaused:state.paused});
   state.paused = true;
@@ -2016,7 +2204,7 @@ function startReplay(rp, thenReset) {
 function finishReplay() {
   if (!replay.active) return;
   replay.active = false; $('replayOverlay').classList.remove('show'); document.body.classList.remove('replaying');
-  for (const ex of state.explosions) scene.remove(ex.group); state.explosions = [];
+  for (const ex of state.explosions) disposeExplosion(ex); state.explosions = [];
   const rp = replay.rp;
   if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); disposeImpostor(rp.target); }
   for (const sc of scouts) sc.group.visible = !sc.destroyed;
@@ -2112,6 +2300,14 @@ function updateEnvironment(rdt) {
   scene.background.copy(skyU.uHorizon.value); scene.fog.color.copy(skyU.uHorizon.value);
   if (thermalOn) { paletteRGB(.03); scene.background.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); scene.fog.color.copy(scene.background); scene.fog.near = 250; scene.fog.far = lerp(2600, 1100, ws); }
   skyGroup.visible = !thermalOn; cloudGroup.visible = !thermalOn; skyGroup.position.copy(camera.position);
+  updateCloudBanks(edt, daylight);
+  { const cd = cloudDensity(camera.position.x, camera.position.y, camera.position.z), k = smoothstep(0, .25, cd);
+    state.inCloud = cd > .02;
+    if (k > 0) {                                           // inside a cloud: everything whites out (thermal sees a bit further)
+      tmpC.setRGB(.82, .85, .88).lerp(tmpC2.set(0x2a3342), 1 - daylight);
+      if (!thermalOn) { scene.fog.color.lerp(tmpC, k); scene.background.lerp(tmpC, k); }
+      scene.fog.near = lerp(scene.fog.near, 1, k); scene.fog.far = lerp(scene.fog.far, thermalOn ? 320 : 70, k);
+    } }
   const hh = hoursFromClock(state.dayClock), wsp = Math.hypot(wind.x, wind.z), from = compass(Math.atan2(-wind.x, wind.z) * 180 / Math.PI);   // bearing it blows FROM (north = -Z)
   $('weatherHud').textContent = (state.night ? 'NIGHT ' : 'DAY ') + String(Math.floor(hh)).padStart(2,'0') + ':' + String(Math.floor(hh % 1 * 60)).padStart(2,'0') + ' / ' + state.weatherMode + ' · WIND ' + wsp.toFixed(0) + ' m/s from ' + from;
   if ($('envPanel').classList.contains('open')) {
@@ -2191,11 +2387,13 @@ function syncImpostorLights() {
   impSun.color.copy(sun.color); impSun.intensity = sun.intensity; impSun.position.copy(sun.position);
   impFill.color.copy(fill.color); impFill.intensity = fill.intensity; impFill.position.copy(fill.position);
 }
-const _ip = new THREE.Vector3();
+const _ip = new THREE.Vector3(), _fw = new THREE.Vector3(), _to = new THREE.Vector3();
 function updateContactView(c) {
   const g = c.group, alive = !(c.destroyed || c.tagged || c.removed);
   if (!alive) { if (c.imp) c.imp.quad.visible = false; return; }
   const d = camera.position.distanceTo(g.position), bt = blurAmount(c, d), vr = visualRange(c);
+  const cvis = Math.exp(-(thermalOn ? 1.2 : 4) * cloudBetween(camera.position, g.position));   // hidden in / behind clouds
+  if (cvis < .05) { if (g.parent === scene) scene.remove(g); if (c.imp) c.imp.quad.visible = false; if (c.trail) c.trail.visible = false; return; }
   if (d > vr) { if (g.parent === scene) scene.remove(g); if (c.imp) c.imp.quad.visible = false; if (c.trail) c.trail.visible = false; return; }
   const appear = 1 - smoothstep(vr * .75, vr, d);
   if (bt < .02) {                                             // sharp: draw the real model
@@ -2209,7 +2407,10 @@ function updateContactView(c) {
   const imp = ensureImpostor(c);
   if (_ip.z > 1 || Math.abs(_ip.x) > 1.3 || Math.abs(_ip.y) > 1.3) { imp.quad.visible = false; return; }   // off screen
   const r = contactRadius(c) * 1.25;
-  impCam.position.copy(camera.position); impCam.up.copy(camera.up); impCam.lookAt(g.position);
+  // Orientation: the main camera turned by the smallest rotation that centres the object (no lookAt/up-vector
+  // flips when looking straight up, e.g. FPV on the pad). The card below uses the very same orientation.
+  _fw.set(0, 0, -1).applyQuaternion(camera.quaternion); _to.subVectors(g.position, camera.position).normalize();
+  impCam.position.copy(camera.position); impCam.quaternion.setFromUnitVectors(_fw, _to).multiply(camera.quaternion);
   impCam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(r / Math.max(d, r * 1.05))); impCam.near = Math.max(.3, d - r * 2); impCam.far = d + r * 2; impCam.updateProjectionMatrix();
   g.visible = true; impScene.add(g);
   renderer.setRenderTarget(imp.rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(impScene, impCam);
@@ -2217,12 +2418,12 @@ function updateContactView(c) {
   // Card: exactly covers the rendered frame; when the object is tiny on screen it is spread into a visible spot.
   const ws = state.weatherStrength || 0, daylight = clamp((Math.cos(state.dayClock || 0) + .28) / .75, 0, 1);
   const size = Math.max(2 * r, d * .006 * bt);
-  imp.quad.visible = true; imp.quad.position.copy(g.position); imp.quad.quaternion.copy(camera.quaternion); imp.quad.scale.setScalar(size);
+  imp.quad.visible = true; imp.quad.position.copy(g.position); imp.quad.quaternion.copy(impCam.quaternion); imp.quad.scale.setScalar(size);
   const u = imp.mat.uniforms;
   u.bias.value = bt * 6.5; u.roundness.value = smoothstep(.25, .8, bt);
   // Spreading the light over a bigger spot keeps it visible; visibility itself depends on sensor conditions.
   const vis = thermalOn ? lerp(1, Math.min(1, Math.exp(-d / lerp(2600, 800, ws)) * 1.3), bt) : lerp(1, (.25 + .75 * daylight) * (1 - .6 * ws), bt);
-  u.gain.value = Math.min(1, vis) * appear;
+  u.gain.value = Math.min(1, vis) * appear * cvis;
   const fg = scene.fog; u.fogNear.value = fg.near; u.fogFar.value = fg.far; u.fogColor.value.copy(fg.color);
   if (imp.mat.toneMapped === thermalOn) { imp.mat.toneMapped = !thermalOn; imp.mat.needsUpdate = true; }
 }
@@ -2291,7 +2492,7 @@ function updateHud(rdt) {
   } else lock.classList.remove('show');
   hudAcc += rdt; if (hudAcc < .12 && rdt !== 1) return; hudAcc = 0;
   { const q = sensorQuality(), el = $('sensorHud');
-    el.innerHTML = `SENSOR <b style="color:${q > .7 ? '#7affca' : q > .4 ? '#ffd27a' : '#ff8a7a'}">${thermalOn ? 'THERMAL' : 'CAMERA'} · ID QUALITY ${Math.round(q * 100)}%</b>` + (q < .4 ? ` · <span style="color:#ffd27a">${thermalOn ? 'poor weather' : 'try THERMAL (T)'}</span>` : ''); }
+    el.innerHTML = `SENSOR <b style="color:${q > .7 ? '#7affca' : q > .4 ? '#ffd27a' : '#ff8a7a'}">${thermalOn ? 'THERMAL' : 'CAMERA'} · ID QUALITY ${Math.round(q * 100)}%</b>` + (q < .4 ? ` · <span style="color:#ffd27a">${state.cloudHere > .2 ? 'IN CLOUD' : thermalOn ? 'poor weather' : 'try THERMAL (T)'}</span>` : ''); }
   { const pt = state.pursuitMode && state.aiTarget, ab = $('abortBtn'); ab.classList.toggle('show', !!pt);
     if (pt) $('abortInfo').textContent = CLS_NAME[pt.guess] + ' · ' + confPct(pt) + '% confidence · ' + (pt.detected ? Math.round(state.pos.distanceTo(pt.pos)) + ' m' : 'off radar · flying to estimate'); }
   const speed = state.vel.length(), alt = state.pos.y, spdTxt = speed.toFixed(1) + ' m/s';
@@ -2312,6 +2513,7 @@ function updateHud(rdt) {
   $('targetStatus').innerHTML = `<span>POTENTIAL THREATS</span><b class="${idThreats ? 'hot' : ''}">${idThreats}</b><span>TOTAL IDENTIFIED OBJECTS</span><b>${live.length}</b>` +
     (inc ? `<span style="color:#ff8a7a">CIVILIAN INCIDENTS</span><b class="hot">${inc}</b>` : '');
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
+    if (state.stalled) { $('flightState').innerHTML = '<span style="color:#ff6b6b">⚠ STALL · RECOVERING</span>'; } else
     $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
@@ -2379,9 +2581,9 @@ function animate(now) {
     while (accumulator >= dt && steps < 12) { physicsStep(dt); accumulator -= dt; steps++; }
     if (steps >= 12) accumulator = 0; alpha = accumulator / dt;
   }
-  if (replay.active) { updateEnvironment(0); stepReplay(rdt); renderer.render(scene, camera); return; }
+  if (replay.active) { updateEnvironment(0); stepReplay(rdt); updateAircraftLights(); renderer.render(scene, camera); return; }
   updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt);
-  updateContactViews();
+  updateContactViews(); updateAircraftLights();
   renderer.render(scene, camera); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
 }
 requestAnimationFrame(animate);
