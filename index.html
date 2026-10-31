@@ -333,8 +333,28 @@ function thermalMaterial(h) {
   if (!m) { paletteRGB(h); m = new THREE.MeshBasicMaterial({color:new THREE.Color().setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace), toneMapped:false}); thermalMatCache.set(key, m); }
   return m;
 }
-function th(mesh, heat) { thermalReg.set(mesh, {heat, orig:mesh.material}); if (thermalOn) mesh.material = thermalMaterial(heat); return mesh; }
-function registerGroup(g, def) { g.traverse(o => { if (o.isMesh && !o.userData.thermalOnly) th(o, o.userData.th !== undefined ? o.userData.th : def); }); }
+// Contacts (scouts, birds, airliners) get their own material copies ("own") so each can fade in/out with
+// distance independently; everything else shares materials.
+function ownThermal(e) {
+  if (!e.tmat) e.tmat = new THREE.MeshBasicMaterial({toneMapped:false, transparent:true});
+  paletteRGB(e.heat); e.tmat.color.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); return e.tmat;
+}
+const matFor = e => thermalOn ? (e.own ? ownThermal(e) : thermalMaterial(e.heat)) : e.orig;
+function th(mesh, heat, own) {
+  let orig = mesh.material; if (own) { orig = orig.clone(); orig.transparent = true; }
+  const e = {heat, orig, own}; thermalReg.set(mesh, e); mesh.material = matFor(e); return mesh;
+}
+function registerGroup(g, def, own) { g.traverse(o => { if (o.isMesh && !o.userData.thermalOnly) th(o, o.userData.th !== undefined ? o.userData.th : def, own); }); }
+// Set how solid a contact's model is (0 = invisible, 1 = fully resolved).
+function setContactOpacity(c, o) {
+  if (c._op !== undefined && Math.abs(c._op - o) < .004) return; c._op = o;
+  c.group.traverse(m => {
+    if (!m.isMesh) return;
+    if (m.userData.thermalOnly) { m.material.opacity = .6 * o; return; }
+    const e = thermalReg.get(m); if (!e || !e.own) return;
+    for (const mm of [e.orig, e.tmat]) if (mm) { mm.opacity = o; mm.depthWrite = o > .6; }
+  });
+}
 function unregisterGroup(g) { g.traverse(o => thermalReg.delete(o)); }
 
 // ───────────────────────── Terrain ─────────────────────────
@@ -554,7 +574,7 @@ function createScout(kind = 'heavy', difficulty = 'normal', start) {
   }
   const pos = start ? start.clone() : new THREE.Vector3((Math.random()-.5)*35, 18+Math.random()*12, -35-Math.random()*45);
   g.position.copy(pos);
-  registerGroup(g, spec.hull);
+  registerGroup(g, spec.hull, true);
   const speed = spec.speed * (difficulty === 'easy' ? .82 : difficulty === 'hard' ? 1.15 : 1);   // hard jet stays below the drone's 84 m/s dash
   const n = TRAIL_PTS[kind], tg = new THREE.BufferGeometry();
   tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n*3), 3)); tg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n*3), 3));
@@ -589,7 +609,7 @@ function createBirdFlock(cx, cz, count = 7, radius = 300) {
     bird.position.set((Math.random()-.5)*18, (Math.random()-.5)*5, (Math.random()-.5)*22); group.add(bird);
     bird.userData.wings = [wingL, wingR]; bird.userData.phase = Math.random() * 6.28;
   }
-  registerGroup(group, .5);
+  registerGroup(group, .5, true);
   const speed = 13 + Math.random() * 5, a = {type:'birds', kind:'bird', isAmbient:true, group, center:new THREE.Vector3(cx, 0, cz), rx:radius, rz:radius * (.7 + Math.random()*.5),
     ang:Math.random()*TAU, hoverH:70 + Math.random()*50, phase:Math.random()*6.28, pos:new THREE.Vector3(), prev:new THREE.Vector3(), vel:new THREE.Vector3(), yaw:0,
     size:9, detect:900, sig:.25, curiosity:Math.random(), identified:false};
@@ -675,7 +695,7 @@ function createPassengerPlane(x, y, z, planeType) {
   const g = new THREE.Group(); scene.add(g);
   const livery = LIVERIES[Math.floor(Math.random() * LIVERIES.length)];
   PLANE_BUILDERS[t](g, livery);
-  g.scale.setScalar(PLANE_SCALES[t]); registerGroup(g, .28); g.position.set(x, y, z);
+  g.scale.setScalar(PLANE_SCALES[t]); registerGroup(g, .28, true); g.position.set(x, y, z);
   const [sMin, sMax] = PLANE_SPEEDS[t];
   // Altitude 200–600m, smooth slow variation in flight
   const altTarget = 220 + Math.random() * 360;
@@ -753,12 +773,13 @@ function refreshPalette() {
   rebuildGroundThermal();
   for (const p of plumeList) { paletteRGB(p.userData.plumeHeat); p.material.color.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); }
   for (const s of scouts) fillTrailColors(s);
-  if (thermalOn) for (const [mesh, e] of thermalReg) mesh.material = thermalMaterial(e.heat);
+  if (thermalOn) for (const [mesh, e] of thermalReg) mesh.material = matFor(e);
   updateThermalLegend();
 }
 function setThermal(on) {
   thermalOn = !!on; state.thermal = thermalOn; document.body.classList.toggle('thermal', thermalOn);
-  for (const [mesh, e] of thermalReg) mesh.material = thermalOn ? thermalMaterial(e.heat) : e.orig;
+  for (const [mesh, e] of thermalReg) mesh.material = matFor(e);
+  for (const c of [...scouts, ...ambientActors]) { const o = c._op; c._op = undefined; if (o !== undefined) setContactOpacity(c, o); }
   ground.material = thermalOn ? thermalGroundMat : terrainMat;
   ground.geometry.setAttribute('color', thermalOn ? thermalColorAttr : normalColorAttr);
   for (const p of plumeList) p.visible = thermalOn;
@@ -1872,8 +1893,7 @@ function startReplay(rp, thenReset) {
   Object.assign(replay, {active:true, rp, thenReset, t:rp.frames[0].t, t0:rp.frames[0].t, tEnd:rp.frames[rp.frames.length - 1].t, boomed:false, hold:0, side:null, close:null,
     wasPaused:state.paused});
   state.paused = true;
-  for (const o of [...scouts, ...ambientActors]) if (o.blob) o.blob.visible = false;
-  if (rp.target.blob) rp.target.blob.visible = false;
+  for (const o of [...scouts, ...ambientActors, rp.target]) { if (o.blob) o.blob.visible = false; if (o.group) setContactOpacity(o, 1); }
   $('replayOverlay').classList.add('show'); document.body.classList.add('replaying'); if (mapOpen) closeMap();
 }
 function finishReplay() {
@@ -2007,25 +2027,34 @@ const blobTex = (() => { const c = document.createElement('canvas'); c.width = c
   const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.35, 'rgba(255,255,255,.55)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 const _bc = new THREE.Color();
-function shapeRange(c) { return classifyRange(c) * .8 * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
+// Distance at which a contact's shape is clearly made out (doubled vs. the first version); the transition is gradual:
+// fully sharp within ½·R, pure unresolved blob beyond 1.5·R, and in between the model fades in while a soft haze
+// over it fades out and shrinks — the closer you get, the better you see.
+function shapeRange(c) { return classifyRange(c) * 1.6 * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
 function blobHeat(c) { return c.isScout ? .55 + .2 * c.sig : c.type === 'plane' ? .72 : .58; }
 function updateBlob(c, rdt) {
   if (!c.blob) { c.blob = new THREE.Sprite(new THREE.SpriteMaterial({map:blobTex, transparent:true, depthWrite:false, toneMapped:false})); c.blob.renderOrder = 2; scene.add(c.blob); c.blobPh = Math.random() * 9; }
   const g = c.group, alive = !(c.destroyed || c.tagged || c.removed);
-  const d = camera.position.distanceTo(g.position), R = shapeRange(c), k = alive ? smoothstep(R, R * 1.6, d) : 0;
-  g.visible = alive && k < .5;                               // resolved shape only when close enough
-  if (c.trail) c.trail.visible = thermalOn && alive && d < R * 1.3;
-  const b = c.blob; b.visible = alive && k > 0;
+  const d = camera.position.distanceTo(g.position), R = shapeRange(c);
+  const t = alive ? smoothstep(R * .5, R * 1.5, d) : 0;    // 0 = sharp, 1 = completely unresolved
+  // Model: fades in gradually as the blur clears (eased so mid-range still looks soft).
+  const op = 1 - Math.pow(t, .8);
+  g.visible = alive && op > .02;
+  if (g.visible) setContactOpacity(c, op);
+  if (c.trail) c.trail.visible = thermalOn && alive && t < .45;
+  const b = c.blob; b.visible = alive && t > .03;
   if (!b.visible) return;
   const ws = state.weatherStrength || 0, daylight = clamp((Math.cos(state.dayClock || 0) + .28) / .75, 0, 1), flick = .85 + .15 * Math.sin(state.time * 13 + c.blobPh);
-  b.position.copy(g.position); b.scale.setScalar(Math.max(c.size * .5, d * .0065));
+  // Haze: big & soft far away; close in it shrinks towards the object's own size and thins out.
+  b.position.copy(g.position); b.scale.setScalar(lerp(c.size * 1.3, Math.max(c.size * .6, d * .0065), t));
+  const haze = Math.pow(t, .6);
   if (thermalOn) {
     const att = Math.exp(-d / lerp(2200, 700, ws));          // atmosphere absorbs the heat signature with distance
     paletteRGB(.1 + (blobHeat(c) - .1) * att); b.material.color.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace);
-    b.material.blending = THREE.AdditiveBlending; b.material.opacity = k * (.35 + .5 * att) * flick;
+    b.material.blending = THREE.AdditiveBlending; b.material.opacity = haze * (.35 + .5 * att) * flick;
   } else {
     b.material.color.setHex(0x1c2128); b.material.blending = THREE.NormalBlending;
-    b.material.opacity = k * (.15 + .65 * daylight) * (1 - .6 * ws) * flick;
+    b.material.opacity = haze * (.15 + .65 * daylight) * (1 - .6 * ws) * flick;
   }
 }
 const camLook = new THREE.Vector3();
