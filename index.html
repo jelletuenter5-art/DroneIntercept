@@ -2056,7 +2056,7 @@ function stepReplay(rdt) {
   // Camera cuts, always framing BOTH aircraft: chase (behind the drone, looking at the target) → side (fixed,
   // perpendicular to the drone→target line) → impact close-up (fixed near the impact point).
   const fx = -Math.sin(ry), fz = -Math.cos(ry), sep = _rq.distanceTo(_rc);
-  const cut = replay.boomed || toImpact < 1 ? 'IMPACT CAM' : toImpact < 3 ? 'SIDE CAM' : 'CHASE CAM';
+  const cut = replay.boomed || toImpact < 2 ? 'IMPACT CAM' : 'CHASE CAM';   // two angles only
   _rf.subVectors(_rc, _rq); if (_rf.lengthSq() < 1) _rf.set(fx, 0, fz); _rf.normalize();
   const mid = _rq.clone().lerp(_rc, .5);
   if (cut === 'CHASE CAM') {
