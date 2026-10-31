@@ -709,7 +709,9 @@ function createPassengerPlane(x, y, z, planeType) {
 // Small civilian hobby plane (high wing, ~11 m span) — about the size of a prop scout, so they are easy to mix up.
 function createLightPlane(x, z) {
   const g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
-  const white = mat(0xe6eaee, .5, .15), stripe = mat([0x2d5c8f, 0x8f2d2d, 0x2d7a4a][Math.floor(Math.random() * 3)], .5, .2), glass = mat(0x1b2a38, .2, .6), dark = mat(0x2a2f35, .6, .3);
+  // Livery: white, black or red body with a contrasting stripe / tail
+  const LIV = [[0xe6eaee, 0xb3262a], [0x1c1f24, 0xd8dcdf], [0xb3262a, 0xf2f2f2]][Math.floor(Math.random() * 3)];
+  const white = mat(LIV[0], .5, .15), stripe = mat(LIV[1], .5, .2), glass = mat(0x1b2a38, .2, .6), dark = mat(0x2a2f35, .6, .3);
   box(g, [1.2, 1.3, 4.0], white, [0, 0, -.6]).userData.th = .34;            // cabin
   box(g, [.75, .75, 3.8], white, [0, .2, 3.2]).userData.th = .28;           // tail cone
   box(g, [1.05, .95, 1.0], white, [0, -.05, -3.1]).userData.th = .74;       // engine cowling (warm)
@@ -721,11 +723,11 @@ function createLightPlane(x, z) {
   box(g, [.12, .7, .12], dark, [.8, -.95, -.6]); box(g, [.12, .7, .12], dark, [-.8, -.95, -.6]); box(g, [.1, .6, .1], dark, [0, -.85, -2.8]);   // gear
   const prop = new THREE.Group(); prop.position.set(0, -.05, -3.66); g.add(prop);
   box(prop, [.09, 1.9, .05], dark, [0, 0, 0]).userData.th = .25; cylinder(prop, .12, .12, .15, mat(0x9aa1a8, .3, .8), [0, 0, 0], [Math.PI / 2, 0, 0]).userData.th = .4;
-  g.scale.setScalar(1.35);   // ~15 m wingspan: a bit bigger than a prop scout
+  g.scale.setScalar(1.6);    // ~18 m wingspan: noticeably bigger than a prop scout
   registerGroup(g, .3, true);
   const agl = 110 + Math.random() * 260, y = terrainHeight(x, z) + agl; g.position.set(x, y, z);
   const a = {type:'cessna', kind:'cessna', isAmbient:true, group:g, propeller:prop, pos:new THREE.Vector3(x, y, z), prev:new THREE.Vector3(x, y, z), vel:new THREE.Vector3(),
-    speed:46 + Math.random() * 14, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:16, detect:1500, sig:.45,
+    speed:46 + Math.random() * 14, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:19, detect:1500, sig:.45,
     curiosity:Math.random(), identified:false};
   aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
 }
@@ -1933,7 +1935,7 @@ function physicsStep(h) {
   if (state.recording && Math.floor(state.time * 20) !== Math.floor((state.time - h) * 20)) state.history.push({t:+state.time.toFixed(3), x:+state.pos.x.toFixed(2), y:+state.pos.y.toFixed(2), z:+state.pos.z.toFixed(2), speed:+speed.toFixed(2), battery:+state.battery.toFixed(4)});
   // Confirmed pursuit of a bird flock or airliner ends in a collision too.
   if (state.pursuitMode && tgt && tgt.isAmbient) {
-    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : tgt.type === 'cessna' ? 9 : 10;
+    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : tgt.type === 'cessna' ? 11 : 10;
     if (state.pos.distanceTo(tgt.pos) < hitR) {
       state.tagCount++;
       const name = CLS_NAME[truthClass(tgt)];
