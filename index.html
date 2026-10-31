@@ -28,11 +28,11 @@ kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738
 #toast{display:none!important}
 #zoomView{position:absolute;right:226px;bottom:14px;width:300px;z-index:9;pointer-events:auto;background:transparent;border:1px solid #3c6174;border-radius:8px;box-shadow:0 5px 22px #0006;overflow:hidden;font:10px ui-monospace,monospace;color:#cfe6f5}
 #zoomView.hidden{display:none}.zvHead{display:flex;gap:8px;align-items:center;padding:5px 8px;background:#07131dee;color:#7affca;letter-spacing:.12em}.zvHead span{margin-left:auto;color:#ffd27a}.zvHead button{padding:1px 6px;font-size:9px}
-#zvFrame{position:relative;height:170px;border-top:1px solid #2a4f62;border-bottom:1px solid #2a4f62;background:transparent}
+#zvFrame{position:relative;height:170px;cursor:crosshair;touch-action:none;border-top:1px solid #2a4f62;border-bottom:1px solid #2a4f62;background:transparent}
 .zvRet{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border:1px solid #7affca88;border-radius:2px}
 .zvRet::before,.zvRet::after{content:'';position:absolute;background:#7affca88}.zvRet::before{left:50%;top:-10px;width:1px;height:66px}.zvRet::after{top:50%;left:-10px;height:1px;width:66px}
 .zvInfo{padding:4px 8px;background:#07131dee}.zvInfo b{display:block;color:#e8f6ff}.zvInfo small{color:#8fb3c8}
-.zvBtns{display:flex;gap:5px;align-items:center;padding:0 8px 7px;background:#07131dee}.zvBtns button{padding:3px 6px;font:700 9px ui-monospace,monospace}.zvBtns span{margin-left:auto;color:#6f8ea4;font-size:9px}
+.zvBtns{display:flex;gap:5px;align-items:center;padding:0 8px 7px;background:#07131dee}.zvBtns button{padding:3px 6px;font:700 9px ui-monospace,monospace;white-space:nowrap}.zvBtns span{margin-left:auto;color:#6f8ea4;font-size:9px;white-space:nowrap}
 body.replaying #zoomView{visibility:hidden}
 body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadout,body.replaying #targetLock,body.replaying #abortBtn,body.replaying .crosshair,body.replaying #contactLabels,body.replaying #envPanel{visibility:hidden}
 #replayOverlay{display:none;position:absolute;inset:0;z-index:40;pointer-events:none}#replayOverlay.show{display:block}
@@ -169,7 +169,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div><div class="hudfoot" id="sensorHud">SENSOR</div></div><div id="eventLog"></div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option><option value="cessna">Light aircraft (civil)</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button><button id="tc-view">👁 View</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option><option value="cessna">Light aircraft (civil)</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -192,7 +192,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
     <div id="zoomView"><div class="zvHead"><b>GIMBAL CAM</b><span id="zvZoom">6×</span><button id="zvClose" title="Hide (Z)">✕</button></div>
       <div id="zvFrame"><i class="zvRet"></i></div>
       <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
-      <div class="zvBtns"><button id="zvMarkT">★ Mark threat</button><button id="zvMarkC">★ Mark civil</button><span>wheel / + − zoom · Z</span></div></div>
+      <div class="zvBtns"><button id="zvMarkT">★ Flag threat</button><button id="zvMarkC">★ Flag civil</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button><span>Z hide</span></div></div>
     <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
     <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
     <div id="envPanel">
@@ -953,8 +953,22 @@ $('pauseBtn').onclick = togglePause; $('playBottom').onclick = togglePause;
 $('skipReplayBtn').onclick = () => finishReplay();
 $('zvClose').onclick = () => { zv.open = false; $('zoomView').classList.add('hidden'); };
 $('zoomView').addEventListener('wheel', e => { e.preventDefault(); setZoom(zv.zoom * Math.exp(-e.deltaY * .0015)); }, {passive:false});
-const markCur = m => { const t = zoomTarget(); if (!t) { toast('No target in the camera'); return; } if (!t.identified) { t.identified = true; t.guess = t.guess || (m === 'threat' ? 'light' : 'cessna'); t.conf = t.conf || .5; if (!t.trk) t.trk = {x:t.pos.x, y:t.pos.y, z:t.pos.z, vx:t.vel.x, vy:t.vel.y, vz:t.vel.z, seen:state.time, lost:false, covered:0}; }
-  t.userMark = t.userMark === m ? null : m; logEvent(t.userMark ? 'Operator marked contact as ' + (m === 'threat' ? 'THREAT' : 'CIVILIAN') : 'Operator mark removed', t.userMark === 'threat' ? 'warn' : 'ok'); };
+// Drag inside the picture to aim: the image follows the mouse at any zoom.
+$('zvFrame').addEventListener('pointerdown', e => { zv.drag = true; zv.lx = e.clientX; zv.ly = e.clientY; $('zvFrame').setPointerCapture(e.pointerId); });
+$('zvFrame').addEventListener('pointerup', () => zv.drag = false); $('zvFrame').addEventListener('pointercancel', () => zv.drag = false);
+$('zvFrame').addEventListener('pointermove', e => {
+  if (!zv.drag) return; const h = $('zvFrame').clientHeight || 170, radPerPx = THREE.MathUtils.degToRad(38 / zv.zoom) / h;
+  zv.yaw += (e.clientX - zv.lx) * radPerPx; zv.pitch = clamp(zv.pitch + (e.clientY - zv.ly) * radPerPx, -1.4, .8); zv.lx = e.clientX; zv.ly = e.clientY;
+});
+$('zvCentre').onclick = gimbalCentre;
+// Flag whatever is in the scope. Not on radar yet → becomes a visual sighting (track from where it was seen).
+const markCur = m => {
+  const t = zv.scope; if (!t) { toast('Scope empty · put the contact inside the square'); return; }
+  if (!hasTrack(t)) { t.trk = {x:t.pos.x, y:t.pos.y, z:t.pos.z, vx:t.vel.x, vy:t.vel.y, vz:t.vel.z, w:0, seen:state.time, lost:false, covered:0, noise:20}; logEvent('Visual sighting added to map'); }
+  t.identified = true;
+  t.userMark = t.userMark === m ? null : m;
+  logEvent(t.userMark ? 'Operator flagged contact as ' + (m === 'threat' ? 'THREAT' : 'CIVILIAN') : 'Operator flag removed', t.userMark === 'threat' ? 'warn' : 'ok');
+};
 $('zvMarkT').onclick = () => markCur('threat'); $('zvMarkC').onclick = () => markCur('civil');
 $('replayBtn').onclick = () => { if (state.lastReplay && !replay.active) startReplay(state.lastReplay, false); };
 $('stepBtn').onclick = () => { if (state.paused) { physicsStep(dt); updateHud(1); } else toast('Pause before single-stepping'); };
@@ -1089,7 +1103,6 @@ function drawMap() {
     else ctx.fillRect(mx-4, mz-4, 8, 8);
     ctx.font = 'bold 8px ui-monospace,monospace';
     ctx.fillText((c.userMark ? '★' + (c.userMark === 'threat' ? 'THREAT ' : 'CIVIL ') : '') + CLS_SHORT[c.guess] + ' ' + confPct(c) + '%' + (live ? '' : ' · EST ' + Math.round(age) + 's'), flip ? mx - 7 : mx + 7, mz + 3);
-    if (c === zv.cur && zv.open) { ctx.strokeStyle = '#7affca'; ctx.lineWidth = 1; ctx.strokeRect(mx - 8, mz - 8, 16, 16); }   // in the gimbal camera
     ctx.globalAlpha = 1; ctx.textAlign = 'left';
     if (isT) {
       const pulse = .45 + .35 * Math.sin(state.time * 6);
@@ -1150,8 +1163,7 @@ $('tc-auth').onclick = () => {
   radioMessage('PURSUING: ' + CLS_NAME[c.guess] + ' (' + confPct(c) + '%)');
 };
 $('tc-cancel').onclick = () => { _pendingContact = null; $('trackConfirm').classList.remove('show'); };
-$('tc-view').onclick = () => { if (_pendingContact) { zv.target = _pendingContact; zv.open = true; $('zoomView').classList.remove('hidden'); logEvent('Gimbal camera on ' + CLS_SHORT[_pendingContact.guess]); }
-  _pendingContact = null; $('trackConfirm').classList.remove('show'); };
+
 $('mapCanvas').addEventListener('click', e => {
   const r = $('mapCanvas').getBoundingClientRect();
   const mx = (e.clientX - r.left) * (MAP_SIZE / r.width);
@@ -1206,6 +1218,8 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'm') { if (mapOpen) closeMap(); else openMap(); }
   if (e.key.toLowerCase() === 'x' && state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR');
   if (e.key.toLowerCase() === 'z') { zv.open = !zv.open; $('zoomView').classList.toggle('hidden', !zv.open); }
+  if (e.key.toLowerCase() === 'v') gimbalCentre();
+  if (e.key.startsWith('Arrow')) e.preventDefault();
   if (e.key === '+' || e.key === '=') setZoom(zv.zoom * 1.25);
   if (e.key === '-' || e.key === '_') setZoom(zv.zoom / 1.25);
   if (e.key === 'Escape' && mapOpen) { closeMap(); }
@@ -1613,8 +1627,8 @@ function spawnRandomTraffic() {
 // nothing (2 s), the track is dropped.
 // Classification: each sweep inside camera range gives a noisy reading (quality = range × sensor × light × weather).
 // Readings vote, weighted by quality, so the guess keeps refining as the drone gets closer — and can be wrong.
-const CLS_NAME = {light:'PROPELLER SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'CIVILIAN AIRLINER', birds:'BIRD FLOCK', cessna:'LIGHT AIRCRAFT (CIVIL)'};
-const CLS_SHORT = {light:'PROP SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'AIRLINER', birds:'BIRDS', cessna:'LIGHT PLANE'};
+const CLS_NAME = {light:'PROPELLER SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'CIVILIAN AIRLINER', birds:'BIRD FLOCK', cessna:'LIGHT AIRCRAFT (CIVIL)', undefined:'UNIDENTIFIED CONTACT'};   // flagged but not yet identified
+const CLS_SHORT = {light:'PROP SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'AIRLINER', birds:'BIRDS', cessna:'LIGHT PLANE', undefined:'UNIDENTIFIED'};
 const CLS_CONFUSE = {light:['cessna','birds','heavy'], heavy:['light','fast','cessna'], fast:['plane','heavy'], plane:['fast'], birds:['light'], cessna:['light','light','heavy']};
 const isThreatClass = k => k === 'light' || k === 'heavy' || k === 'fast';
 const truthClass = c => c.isScout ? c.kind : (c.type === 'plane' ? 'plane' : c.type === 'cessna' ? 'cessna' : 'birds');
@@ -1679,7 +1693,8 @@ function classifyTick(c, d) {
   // Identification only happens while the drone is working on this object: before it is identified (passive
   // looks / investigation) or while it is the active target (investigation or pursuit). Otherwise the % is frozen.
   // Also whenever the drone gets a clear close look at it (fly-by): a good view corrects an old wrong guess.
-  const zoomed = zv.open && zv.canSee && c === zv.cur;      // looking at it through the gimbal zoom = a closer look
+  // Inside the gimbal camera's field of view = seen through the zoom (a closer look).
+  const zoomed = zv.open && zv.zEff > 1.05 && _zq.subVectors(c.pos, state.pos).normalize().dot(zv.fwd) > Math.cos(zv.halfAng);
   const active = c === state.aiTarget || zoomed, blur = blurAmount(c, zoomed ? d / zv.zEff : d), closeLook = blur < .3;
   if (c.identified && !active && !closeLook) return;
   // Reading quality follows what the sensor actually resolves: the sharper the image, the better the reading.
@@ -2458,57 +2473,66 @@ function updateContactViews(cam = camera, zoom = 1) {
   for (const sc of scouts) updateContactView(sc, cam, zoom); for (const a of ambientActors) updateContactView(a, cam, zoom);
   renderer.setClearColor(cc, ca);
 }
-// ── Gimbal zoom camera (picture-in-picture) ──
-// The drone's stabilised camera looks at the selected contact (👁 View on the map) → else the pursuit target → else
-// whatever it is investigating. Optical zoom 1-30× makes things bigger, but the useful zoom is limited by the sensor
-// (camera/thermal, light, weather, cloud), so far objects stay grainy; it shakes a little at high zoom and can't look
-// backwards through the drone. Looking through it counts as a closer look for identification.
-const zv = {open:true, zoom:6, target:null, cur:null, zEff:1, canSee:false, dir:new THREE.Vector3(0, 0, -1)};
-const zoomCam = new THREE.PerspectiveCamera(6, 1.6, 1, 14000);
-const _zd = new THREE.Vector3(), _zp = new THREE.Vector3();
-function zoomTarget() {
-  const ok = c => c && !(c.destroyed || c.tagged || c.removed) && (c.detected || hasTrack(c));
-  if (ok(zv.target)) return zv.target; zv.target = null;
-  return ok(state.aiTarget) ? state.aiTarget : null;
+// ── Gimbal zoom camera (picture-in-picture) — fully manual ──
+// A stabilised gimbal: it keeps pointing at the same compass direction / elevation while the drone manoeuvres and only
+// moves when the operator moves it (drag in the window, arrow keys; V re-centres on the nose). It can't look back
+// through the airframe (±150° from the nose). Optical zoom 1-30×; the useful zoom is limited by the sensor (camera /
+// thermal, light, weather, cloud) and it shakes a little at high zoom. Whatever sits inside the square reticle can be
+// flagged ★THREAT / ★CIVIL; anything in the camera's field of view gets the zoom's identification benefit.
+const zv = {open:true, zoom:4, yaw:0, pitch:-.08, init:false, zEff:1, fwd:new THREE.Vector3(0, 0, -1), halfAng:.3, scope:null, scopeD:0, drag:false, lx:0, ly:0};
+const zoomCam = new THREE.PerspectiveCamera(10, 1.6, 1, 14000);
+const _zp = new THREE.Vector3(), _zq = new THREE.Vector3();
+const GIMBAL_LIMIT = 2.6;                                  // ±150° from the nose
+function gimbalCentre() { zv.yaw = state.rot.y; zv.pitch = -.08; }
+function stepGimbal(rdt) {
+  if (!zv.init) { gimbalCentre(); zv.init = true; }
+  const fovV = THREE.MathUtils.degToRad(38 / zv.zoom), rate = fovV * 1.2;   // arrow keys: ~1.2 screen-heights per second
+  if (keys.has('arrowleft')) zv.yaw += rate * rdt; if (keys.has('arrowright')) zv.yaw -= rate * rdt;
+  if (keys.has('arrowup')) zv.pitch += rate * rdt; if (keys.has('arrowdown')) zv.pitch -= rate * rdt;
+  zv.pitch = clamp(zv.pitch, -1.4, .8);
+  const rel = wrapAngle(zv.yaw - state.rot.y);             // gimbal stop: the airframe pushes it round
+  if (Math.abs(rel) > GIMBAL_LIMIT) zv.yaw = state.rot.y + Math.sign(rel) * GIMBAL_LIMIT;
+}
+// The contact (if any) inside the square reticle: visible to this camera and closest to the centre of the scope.
+function findInScope(w, h) {
+  const hx = 23 / (w / 2), hy = 23 / (h / 2); let best = null, bestC = 1e9;
+  for (const c of [...scouts, ...ambientActors]) {
+    if (c.destroyed || c.tagged || c.removed) continue;
+    _zq.copy(c.pos).project(zoomCam); if (_zq.z > 1 || Math.abs(_zq.x) > hx || Math.abs(_zq.y) > hy) continue;
+    const d = zoomCam.position.distanceTo(c.pos);
+    if (d / zv.zEff > visualRange(c) || !losPoint(c.pos.x, c.pos.y, c.pos.z) || cloudBetween(state.pos, c.pos) > .5) continue;
+    const cc = Math.hypot(_zq.x / hx, _zq.y / hy); if (cc < bestC) { bestC = cc; best = c; zv.scopeD = d; }
+  }
+  return best;
 }
 function renderZoomView(rdt) {
   const box = $('zvFrame'); if (!zv.open || !box) return;
-  const t = zoomTarget(); zv.cur = t; zv.canSee = false;
-  const info = $('zvInfo'), stat = $('zvStatus');
-  $('zvZoom').textContent = zv.zoom.toFixed(zv.zoom < 10 ? 1 : 0) + '×';
-  if (!t || state.launchStage === 'parked' && !t) { info.textContent = 'NO TARGET'; stat.textContent = 'select a contact on the map (👁 View)'; }
-  // Where to point: optical lock on the real object once the camera can make it out, otherwise the radar plot/estimate.
-  let d = 0;
-  if (t) {
-    d = state.pos.distanceTo(t.pos);
-    const clarity = clamp(.3 + .7 * sensorQuality(t), .25, 1);
-    zv.zEff = 1 + (zv.zoom - 1) * clarity;
-    const cloud = cloudBetween(state.pos, t.pos), los = losPoint(t.pos.x, t.pos.y, t.pos.z);
-    const lock = los && cloud < .5 && blurAmount(t, d / zv.zEff) < .75;
-    if (lock) _zp.copy(t.pos); else trackPos(t, _zp);
-    _zd.subVectors(_zp, renderPos).normalize();
-    const fwd = _fw.set(-Math.sin(state.rot.y), 0, -Math.cos(state.rot.y));
-    const gimbalOk = state.launchStage !== 'active' || fwd.dot(_zd) > -.8;   // can't look back through the airframe
-    if (gimbalOk) zv.dir.lerp(_zd, 1 - Math.exp(-6 * rdt)).normalize();
-    zv.canSee = gimbalOk && lock;
-    info.textContent = (t.identified ? (t.userMark ? '★' + (t.userMark === 'threat' ? 'THREAT · ' : 'CIVIL · ') : '') + CLS_SHORT[t.guess] + ' ' + confPct(t) + '%' : 'UNKNOWN CONTACT') + ' · ' + Math.round(d) + ' m';
-    stat.textContent = !gimbalOk ? 'GIMBAL LIMIT · target behind the drone' : !los ? 'NO LINE OF SIGHT · terrain' : cloud >= .5 ? 'IN / BEHIND CLOUD' :
-      lock ? 'LOCKED · effective zoom ' + zv.zEff.toFixed(1) + '×' : 'SLEWING TO ' + (t.detected ? 'RADAR PLOT' : 'ESTIMATE');
-  }
-  // Camera: from the drone, small shake that grows with zoom and turbulence.
-  const sh = .00035 * zv.zoom * (1 + Math.abs(wind.y) * .3), tt = state.time;
+  stepGimbal(rdt);
+  zv.zEff = 1 + (zv.zoom - 1) * clamp(.3 + .7 * sensorQuality(), .25, 1);
+  // Camera: under the drone, gimbal direction + a little shake that grows with zoom and turbulence.
+  const sh = .00035 * zv.zoom * (1 + Math.abs(wind.y) * .3), tt = state.time, cp = Math.cos(zv.pitch);
+  zv.fwd.set(-Math.sin(zv.yaw) * cp, Math.sin(zv.pitch), -Math.cos(zv.yaw) * cp);
   zoomCam.position.copy(renderPos); zoomCam.position.y -= .6; zoomCam.up.set(0, 1, 0);
-  _zp.copy(zoomCam.position).addScaledVector(zv.dir, 100); _zp.x += Math.sin(tt * 13.1) * sh * 100; _zp.y += Math.sin(tt * 9.7 + 1) * sh * 100; _zp.z += Math.cos(tt * 11.3) * sh * 100;
+  _zp.copy(zoomCam.position).addScaledVector(zv.fwd, 100); _zp.x += Math.sin(tt * 13.1) * sh * 100; _zp.y += Math.sin(tt * 9.7 + 1) * sh * 100; _zp.z += Math.cos(tt * 11.3) * sh * 100;
   zoomCam.lookAt(_zp);
   const cr = renderer.domElement.getBoundingClientRect(), r = box.getBoundingClientRect();
   if (r.width < 4 || r.height < 4) return;
-  zoomCam.fov = 38 / zv.zoom; zoomCam.aspect = r.width / r.height; zoomCam.updateProjectionMatrix();
-  updateContactViews(zoomCam, t ? zv.zEff : 1);   // contacts rendered as the zoom camera resolves them
+  zoomCam.fov = 38 / zv.zoom; zoomCam.aspect = r.width / r.height; zoomCam.updateProjectionMatrix(); zoomCam.updateMatrixWorld();
+  zv.halfAng = THREE.MathUtils.degToRad(zoomCam.fov) * .5 * Math.hypot(1, zoomCam.aspect);
+  updateContactViews(zoomCam, zv.zEff);                  // contacts rendered as the zoom camera resolves them
   const x = r.left - cr.left, y = cr.bottom - r.bottom;
   renderer.setScissorTest(true); renderer.setScissor(x, y, r.width, r.height); renderer.setViewport(x, y, r.width, r.height);
   const cv = craft.visible; craft.visible = false;          // the camera sits under the airframe: don't see ourselves
   renderer.render(scene, zoomCam); craft.visible = cv;
   renderer.setScissorTest(false); renderer.setViewport(0, 0, cr.width, cr.height);
+  // Read-outs: zoom, bearing / elevation, what's in the scope (laser range only — no free identification).
+  zv.scope = findInScope(r.width, r.height);
+  const brg = Math.round(((-zv.yaw * 180 / Math.PI) % 360 + 360) % 360);
+  $('zvZoom').textContent = zv.zoom.toFixed(zv.zoom < 10 ? 1 : 0) + '× · BRG ' + String(brg).padStart(3, '0') + '° · EL ' + Math.round(zv.pitch * 57.3) + '°';
+  const rel = Math.abs(wrapAngle(zv.yaw - state.rot.y));
+  const sc = zv.scope;
+  $('zvInfo').textContent = sc ? 'IN SCOPE · ' + (sc.userMark ? '★' + (sc.userMark === 'threat' ? 'THREAT · ' : 'CIVIL · ') : '') + (sc.identified && sc.guess ? CLS_SHORT[sc.guess] + ' ' + confPct(sc) + '%' : 'UNIDENTIFIED') + ' · ' + Math.round(zv.scopeD) + ' m' : 'SCOPE EMPTY';
+  $('zvStatus').textContent = (rel > GIMBAL_LIMIT - .02 ? 'GIMBAL LIMIT · ' : '') + (state.cloudHere > .2 ? 'IN CLOUD · ' : '') + 'eff. zoom ' + zv.zEff.toFixed(1) + '× · drag/arrows aim · wheel/+− zoom · V centre';
 }
 function setZoom(z) { zv.zoom = clamp(z, 1, 30); }
 const camLook = new THREE.Vector3();
