@@ -1434,16 +1434,28 @@ function losPoint(x, y, z) {
 }
 const hasTrack = c => !!(c.trk && !c.trk.lost);
 // Best current position knowledge: live position when on radar, dead-reckoned estimate otherwise.
+// Dead reckoning from the last radar plot (also between sweeps while detected): follow the last measured turn rate
+// for up to 30 s, then straight on — and, like the real aircraft, if that path would reach the area border the
+// estimate turns back towards a random point inside (fixed per track, so the estimate doesn't jump around).
 function trackPos(c, out) {
   const k = c.trk; if (!k) return out.copy(c.pos);
-  // Coordinated-turn dead reckoning from the last radar plot (also between sweeps while detected): follow the last measured turn rate for up to 30 s, then straight on.
-  const dt = Math.min(state.time - k.seen, 300), V = Math.hypot(k.vx, k.vz), w = k.w || 0, h0 = Math.atan2(-k.vx, -k.vz);
-  const tt = Math.min(dt, 30), y = k.y + k.vy * Math.min(dt, 10);
-  if (Math.abs(w) < 1e-3) out.set(k.x + k.vx * dt, y, k.z + k.vz * dt);
-  else { const h1 = h0 + w * tt, ax = k.x + V / w * (Math.cos(h1) - Math.cos(h0)), az = k.z - V / w * (Math.sin(h1) - Math.sin(h0)), rest = dt - tt;
-    out.set(ax - Math.sin(h1) * V * rest, y, az - Math.cos(h1) * V * rest); }
-  out.x = clamp(out.x, -ARENA, ARENA); out.z = clamp(out.z, -ARENA, ARENA);   // nothing can be outside the area
-  return out;
+  const dt = Math.min(state.time - k.seen, 300), V = Math.hypot(k.vx, k.vz), y = k.y + k.vy * Math.min(dt, 10);
+  if (V < 1 || dt <= 0) return out.set(k.x, y, k.z);
+  if (k.retX === undefined) { const r1 = Math.sin(k.seen * 12.9898 + c.curiosity * 78.2) * 43758.5453, r2 = Math.sin(k.seen * 39.3468 + c.curiosity * 11.1) * 24634.6345;
+    k.retX = (r1 - Math.floor(r1) - .5) * ARENA; k.retZ = (r2 - Math.floor(r2) - .5) * ARENA; }   // random way back in
+  const wMax = 9.81 * Math.tan(.7) / Math.max(20, V), w0 = k.w || 0;
+  let x = k.x, z = k.z, h = Math.atan2(-k.vx, -k.vz), t = 0, ret = false;
+  while (t < dt) {
+    const st = Math.min(1, dt - t), fx = -Math.sin(h), fz = -Math.cos(h);
+    if (!ret && Math.max(Math.abs(x + fx * V * 20), Math.abs(z + fz * V * 20)) > ARENA - 300) ret = true;   // would reach the border
+    let rate = t < 30 ? w0 : 0;
+    if (ret) {
+      rate = clamp(wrapAngle(Math.atan2(-(k.retX - x), -(k.retZ - z)) - h) * .5, -wMax, wMax);
+      if (Math.max(Math.abs(x), Math.abs(z)) < ARENA * .55) ret = false;
+    }
+    h += rate * st; x += -Math.sin(h) * V * st; z += -Math.cos(h) * V * st; t += st;
+  }
+  return out.set(clamp(x, -ARENA, ARENA), y, clamp(z, -ARENA, ARENA));
 }
 function trackSigma(c) {
   if (!c.trk) return 0; if (c.detected) return c.trk.noise || 12;
