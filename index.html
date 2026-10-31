@@ -706,9 +706,32 @@ function createPassengerPlane(x, y, z, planeType) {
     speed:sMin + Math.random()*(sMax-sMin), yaw:0, size:PLANE_SIZES[t], detect:2600, sig:.88, curiosity:Math.random()*.5, identified:false, planeType:t};
   aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
 }
+// Small civilian hobby plane (high wing, ~11 m span) — about the size of a prop scout, so they are easy to mix up.
+function createLightPlane(x, z) {
+  const g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
+  const white = mat(0xe6eaee, .5, .15), stripe = mat([0x2d5c8f, 0x8f2d2d, 0x2d7a4a][Math.floor(Math.random() * 3)], .5, .2), glass = mat(0x1b2a38, .2, .6), dark = mat(0x2a2f35, .6, .3);
+  box(g, [1.2, 1.3, 4.0], white, [0, 0, -.6]).userData.th = .34;            // cabin
+  box(g, [.75, .75, 3.8], white, [0, .2, 3.2]).userData.th = .28;           // tail cone
+  box(g, [1.05, .95, 1.0], white, [0, -.05, -3.1]).userData.th = .74;       // engine cowling (warm)
+  box(g, [1.22, .55, 1.5], glass, [0, .45, -1.3]);                          // windows
+  box(g, [11, .14, 1.5], white, [0, .78, -.9]).userData.th = .3;            // high wing
+  box(g, [11.04, .16, .3], stripe, [0, .78, -.25]);
+  box(g, [.07, 1.1, .07], dark, [1.55, .2, -.9], [0, 0, .62]); box(g, [.07, 1.1, .07], dark, [-1.55, .2, -.9], [0, 0, -.62]);   // struts
+  box(g, [3.6, .1, .9], white, [0, .45, 4.7]); box(g, [.1, 1.5, 1.1], stripe, [0, 1.15, 4.7]);   // tailplane + fin
+  box(g, [.12, .7, .12], dark, [.8, -.95, -.6]); box(g, [.12, .7, .12], dark, [-.8, -.95, -.6]); box(g, [.1, .6, .1], dark, [0, -.85, -2.8]);   // gear
+  const prop = new THREE.Group(); prop.position.set(0, -.05, -3.66); g.add(prop);
+  box(prop, [.09, 1.9, .05], dark, [0, 0, 0]).userData.th = .25; cylinder(prop, .12, .12, .15, mat(0x9aa1a8, .3, .8), [0, 0, 0], [Math.PI / 2, 0, 0]).userData.th = .4;
+  registerGroup(g, .3, true);
+  const agl = 110 + Math.random() * 260, y = terrainHeight(x, z) + agl; g.position.set(x, y, z);
+  const a = {type:'cessna', kind:'cessna', isAmbient:true, group:g, propeller:prop, pos:new THREE.Vector3(x, y, z), prev:new THREE.Vector3(x, y, z), vel:new THREE.Vector3(),
+    speed:46 + Math.random() * 14, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:12, detect:1500, sig:.45,
+    curiosity:Math.random(), identified:false};
+  aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
+}
 function aimPlane(a, tx, tz) { const dx = tx - a.pos.x, dz = tz - a.pos.z, l = Math.hypot(dx, dz) || 1; a.vel.set(dx/l*a.speed, 0, dz/l*a.speed); a.yaw = Math.atan2(-a.vel.x, -a.vel.z); }
 createBirdFlock(-180, -100, 8, 260); createBirdFlock(520, -450, 10, 320); createBirdFlock(-650, 350, 7, 280); createBirdFlock(150, 700, 9, 300);
 createPassengerPlane(-1400, 320, -1700, 0); createPassengerPlane(1700, 450, -900, 1); createPassengerPlane(300, 260, 1900, 2);
+createLightPlane(-900, 1300); createLightPlane(1600, 600); createLightPlane(-2200, -1500);
 createBirdFlock(-2600, 1900, 9, 300); createBirdFlock(2800, 2400, 8, 280); createBirdFlock(2300, -2900, 10, 320);
 
 // ───────────────────────── State ─────────────────────────
@@ -1188,6 +1211,8 @@ function identifyContact(c) {
   if (state.aiTarget === c && !state.pursuitMode) state.aiTarget = null;
 }
 function endPursuit(msg) {
+  // Whatever we were chasing is done with: don't go back to investigate it (e.g. operator saw it's only birds).
+  if (state.pursuitMode && state.aiTarget) state.ignoredTargets.add(state.aiTarget);
   state.pursuitMode = false; state.aiTarget = null; state.aiThink = 0; state.attack = {phase:'intercept', side:0};
   $('cancelTrackBtn').style.display = 'none';
   if (msg) toast(msg);
@@ -1236,7 +1261,7 @@ function aiThink() {
 }
 function pickSearchWaypoint() {
   for (let tries = 0; tries < 16; tries++) {
-    const a = state.rot.y + (Math.random() - .5) * 2.4, d = 700 + Math.random() * 1200;
+    const a = state.rot.y + (Math.random() - .5) * 2.4, d = 1100 + Math.random() * 1400;
     const x = clamp(state.pos.x - Math.sin(a) * d, -(ARENA - 500), ARENA - 500), z = clamp(state.pos.z - Math.cos(a) * d, -(ARENA - 500), ARENA - 500);
     if (Math.hypot(x - state.pos.x, z - state.pos.z) < 500) continue;
     state.searchWp = new THREE.Vector3(x, 0, z); state.searchTimer = 24 + Math.random() * 10; return;
@@ -1255,29 +1280,35 @@ function closureFor(r) {
 }
 
 // ───────────────────────── World simulation (scouts + traffic) ─────────────────────────
+// Each scout has its own height band above ground: low (45-110 m, often hidden from radar by terrain),
+// mid (120-260 m) or high (280-480 m).
+const SCOUT_BANDS = [[45, 110], [120, 260], [280, 480]];
+function scoutBand(s) {
+  if (!s.band) { const r = Math.random(); s.band = SCOUT_BANDS[r < .35 ? 0 : r < .75 ? 1 : 2]; }
+  return s.band;
+}
 function chooseScoutWaypoint(s) {
-  const from = s.pos;
-  // Target absolute altitude 200-600m, vary by scout kind
-  const [minAlt, maxAlt] = s.kind === 'fast' ? [350, 600] : s.kind === 'heavy' ? [220, 500] : [200, 420];
+  const from = s.pos, [lo, hi] = scoutBand(s);
   for (let tries = 0; tries < 28; tries++) {
     const x = clamp(from.x + (Math.random() - .5) * 3000, -(ARENA - 500), ARENA - 500), z = clamp(from.z + (Math.random() - .5) * 3000, -(ARENA - 500), ARENA - 500);
     if (Math.hypot(x - from.x, z - from.z) < 400) continue;
-    let peak = 0; for (let k = 1; k <= 16; k++) { const t = k / 16; peak = Math.max(peak, terrainHeight(from.x+(x-from.x)*t, from.z+(z-from.z)*t)); }
-    // pick a random altitude in the band, but clear any terrain
-    const terrainFloor = Math.max(peak + 80, terrainHeight(x, z) + 80);
-    const y = Math.max(terrainFloor, minAlt + Math.random() * (maxAlt - minAlt));
-    if (y <= maxAlt + 30) { s.waypoint = new THREE.Vector3(x, y, z); s.waypointTimer = 18 + Math.random() * 22; return; }
+    const y = terrainHeight(x, z) + lo + Math.random() * (hi - lo);
+    s.waypoint = new THREE.Vector3(x, y, z); s.waypointTimer = 18 + Math.random() * 22; return;
   }
-  s.waypoint = new THREE.Vector3(from.x * .25, clamp(280 + Math.random() * 200, 200, 600), from.z * .25); s.waypointTimer = 18;
+  s.waypoint = new THREE.Vector3(randInside(ARENA * .5), terrainHeight(0, 0) + lo + Math.random() * (hi - lo), randInside(ARENA * .5)); s.waypointTimer = 18;
 }
 function stepScout(s, h) {
   s.prev.copy(s.pos); s.waypointTimer -= h; s.routeTimer -= h;
   if (!s.waypoint || s.waypointTimer <= 0 || s.pos.distanceToSquared(s.waypoint) < 110 * 110) chooseScoutWaypoint(s);
   // Look ~20 s ahead: if that point is near the border, head back towards the middle now (turn circle up to ~0.8 km).
   const lx = s.pos.x + s.vel.x * 20, lz = s.pos.z + s.vel.z * 20;
-  if (Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.hypot(s.waypoint.x - s.pos.x * .3, s.waypoint.z - s.pos.z * .3) > 50) {
-    s.waypoint.set(s.pos.x * .3, s.waypoint.y, s.pos.z * .3); s.waypointTimer = 30;   // near the border → head back in
+  const out = Math.max(Math.abs(s.pos.x), Math.abs(s.pos.z));
+  if (out > ARENA - 50 && !s.returning) {                 // crossed: random point well inside, turn back briskly
+    s.returning = true; s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 60;
+  } else if (!s.returning && Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.max(Math.abs(s.waypoint.x), Math.abs(s.waypoint.z)) > ARENA * .6) {
+    s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 40;   // about to reach it → head back in
   }
+  if (s.returning && out < ARENA - 600) s.returning = false;
   else if (s.hdg !== undefined) {
     // Waypoint inside our turn circle and off to the side → can't reach it without orbiting: count it as passed.
     const r = s.spd * s.spd / (9.81 * Math.tan(.52)), wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z;
@@ -1286,7 +1317,8 @@ function stepScout(s, h) {
   if (s.routeTimer <= 0) {
     s.routeTimer = .3; const wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z, look = Math.min(1, 900 / Math.max(1, Math.hypot(wx, wz)));
     let peak = -5; for (let k = 0; k <= 12; k++) { const t = k / 12 * look; peak = Math.max(peak, terrainHeight(s.pos.x + wx*t, s.pos.z + wz*t)); }
-    s.routeY = clamp(Math.max(s.waypoint.y, peak + 85, terrainHeight(s.waypoint.x, s.waypoint.z) + 85), 200, 620);
+    const [lo] = scoutBand(s);   // hold the band's height above the terrain along the route (low flyers hug it)
+    s.routeY = Math.min(900, Math.max(s.waypoint.y, peak + Math.max(40, lo * .8), terrainHeight(s.waypoint.x, s.waypoint.z) + lo));
   }
   const ms = s.speed;   // fly at the class's listed speed (light 151, heavy 194, jet 245 km/h)
   const hx = s.waypoint.x - s.pos.x, hz = s.waypoint.z - s.pos.z, hl = Math.hypot(hx, hz) || 1;
@@ -1295,7 +1327,7 @@ function stepScout(s, h) {
   // Max 30° bank (standard for small fixed-wing UAVs), roll rate ~20°/s, climb/descent ≤ ~8°.
   if (s.hdg === undefined) s.hdg = Math.atan2(-s.vel.x, -s.vel.z);
   s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -2 * h, 2 * h);
-  const maxBank = .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
+  const maxBank = s.returning ? .78 : .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
   const bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
   s.bank = moveToward(s.bank || 0, bankCmd, .35 * h);
   s.turnRate = 9.81 * Math.tan(s.bank) / Math.max(20, s.spd);
@@ -1304,8 +1336,8 @@ function stepScout(s, h) {
   s.vy = moveToward(s.vy || 0, vy, 2 * h);
   s.vel.set(-Math.sin(s.hdg) * s.spd + wind.x, s.vy + wind.y * .6, -Math.cos(s.hdg) * s.spd + wind.z);   // ground velocity
   s.pos.addScaledVector(s.vel, h);
-  s.pos.x = clamp(s.pos.x, -ARENA, ARENA); s.pos.z = clamp(s.pos.z, -ARENA, ARENA);   // hard border
-  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 60) { s.pos.y = lerp(s.pos.y, gh + 60, .05); s.vy = Math.max(s.vy || 0, 4); } if (s.pos.y > 650) s.pos.y = lerp(s.pos.y, 620, .05);
+  s.pos.x = clamp(s.pos.x, -ARENA - 400, ARENA + 400); s.pos.z = clamp(s.pos.z, -ARENA - 400, ARENA + 400);   // invisible backstop
+  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 35) { s.pos.y = lerp(s.pos.y, gh + 35, .05); s.vy = Math.max(s.vy || 0, 4); } if (s.pos.y > 950) s.pos.y = lerp(s.pos.y, 900, .05);
   s.yaw = s.hdg; s.roll = s.bank;
   s.pitch = damp(s.pitch, Math.asin(clamp((s.vy || 0) / Math.max(1, s.spd), -.3, .3)), 3, h);   // nose on the flight path
   s.trailTimer -= h;
@@ -1327,19 +1359,25 @@ function stepPlane(a, h) {
   if (a.hdg === undefined) a.hdg = a.yaw;
   const fx = -Math.sin(a.hdg), fz = -Math.cos(a.hdg), lookX = a.pos.x + fx * a.speed * 40, lookZ = a.pos.z + fz * a.speed * 40;
   const leaving = Math.max(Math.abs(lookX), Math.abs(lookZ)) > ARENA - 300;   // ~40 s look-ahead: turn circle is ~1 km
-  if (!a.goal || Math.hypot(a.goal.x - a.pos.x, a.goal.z - a.pos.z) < 700 || (leaving && !a.turningIn)) {
+  const out = Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z));
+  if (out > ARENA - 50 && !a.returning) { a.returning = true; a.goal = {x:randInside(ARENA * .5), z:randInside(ARENA * .5)}; }   // crossed → back in
+  if (a.returning && out < ARENA - 700) a.returning = false;
+  if (!a.goal || Math.hypot(a.goal.x - a.pos.x, a.goal.z - a.pos.z) < 700 || (leaving && !a.turningIn && !a.returning)) {
     a.goal = leaving ? {x:randInside(ARENA * .55), z:randInside(ARENA * .55)} : {x:randInside(900), z:randInside(900)}; a.turningIn = leaving;
   }
   if (!leaving) a.turningIn = false;
-  const want = Math.atan2(-(a.goal.x - a.pos.x), -(a.goal.z - a.pos.z)), maxRate = 9.81 * Math.tan(.44) / a.speed;
+  const bankLim = (a.maxBank || .44) * (a.returning ? 1.35 : 1);
+  const want = Math.atan2(-(a.goal.x - a.pos.x), -(a.goal.z - a.pos.z)), maxRate = 9.81 * Math.tan(bankLim) / a.speed;
   a.turn = moveToward(a.turn || 0, clamp(wrapAngle(want - a.hdg) * .4, -maxRate, maxRate), maxRate * .3 * h);
-  a.hdg += a.turn * h;
+  a.hdg += a.turn * h; a.bank = Math.atan(a.turn * a.speed / 9.81);
   a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
   a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
-  a.pos.x = clamp(a.pos.x, -ARENA, ARENA); a.pos.z = clamp(a.pos.z, -ARENA, ARENA);
-  // smooth altitude oscillation — stays 200–600m
-  a.altPhase += h * .06; const targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);
-  a.pos.y += (targetY - a.pos.y) * (1 - Math.exp(-0.4 * h));
+  a.pos.x = clamp(a.pos.x, -ARENA - 400, ARENA + 400); a.pos.z = clamp(a.pos.z, -ARENA - 400, ARENA + 400);   // invisible backstop
+  a.altPhase += h * .06;
+  let targetY;
+  if (a.type === 'cessna') targetY = terrainHeight(a.pos.x, a.pos.z) + a.agl + Math.sin(a.altPhase) * a.altAmp;   // light aircraft: height above ground
+  else targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);                                // airliner: 200–600 m
+  const py = a.pos.y; a.pos.y += (targetY - a.pos.y) * (1 - Math.exp(-0.4 * h)); a.vel.y = (a.pos.y - py) / h;
 }
 function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
@@ -1355,8 +1393,8 @@ function updateWorld(h) {
 }
 
 function spawnRandomTraffic() {
-  const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length;
-  const opts = []; if (nS < 6) opts.push('scout', 'scout'); if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane');
+  const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length, nC = ambientActors.filter(x => x.type === 'cessna').length;
+  const opts = []; if (nS < 6) opts.push('scout', 'scout'); if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane'); if (nC < 4) opts.push('cessna');
   if (!opts.length) return;
   const kind = opts[Math.floor(Math.random() * opts.length)];
   for (let tries = 0; tries < 12; tries++) {
@@ -1365,6 +1403,7 @@ function spawnRandomTraffic() {
     if (Math.max(Math.abs(x), Math.abs(z)) > ARENA - 400) continue;
     if (kind === 'scout') { const k = ['light', 'heavy', 'fast'][Math.floor(Math.random() * 3)]; createScout(k, 'normal', new THREE.Vector3(x, terrainHeight(x, z) + 140 + Math.random() * 180, z)); }
     else if (kind === 'birds') createBirdFlock(x, z, 6 + Math.floor(Math.random() * 6), 200 + Math.random() * 150);
+    else if (kind === 'cessna') createLightPlane(x, z);
     else createPassengerPlane(x, 240 + Math.random() * 320, z);
     return;
   }
@@ -1376,11 +1415,11 @@ function spawnRandomTraffic() {
 // nothing (2 s), the track is dropped.
 // Classification: each sweep inside camera range gives a noisy reading (quality = range × sensor × light × weather).
 // Readings vote, weighted by quality, so the guess keeps refining as the drone gets closer — and can be wrong.
-const CLS_NAME = {light:'PROPELLER SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'CIVILIAN AIRLINER', birds:'BIRD FLOCK'};
-const CLS_SHORT = {light:'PROP SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'AIRLINER', birds:'BIRDS'};
-const CLS_CONFUSE = {light:['birds','heavy'], heavy:['light','fast'], fast:['plane','heavy'], plane:['fast'], birds:['light']};
+const CLS_NAME = {light:'PROPELLER SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'CIVILIAN AIRLINER', birds:'BIRD FLOCK', cessna:'LIGHT AIRCRAFT (CIVIL)'};
+const CLS_SHORT = {light:'PROP SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'AIRLINER', birds:'BIRDS', cessna:'LIGHT PLANE'};
+const CLS_CONFUSE = {light:['cessna','birds','heavy'], heavy:['light','fast','cessna'], fast:['plane','heavy'], plane:['fast'], birds:['light'], cessna:['light','light','heavy']};
 const isThreatClass = k => k === 'light' || k === 'heavy' || k === 'fast';
-const truthClass = c => c.isScout ? c.kind : (c.type === 'plane' ? 'plane' : 'birds');
+const truthClass = c => c.isScout ? c.kind : (c.type === 'plane' ? 'plane' : c.type === 'cessna' ? 'cessna' : 'birds');
 const SCAN_DT = .35;
 function radarRange() {
   const ws = state.weatherStrength || 0;
@@ -1399,9 +1438,11 @@ function trackPos(c, out) {
   // Coordinated-turn dead reckoning from the last radar plot (also between sweeps while detected): follow the last measured turn rate for up to 30 s, then straight on.
   const dt = Math.min(state.time - k.seen, 300), V = Math.hypot(k.vx, k.vz), w = k.w || 0, h0 = Math.atan2(-k.vx, -k.vz);
   const tt = Math.min(dt, 30), y = k.y + k.vy * Math.min(dt, 10);
-  if (Math.abs(w) < 1e-3) return out.set(k.x + k.vx * dt, y, k.z + k.vz * dt);
-  const h1 = h0 + w * tt, ax = k.x + V / w * (Math.cos(h1) - Math.cos(h0)), az = k.z - V / w * (Math.sin(h1) - Math.sin(h0)), rest = dt - tt;
-  return out.set(ax - Math.sin(h1) * V * rest, y, az - Math.cos(h1) * V * rest);
+  if (Math.abs(w) < 1e-3) out.set(k.x + k.vx * dt, y, k.z + k.vz * dt);
+  else { const h1 = h0 + w * tt, ax = k.x + V / w * (Math.cos(h1) - Math.cos(h0)), az = k.z - V / w * (Math.sin(h1) - Math.sin(h0)), rest = dt - tt;
+    out.set(ax - Math.sin(h1) * V * rest, y, az - Math.cos(h1) * V * rest); }
+  out.x = clamp(out.x, -ARENA, ARENA); out.z = clamp(out.z, -ARENA, ARENA);   // nothing can be outside the area
+  return out;
 }
 function trackSigma(c) {
   if (!c.trk) return 0; if (c.detected) return c.trk.noise || 12;
@@ -1445,7 +1486,7 @@ function classifyTick(c, d) {
   } else if (c.identified && prevGuess && prevGuess !== c.guess) radioMessage('RE-IDENTIFIED: ' + CLS_NAME[prevGuess] + ' → ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '%');
 }
 // Radar cross-section factor → how far each type can be detected (birds/small scouts much closer than airliners).
-const RCS = {light:.6, heavy:.85, fast:.7, plane:1.4, birds:.45};
+const RCS = {light:.6, heavy:.85, fast:.7, plane:1.4, birds:.45, cessna:.65};
 const RADAR_SWEEP = 1.0;                                     // one antenna sweep per second
 const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.41;
 function radarDetectRange(c) { return Math.min(2400, radarRange() * RCS[truthClass(c)]); }
@@ -1790,6 +1831,11 @@ function physicsStep(h) {
       $('cancelWpBtn').style.display = 'none';
     }
     if (!state.searchWp || state.searchTimer <= 0 || (!mapWaypoint && Math.hypot(state.searchWp.x - px, state.searchWp.z - pz) < 220)) pickSearchWaypoint();
+    else if (!state.manualWaypointActive) {
+      // A search point that ended up inside our turn circle off to the side would make us orbit it → pick another.
+      const r = Math.max(V_MIN, state.cruiseSpeed) ** 2 / (9.81 * Math.tan(BANK_CRUISE)), wx = state.searchWp.x - px, wz = state.searchWp.z - pz;
+      if (Math.hypot(wx, wz) < r * 2.5 && Math.abs(wrapAngle(Math.atan2(-wx, -wz) - state.rot.y)) > 1.1) pickSearchWaypoint();
+    }
     // Choose one efficient cruise altitude per leg (clears all terrain on the straight route) and hold it.
     if (state.searchAltFor !== state.searchWp) {
       state.searchAltFor = state.searchWp;
@@ -1801,7 +1847,10 @@ function physicsStep(h) {
   }
   // Keep inside the play area.
   // Keep inside the play area (mountain wall beyond ~2.6 km). A chase may run closer to the wall.
-  if (Math.max(Math.abs(px), Math.abs(pz)) > ARENA - (state.pursuitMode ? 150 : 400)) { G_.aim.set(0, G_.alt, 0); if (!state.pursuitMode) G_.speed = Math.min(G_.speed, V_CRUISE); }
+  if (Math.max(Math.abs(px), Math.abs(pz)) > ARENA - (state.pursuitMode ? 150 : 400)) {
+    if (!state.borderPt) state.borderPt = {x:randInside(ARENA * .5), z:randInside(ARENA * .5)};   // random way back in
+    G_.aim.set(state.borderPt.x, G_.alt, state.borderPt.z); G_.bank = Math.max(G_.bank, BANK_CRUISE); if (!state.pursuitMode) G_.speed = Math.min(G_.speed, V_CRUISE);
+  } else if (Math.max(Math.abs(px), Math.abs(pz)) < ARENA - 900) state.borderPt = null;
   // Never fly at the border: steer the aim point back inside.
   G_.aim.x = clamp(G_.aim.x, -(ARENA - 200), ARENA - 200); G_.aim.z = clamp(G_.aim.z, -(ARENA - 200), ARENA - 200);
   // Terrain floor along the remaining straight route to the aim point (refreshed 4×/s).
@@ -1852,7 +1901,7 @@ function physicsStep(h) {
   // Ground velocity = air velocity along the flight path + wind (incl. gusts and vertical turbulence).
   state.vel.set(fx * cg * state.cruiseSpeed + wind.x, sg * state.cruiseSpeed + wind.y, fz * cg * state.cruiseSpeed + wind.z);
   state.pos.addScaledVector(state.vel, h);
-  state.pos.x = clamp(state.pos.x, -ARENA, ARENA); state.pos.z = clamp(state.pos.z, -ARENA, ARENA);   // hard border
+  state.pos.x = clamp(state.pos.x, -ARENA - 400, ARENA + 400); state.pos.z = clamp(state.pos.z, -ARENA - 400, ARENA + 400);   // invisible backstop
   state.altCmd = goalY;
   const groundY = terrainHeight(state.pos.x, state.pos.z);
   if (state.pos.y < groundY + 3) {
@@ -1871,10 +1920,10 @@ function physicsStep(h) {
   if (state.recording && Math.floor(state.time * 20) !== Math.floor((state.time - h) * 20)) state.history.push({t:+state.time.toFixed(3), x:+state.pos.x.toFixed(2), y:+state.pos.y.toFixed(2), z:+state.pos.z.toFixed(2), speed:+speed.toFixed(2), battery:+state.battery.toFixed(4)});
   // Confirmed pursuit of a bird flock or airliner ends in a collision too.
   if (state.pursuitMode && tgt && tgt.isAmbient) {
-    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : 10;
+    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : tgt.type === 'cessna' ? 7 : 10;
     if (state.pos.distanceTo(tgt.pos) < hitR) {
       state.tagCount++;
-      const name = tgt.type === 'plane' ? 'CIVILIAN AIRLINER' : 'BIRD FLOCK';
+      const name = CLS_NAME[truthClass(tgt)];
       state.civilianIncidents = (state.civilianIncidents || 0) + 1;
       radioMessage('CIVILIAN INCIDENT · collided with ' + name + (tgt.guess !== truthClass(tgt) ? ' (was identified as ' + CLS_NAME[tgt.guess] + ' ' + confPct(tgt) + '%)' : ''));
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
@@ -1907,7 +1956,7 @@ function recordFrame(h) {
   recAcc += h; if (recAcc < 1 / REC_HZ) return; recAcc = 0;
   if (state.launchStage !== 'active' || state.crashed || state.returning) return;
   const objs = [];
-  const add = o => { if (o.group) objs.push([o, o.pos.x, o.pos.y, o.pos.z, o.yaw || 0, o.pitch || 0, o.roll || 0]); };
+  const add = o => { if (o.group) objs.push([o, o.pos.x, o.pos.y, o.pos.z, o.yaw || 0, o.pitch || 0, o.roll || o.bank || 0]); };
   for (const sc of scouts) if (!sc.destroyed && sc.pos.distanceTo(state.pos) < 500) add(sc);
   for (const a of ambientActors) if (a.pos.distanceTo(state.pos) < 500 || a === state.aiTarget) add(a);
   if (state.aiTarget && state.aiTarget.isScout && state.aiTarget.pos.distanceTo(state.pos) >= 500) add(state.aiTarget);
@@ -1917,7 +1966,7 @@ function recordFrame(h) {
 // Freeze the buffer at the moment of impact and explode both aircraft.
 function impact(target, label) {
   recordFrame(1);   // force the final frame
-  const tScale = target.type === 'plane' ? 6 : target.type === 'birds' ? 1.2 : 2.4;
+  const tScale = target.type === 'plane' ? 6 : target.type === 'birds' ? 1.2 : target.type === 'cessna' ? 2.6 : 2.4;
   explodeAt(state.pos.clone(), 1.8); explodeAt(target.pos.clone(), tScale);
   craft.visible = false; target.group.visible = false; if (target.trail) target.trail.visible = false;
   if (target.isAmbient) { const i = ambientActors.indexOf(target); if (i >= 0) ambientActors.splice(i, 1); target.removed = true; }
@@ -1963,13 +2012,18 @@ function stepReplay(rdt) {
   const {a, b, k} = frameAt(replay.t);
   const L = (i) => lerp(a.d[i], b.d[i], k);
   _rq.set(L(0), L(1), L(2)); const ry = a.d[4] + wrapAngle(b.d[4] - a.d[4]) * k, mb = L(6);
+  // Moving parts keep moving in the replay (scaled by the replay speed, so slow motion looks slow).
+  { const sp = rdt * (replay.boomed ? .45 : (toImpact < 1 ? .15 : toImpact < 3 ? .4 : 1));
+    for (let i = 0; i < liftRotors.length; i++) liftRotors[i].rotation.z += 38 * (i % 2 ? -1 : 1) * sp;
+    for (const o of a.objs) { const ob = o[0]; if (ob.propeller) ob.propeller.rotation.z += 70 * sp;
+      if (ob.type === 'birds') for (const bd of ob.group.children) { const f = Math.sin((replay.t) * 11 + bd.userData.phase) * .38; bd.userData.wings[0].rotation.z = -.16 - f; bd.userData.wings[1].rotation.z = .16 + f; } } }
   if (!replay.boomed) {
     craft.visible = true; craft.position.copy(_rq); craft.rotation.set(Math.PI / 2 * mb + L(3) * (1 - mb), ry, L(5), 'YXZ');
     for (const sc of scouts) sc.group.visible = false;
     for (const o of a.objs) {
       const ob = b.objs.find(x => x[0] === o[0]) || o, g = o[0].group; g.visible = true;
       g.position.set(lerp(o[1], ob[1], k), lerp(o[2], ob[2], k), lerp(o[3], ob[3], k));
-      if (o[0].isScout) g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); else g.rotation.y = o[4];
+      if (o[0].isScout) g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); else if (o[0].type === 'birds') g.rotation.y = o[4]; else g.rotation.set(0, o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k));
     }
   }
   // Target position at this replay time (it is always in the recording; fall back to the impact point).
@@ -2059,7 +2113,9 @@ function updateVisuals(alpha, rdt) {
     if (s.propeller) s.propeller.rotation.z += 70 * rdt;
   }
   for (const a of ambientActors) {
-    a.group.position.lerpVectors(a.prev, a.pos, alpha); a.group.rotation.y = a.yaw;
+    a.group.position.lerpVectors(a.prev, a.pos, alpha);
+    if (a.type === 'birds') a.group.rotation.y = a.yaw; else a.group.rotation.set(0, a.yaw, a.bank || 0);
+    if (a.propeller) a.propeller.rotation.z += 60 * rdt;
     if (a.type === 'birds') for (const b of a.group.children) { const f = Math.sin(state.time * 11 + b.userData.phase) * .38; b.userData.wings[0].rotation.z = -.16 - f; b.userData.wings[1].rotation.z = .16 + f; }
   }
 }
@@ -2069,7 +2125,7 @@ function updateVisuals(alpha, rdt) {
 // object goes smoothly from sharp → soft → smeared → a round unresolved spot. A bird flock is one image, so its birds
 // merge into a single smudge far away and separate / sharpen as you close in.
 // shapeRange = distance where the shape is about half-resolved (doubled twice vs. the first version).
-const SHAPE_RANGE = {light:800, fast:850, heavy:1000, plane:1200, birds:440};
+const SHAPE_RANGE = {light:800, fast:850, heavy:1000, plane:1200, birds:440, cessna:800};
 function shapeRange(c) { return SHAPE_RANGE[truthClass(c)] * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
 // Beyond this the eye/sensor simply can't pick it out — nothing is drawn; it fades in over the last quarter.
 function visualRange(c) { return shapeRange(c) * 1.4; }
@@ -2196,9 +2252,9 @@ function updateCamera(rdt) {
 // ───────────────────────── HUD & radar ─────────────────────────
 let hudAcc = 0; const tmpP = new THREE.Vector3();
 function contactInfo(c) {
-  if (c.identified) return {name: CLS_NAME[c.guess] + ' · ' + confPct(c) + '%', temp: c.isScout ? `BODY ${c.bodyTemp}°C · EXHAUST ${c.exhaustTemp}°C` : c.type === 'plane' ? 'BODY 28°C · ENGINES 165°C' : 'BODY 39°C'};
+  if (c.identified) return {name: CLS_NAME[c.guess] + ' · ' + confPct(c) + '%', temp: c.isScout ? `BODY ${c.bodyTemp}°C · EXHAUST ${c.exhaustTemp}°C` : c.type === 'plane' ? 'BODY 28°C · ENGINES 165°C' : c.type === 'cessna' ? 'BODY 24°C · ENGINE 105°C' : 'BODY 39°C'};
   if (c.isScout) return {name:c.spec.label, temp:`BODY ${c.bodyTemp}°C · ${c.kind === 'light' ? 'ENGINE' : 'EXHAUST'} ${c.exhaustTemp}°C`};
-  return c.type === 'plane' ? {name:'CIVILIAN AIRLINER', temp:'BODY 28°C · ENGINES 165°C'} : {name:'BIRD FLOCK', temp:'BODY 39°C'};
+  return c.type === 'plane' ? {name:'CIVILIAN AIRLINER', temp:'BODY 28°C · ENGINES 165°C'} : c.type === 'cessna' ? {name:'LIGHT AIRCRAFT', temp:'BODY 24°C · ENGINE 105°C'} : {name:'BIRD FLOCK', temp:'BODY 39°C'};
 }
 function updateHud(rdt) {
   const lock = $('targetLock'), tgt0 = (state.launchStage === 'active' && !state.crashed && !state.batteryDead && (state.pursuitMode || state.aiTarget)) ? state.aiTarget : null, tgt = tgt0 && tgt0.detected ? tgt0 : null;
