@@ -30,7 +30,9 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 #replayOverlay{display:none;position:absolute;inset:0;z-index:40;pointer-events:none}#replayOverlay.show{display:block}
 #replayOverlay .lb{position:absolute;left:0;right:0;height:9%;background:#000}#replayOverlay .top{top:0}#replayOverlay .bot{bottom:0}
 #replayInfo{position:absolute;top:calc(9% + 12px);left:18px;font:700 13px ui-monospace,monospace;letter-spacing:.12em;color:#ffd27a;text-shadow:0 0 8px #000}
-#replayOverlay .skip{position:absolute;bottom:calc(9% + 12px);right:18px;font:11px ui-monospace,monospace;color:#cfe6f5aa}
+#skipReplayBtn{position:absolute;bottom:calc(9% + 14px);right:18px;pointer-events:auto;padding:8px 16px;background:#0b1a26ee;border:1px solid #6fb7d6;border-radius:6px;color:#dff4ff;font:700 12px ui-monospace,monospace;letter-spacing:.08em;cursor:pointer}#skipReplayBtn:hover{background:#163a52}
+#replayTag{position:absolute;display:none;transform:translate(-50%,-50%);pointer-events:none}#replayTag i{display:block;width:46px;height:46px;border:2px solid #ff8a6b;border-radius:4px;box-shadow:0 0 10px #ff8a6b88}
+#replayTag span{position:absolute;left:50%;top:-16px;transform:translateX(-50%);font:700 10px ui-monospace,monospace;color:#ffb39e;letter-spacing:.1em;white-space:nowrap}
 #abortBtn{display:none;position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:12;pointer-events:auto;padding:9px 22px 8px;background:#3a0c10ee;border:1.5px solid #ff6b6b;border-radius:8px;color:#ffd6d6;font:700 13px ui-monospace,monospace;letter-spacing:.1em;box-shadow:0 6px 24px #000a;text-align:center;cursor:pointer}
 #abortBtn:hover{background:#561419}#abortBtn.show{display:block}#abortBtn small{display:block;font-weight:500;font-size:10px;color:#ffb3b3;letter-spacing:.04em;margin-top:2px}#abortBtn kbd{position:absolute;right:6px;top:5px;font-size:9px}
 #envBtn{white-space:nowrap}#envPanel{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:30;width:270px;padding:10px 12px;background:#07131df2;border:1px solid #3c6174;border-radius:9px;box-shadow:0 8px 30px #0008;font:11px ui-monospace,monospace;color:#cfe6f5;pointer-events:auto}
@@ -156,10 +158,10 @@ html,body,#app{width:100%;height:100%;min-height:0}
     <canvas id="scene"></canvas>
     <div id="overlay">
       <div class="hudrow">
-        <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div></div><div id="eventLog"></div></div>
+        <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div><div class="hudfoot" id="sensorHud">SENSOR</div></div><div id="eventLog"></div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Classification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -179,7 +181,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div id="radioMeta"><span>LINK <b id="radioLink">SECURE</b></span><span id="signalBars">▂▄▆█</span><span>AI/TACTICAL</span></div>
     </div>
     <div id="toast"></div>
-    <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div class="skip">click or Space to skip</div></div>
+    <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
     <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
     <div id="envPanel">
       <div class="envHead"><b>ENVIRONMENT</b><button id="envClose">✕</button></div>
@@ -778,7 +780,6 @@ window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 // Targets set here; updateCamera() eases the actual camera towards them every frame.
 let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .3, orbitDist = 34, orbitVX = 0, orbitVY = 0;
 const ORBIT_MIN_P = -.2, ORBIT_MAX_P = 1.45;
-canvas.addEventListener('click', () => { if (replay.active) finishReplay(); });
 canvas.addEventListener('pointerdown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; orbitVX = orbitVY = 0; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointerup', () => drag = false);
 canvas.addEventListener('pointercancel', () => drag = false);
@@ -807,6 +808,7 @@ function updateConfig() {
 $('hoverMode').onclick = () => { state.hover = true; state.altCmd = state.pos.y; $('hoverMode').classList.add('active'); $('cruiseMode').classList.remove('active'); };
 $('cruiseMode').onclick = () => { state.hover = false; state.altCmd = Math.max(state.altCmd, state.pos.y); $('cruiseMode').classList.add('active'); $('hoverMode').classList.remove('active'); };
 $('pauseBtn').onclick = togglePause; $('playBottom').onclick = togglePause;
+$('skipReplayBtn').onclick = () => finishReplay();
 $('replayBtn').onclick = () => { if (state.lastReplay && !replay.active) startReplay(state.lastReplay, false); };
 $('stepBtn').onclick = () => { if (state.paused) { physicsStep(dt); updateHud(1); } else toast('Pause before single-stepping'); };
 $('slowBtn').onclick = () => { state.slow = !state.slow; $('slowBtn').textContent = state.slow ? 'Normal speed' : 'Slow motion ×0.25'; };
@@ -887,13 +889,8 @@ function drawMap() {
   // 1. terrain background
   ctx.drawImage(mapTerrainCache, 0, 0);
 
-  // 2. AI target range ring (faint, shows current detect zone)
+  // 2. (no marker at the target's true position — the map only knows what the radar/track knows)
   const tgt = state.aiTarget;
-  if (tgt) {
-    const [tx, tz] = worldToMap(tgt.pos.x, tgt.pos.z);
-    ctx.strokeStyle = 'rgba(255,200,80,.18)'; ctx.lineWidth = 12;
-    ctx.beginPath(); ctx.arc(tx, tz, 6, 0, Math.PI*2); ctx.stroke();
-  }
 
   // 3. Flight path from drone to waypoint (dashed amber line)
   const [dx2, dz2] = worldToMap(state.pos.x, state.pos.z);
@@ -980,7 +977,7 @@ function drawMap() {
   } else if (mapWaypoint) {
     lbl.textContent = 'Waypoint set'; if(span) span.textContent = 'Drone en route · will resume search on arrival';
   } else {
-    lbl.innerHTML = 'Click anywhere &rarr; waypoint &nbsp;|&nbsp; Click a classified contact &rarr; pursue<br><span style="font-weight:400;color:#8fa8ba;font-size:9.5px">Grey = unclassified · dashed circle = estimated position off radar · classifications are estimates and may be wrong</span>';
+    lbl.innerHTML = 'Click anywhere &rarr; waypoint &nbsp;|&nbsp; Click an identified contact &rarr; pursue<br><span style="font-weight:400;color:#8fa8ba;font-size:9.5px">Grey = unidentified · dashed circle = estimated position off radar · identifications are sensor estimates and may be wrong</span>';
   }
 }
 
@@ -1039,7 +1036,7 @@ $('cancelWpBtn').onclick = () => {
   mapWaypoint = null; state.manualWaypointActive = false; state.searchWp = null; state.searchTimer = 0; state.aiThink = 0;
   $('cancelWpBtn').style.display = 'none'; toast('Waypoint cancelled · scanning from current position');
 };
-$('cancelTrackBtn').onclick = () => endPursuit('Tracking cancelled · returning to classify mode');
+$('cancelTrackBtn').onclick = () => endPursuit('Tracking cancelled · returning to search');
 $('abortBtn').onclick = () => { if (state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR'); };
 
 window.addEventListener('keydown', e => {
@@ -1090,7 +1087,7 @@ $('tagBtn').onclick = () => {
 $('aiMode').addEventListener('change', () => { state.aiTarget = null; state.aiThink = 0; toast('AI mode changed · re-evaluating contacts'); });
 $('terminateTrackBtn').addEventListener('click', () => {
   const t = state.aiTarget;
-  if (t) endPursuit('Track terminated · returning to classify mode'); else toast('No active track to terminate');
+  if (t) endPursuit('Track terminated · returning to search'); else toast('No active track to terminate');
 });
 $('launchBtn').addEventListener('click', () => {
   if (state.launchStage !== 'parked') return;
@@ -1156,7 +1153,7 @@ function scoreContact(c, fx, fz, mode) {
 function identifyContact(c) {
   c.identified = true; c.guess = truthClass(c); c.conf = .95; c.votes = {[c.guess]: 6};
   if (!c.trk || c.trk.lost) c.trk = {x:c.pos.x, y:c.pos.y, z:c.pos.z, vx:c.vel.x, vy:c.vel.y, vz:c.vel.z, seen:state.time, lost:false, covered:0};
-  radioMessage('CLASSIFIED: ' + CLS_NAME[c.guess] + ' · SELECT ON MAP TO TRACK');
+  radioMessage('IDENTIFIED: ' + CLS_NAME[c.guess] + ' · SELECT ON MAP TO TRACK');
   // Classify loop: once identified, every contact (scouts included) is left alone unless the user confirms a pursuit on the map.
   if (state.pursuitMode && state.aiTarget === c) return;
   state.ignoredTargets.add(c);
@@ -1187,7 +1184,7 @@ function aiThink() {
       if ((cur.conf || 0) >= .85 || d < classifyRange(cur) * .5 || state.time - (cur.inspectStart || state.time) > 45) {
         state.ignoredTargets.add(cur);
         if (!cur.identified && cur.guess) { cur.identified = true; }
-        logEvent(cur.guess ? 'Classification done · ' + CLS_SHORT[cur.guess] + ' ' + confPct(cur) + '% · moving on' : 'Could not classify contact · moving on', cur.guess && cur.conf > .6 ? 'ok' : 'warn'); cur = null;
+        logEvent(cur.guess ? 'Identification done · ' + CLS_SHORT[cur.guess] + ' ' + confPct(cur) + '% · moving on' : 'Could not identify contact · moving on', cur.guess && cur.conf > .6 ? 'ok' : 'warn'); cur = null;
       }
     }
   }
@@ -1354,13 +1351,23 @@ const contactName = c => c.identified ? CLS_NAME[c.guess] : 'UNKNOWN CONTACT';
 const confPct = c => Math.round((c.conf || 0) * 100);
 // Sensor quality for classification right now (0..1): thermal sees engines day or night but suffers in rain;
 // the normal camera needs daylight and clear air.
-function sensorQuality() {
+// Normal camera: the best sensor in clear daylight, nearly blind at night, degraded by mist/rain.
+// Thermal: same day or night, copes better with mist/rain, sees hot engines (jets, airliners) best —
+// but resolves less shape detail than the camera in clear daylight.
+function sensorQuality(c) {
   const ws = state.weatherStrength || 0, cosC = Math.cos(state.dayClock || 0), daylight = clamp((cosC + .28) / .75, 0, 1);
-  return thermalOn ? .9 * (1 - .4 * smoothstep(.5, .75, ws)) * (state.night ? 1.05 : 1) : (.25 + .75 * daylight) * (1 - .6 * ws);
+  if (thermalOn) return .78 * (1 - .45 * ws) * (c ? .85 + .3 * c.sig : 1);
+  return (.15 + .85 * daylight) * (1 - .85 * ws);
 }
 function classifyTick(c, d) {
-  const cr = classifyRange(c), qr = clamp(1 - (d - .4 * cr) / (2.6 * cr), 0, 1), q = sensorQuality() * qr;
+  // Identification only happens while the drone is working on this object: before it is identified (passive
+  // looks / investigation) or while it is the active target (investigation or pursuit). Otherwise the % is frozen.
+  const active = c === state.aiTarget;
+  if (c.identified && !active) return;
+  const cr = classifyRange(c), qr = clamp(1 - (d - .4 * cr) / (2.6 * cr), 0, 1), q = sensorQuality(c) * qr;
   if (q < .05) return;
+  // While it's being tracked, older readings fade (~20 s) so the current sensor & weather drive the confidence.
+  if (active && c.votes) for (const k in c.votes) c.votes[k] *= Math.exp(-SCAN_DT / 20);
   const truth = truthClass(c), pCorrect = .38 + .6 * q;
   let reading = truth;
   if (Math.random() > pCorrect) { const opts = CLS_CONFUSE[truth]; reading = opts[Math.floor(Math.random() * opts.length)]; }
@@ -1370,8 +1377,8 @@ function classifyTick(c, d) {
   c.guess = best; c.conf = c.votes[best] / total * (1 - Math.exp(-total / 1.5));
   if (!c.identified && c.conf >= .6) {
     c.identified = true;
-    radioMessage('CLASSIFIED: ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '% · SELECT ON MAP TO TRACK');
-  } else if (c.identified && prevGuess && prevGuess !== c.guess) radioMessage('RECLASSIFIED: ' + CLS_NAME[prevGuess] + ' → ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '%');
+    radioMessage('IDENTIFIED: ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '% · SELECT ON MAP TO TRACK');
+  } else if (c.identified && prevGuess && prevGuess !== c.guess) radioMessage('RE-IDENTIFIED: ' + CLS_NAME[prevGuess] + ' → ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '%');
 }
 function radarScan(h) {
   state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = SCAN_DT;
@@ -1390,9 +1397,10 @@ function radarScan(h) {
       const e = trackPos(c, _est), de = state.pos.distanceTo(e);
       const covered = on && de + trackSigma(c) < R * .85 && losPoint(e.x, e.y, e.z);   // whole uncertainty area swept
       c.trk.covered = covered ? c.trk.covered + SCAN_DT : 0;
-      if (c.trk.covered > 2 || state.time - c.trk.seen > 600) {
+      const atEstimate = on && Math.hypot(e.x - state.pos.x, e.z - state.pos.z) < 100;   // flew there: nothing within 100 m
+      if (atEstimate || c.trk.covered > 2 || state.time - c.trk.seen > 600) {
         c.trk.lost = true;
-        if (c.identified || c === state.aiTarget) radioMessage('TRACK DROPPED · ' + (c.identified ? CLS_SHORT[c.guess] : 'UNKNOWN') + ' NOT FOUND AT ESTIMATE');
+        if (c.identified || c === state.aiTarget) radioMessage('NOTHING AT ESTIMATED POSITION · TRACK TERMINATED · ' + (c.identified ? CLS_SHORT[c.guess] : 'UNKNOWN'));
       }
     }
   }
@@ -1785,7 +1793,7 @@ function physicsStep(h) {
       state.tagCount++;
       const name = tgt.type === 'plane' ? 'CIVILIAN AIRLINER' : 'BIRD FLOCK';
       state.civilianIncidents = (state.civilianIncidents || 0) + 1;
-      radioMessage('CIVILIAN INCIDENT · collided with ' + name + (tgt.guess !== truthClass(tgt) ? ' (was classified as ' + CLS_NAME[tgt.guess] + ' ' + confPct(tgt) + '%)' : ''));
+      radioMessage('CIVILIAN INCIDENT · collided with ' + name + (tgt.guess !== truthClass(tgt) ? ' (was identified as ' + CLS_NAME[tgt.guess] + ' ' + confPct(tgt) + '%)' : ''));
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
       impact(tgt, 'CIVILIAN INCIDENT · ' + name); return;
     }
@@ -1798,7 +1806,7 @@ function physicsStep(h) {
     const DR = 1.5;   // drone's own half-span: contact is airframe touching airframe
     if ((Math.abs(lx) < sc*2.8 + DR && Math.abs(dy) < sc*1.35 + DR && Math.abs(lz) < sc*3.1 + DR) || Math.sqrt(dx*dx + dy*dy + dz*dz) < sc*2.35 + DR) {
       s.destroyed = true; s.tagged = true; s.removeAt = state.time + 1e9; state.tagCount++;   // removed after the replay
-      $('missionState').textContent = 'THREAT NEUTRALISED'; radioMessage('THREAT NEUTRALISED · ' + s.spec.label + (s.guess && s.guess !== s.kind ? ' (was classified as ' + CLS_NAME[s.guess] + ')' : '') + ' · RETURNING TO PAD');
+      $('missionState').textContent = 'THREAT NEUTRALISED'; radioMessage('THREAT NEUTRALISED · ' + s.spec.label + (s.guess && s.guess !== s.kind ? ' (was identified as ' + CLS_NAME[s.guess] + ')' : '') + ' · RETURNING TO PAD');
       actLog('Scout tagged: ' + s.spec.label + ' · total ' + state.tagCount + ' · returning to pad', 'ok');
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
       impact(s, 'THREAT NEUTRALISED · ' + s.spec.label);
@@ -1879,18 +1887,30 @@ function stepReplay(rdt) {
       if (o[0].isScout) g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); else g.rotation.y = o[4];
     }
   }
-  // Camera: chase → side (fixed, drone flies past) → impact close-up (fixed, near the impact point)
-  const fx = -Math.sin(ry), fz = -Math.cos(ry);
+  // Target position at this replay time (it is always in the recording; fall back to the impact point).
+  const ta = a.objs.find(x => x[0] === rp.target), tb = b.objs.find(x => x[0] === rp.target) || ta;
+  if (ta) _rc.set(lerp(ta[1], tb[1], k), lerp(ta[2], tb[2], k), lerp(ta[3], tb[3], k)); else _rc.copy(rp.impactPos);
+  if (replay.boomed) _rc.copy(rp.impactPos);
+  // Camera cuts, always framing BOTH aircraft: chase (behind the drone, looking at the target) → side (fixed,
+  // perpendicular to the drone→target line) → impact close-up (fixed near the impact point).
+  const fx = -Math.sin(ry), fz = -Math.cos(ry), sep = _rq.distanceTo(_rc);
   const cut = replay.boomed || toImpact < 1 ? 'IMPACT CAM' : toImpact < 3 ? 'SIDE CAM' : 'CHASE CAM';
-  if (cut === 'CHASE CAM') { camera.position.set(_rq.x - fx * 16, _rq.y + 4.5, _rq.z - fz * 16); camera.up.set(0, 1, 0); camera.lookAt(_rq.x + fx * 20, _rq.y, _rq.z + fz * 20); }
-  else if (cut === 'SIDE CAM') {
-    if (!replay.side) replay.side = new THREE.Vector3(_rq.x + fx * 70 - fz * 38, _rq.y + 7, _rq.z + fz * 70 + fx * 38);
-    camera.position.copy(replay.side); camera.up.set(0, 1, 0); camera.lookAt(_rq);
+  _rf.subVectors(_rc, _rq); if (_rf.lengthSq() < 1) _rf.set(fx, 0, fz); _rf.normalize();
+  const mid = _rq.clone().lerp(_rc, .5);
+  if (cut === 'CHASE CAM') {
+    camera.position.copy(_rq).addScaledVector(_rf, -18); camera.position.y += 5; camera.up.set(0, 1, 0); camera.lookAt(sep < 400 ? mid : _rc);
+  } else if (cut === 'SIDE CAM') {
+    if (!replay.side) { const d = Math.max(45, sep * 1.1); replay.side = new THREE.Vector3(mid.x - _rf.z * d, mid.y + 8, mid.z + _rf.x * d); }
+    camera.position.copy(replay.side); camera.up.set(0, 1, 0); camera.lookAt(mid);
   } else {
-    if (!replay.close) { const ip = rp.impactPos; replay.close = new THREE.Vector3(ip.x - fz * 22 - fx * 10, ip.y + 5, ip.z + fx * 22 - fz * 10); }
-    camera.position.copy(replay.close); camera.up.set(0, 1, 0); camera.lookAt(replay.boomed ? rp.impactPos : _rq);
+    if (!replay.close) { const ip = rp.impactPos; replay.close = new THREE.Vector3(ip.x - _rf.z * 26 - _rf.x * 12, ip.y + 6, ip.z + _rf.x * 26 - _rf.z * 12); }
+    camera.position.copy(replay.close); camera.up.set(0, 1, 0); camera.lookAt(replay.boomed ? rp.impactPos : mid);
   }
   { const gy = terrainHeight(camera.position.x, camera.position.z) + 2; if (camera.position.y < gy) camera.position.y = gy; }
+  { const tag = $('replayTag'); camera.updateMatrixWorld(); tmpP.copy(_rc).project(camera);
+    const on = !replay.boomed && tmpP.z > -1 && tmpP.z < 1 && Math.abs(tmpP.x) < 1 && Math.abs(tmpP.y) < 1;
+    tag.style.display = on ? 'block' : 'none';
+    if (on) { tag.style.left = ((tmpP.x * .5 + .5) * vpW) + 'px'; tag.style.top = ((-tmpP.y * .5 + .5) * vpH) + 'px'; tag.querySelector('span').textContent = 'TARGET · ' + (rp.target.guess ? CLS_SHORT[rp.target.guess] : '') + ' · ' + Math.round(sep) + ' m'; } }
   $('replayInfo').textContent = '▶ REPLAY · ' + (rp.label || 'IMPACT') + ' · ' + cut + (speed < 1 ? ' · SLOW MOTION ×' + speed : '');
   if (!replay.boomed) {
     replay.t += rdt * speed;
@@ -2017,6 +2037,8 @@ function updateHud(rdt) {
     } else lock.classList.remove('show');
   } else lock.classList.remove('show');
   hudAcc += rdt; if (hudAcc < .12 && rdt !== 1) return; hudAcc = 0;
+  { const q = sensorQuality(), el = $('sensorHud');
+    el.innerHTML = `SENSOR <b style="color:${q > .7 ? '#7affca' : q > .4 ? '#ffd27a' : '#ff8a7a'}">${thermalOn ? 'THERMAL' : 'CAMERA'} · ID QUALITY ${Math.round(q * 100)}%</b>` + (q < .4 ? ` · <span style="color:#ffd27a">${thermalOn ? 'poor weather' : 'try THERMAL (T)'}</span>` : ''); }
   { const pt = state.pursuitMode && state.aiTarget, ab = $('abortBtn'); ab.classList.toggle('show', !!pt);
     if (pt) $('abortInfo').textContent = CLS_NAME[pt.guess] + ' · ' + confPct(pt) + '% confidence · ' + (pt.detected ? Math.round(state.pos.distanceTo(pt.pos)) + ' m' : 'off radar · flying to estimate'); }
   const speed = state.vel.length(), alt = state.pos.y, spdTxt = speed.toFixed(1) + ' m/s';
@@ -2034,14 +2056,14 @@ function updateHud(rdt) {
   // Identified = classified and still tracked; "threat" by the system's own guess (which can be wrong).
   const threats = scouts.filter(s => !s.destroyed && !s.tagged), live = [...threats, ...ambientActors].filter(c => c.identified && hasTrack(c));
   const idThreats = live.filter(c => isThreatClass(c.guess)).length, inc = state.civilianIncidents || 0;
-  $('targetStatus').innerHTML = `<span>THREATS LEFT</span><b class="${threats.length ? 'hot' : ''}">${threats.length}</b><span>IDENTIFIED THREATS</span><b>${idThreats}</b><span>TOTAL IDENTIFIED</span><b>${live.length}</b>` +
+  $('targetStatus').innerHTML = `<span>POTENTIAL THREATS</span><b class="${idThreats ? 'hot' : ''}">${idThreats}</b><span>TOTAL IDENTIFIED OBJECTS</span><b>${live.length}</b>` +
     (inc ? `<span style="color:#ff8a7a">CIVILIAN INCIDENTS</span><b class="hot">${inc}</b>` : '');
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
     $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
       const conf = known ? Math.round(clamp(70 + (1 - dist / 800) * 28, 70, 98)) : Math.round(progress * 60);
-      const stateTxt = known ? 'LOCKED' : (progress > .4 ? 'CLASSIFYING' : 'SEARCH CONTACT');
+      const stateTxt = known ? 'LOCKED' : (progress > .4 ? 'IDENTIFYING' : 'SEARCH CONTACT');
       $('lockState').textContent = `${stateTxt} · ${conf}% · ${dist < 700 ? 'CLOSING' : 'TRACKING'}`; $('missionState').textContent = known ? 'TARGET LOCKED' : 'UNKNOWN CONTACT';
       
     } else { $('lockState').textContent = 'LOCK STATUS: SEARCHING'; $('missionState').textContent = 'SEARCHING'; }
@@ -2060,9 +2082,9 @@ function updateHud(rdt) {
   }
   const ro = $('contactReadout');
   if (show) {
-    const seen = show.identified, info = contactInfo(show), sq = Math.round(sensorQuality() * 100);
+    const seen = show.identified, info = contactInfo(show), sq = Math.round(sensorQuality(show) * 100);
     const line = seen ? `RANGE ${showD.toFixed(0)} m` + (thermalOn ? ` · ${info.temp}` : '') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`
-                      : `RANGE ${showD.toFixed(0)} m · ` + (show.conf ? `CLASSIFYING · best guess ${CLS_SHORT[show.guess]} ${confPct(show)}%` : 'SEARCH CONTACT') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`;
+                      : `RANGE ${showD.toFixed(0)} m · ` + (show.conf ? `IDENTIFYING · best guess ${CLS_SHORT[show.guess]} ${confPct(show)}%` : 'SEARCH CONTACT') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`;
     ro.style.display = 'block'; ro.innerHTML = `<b>${seen ? info.name : 'UNKNOWN CONTACT'}</b><small>${line}</small>`; ro.classList.toggle('unknown', !seen);
   } else ro.style.display = 'none';
 }
