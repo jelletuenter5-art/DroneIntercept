@@ -689,9 +689,9 @@ const LIVERIES = [
   {body:0xeceef0, tail:0xf4f6f8, accent:0x1a1a2e},   // dark navy
 ];
 const PLANE_BUILDERS = [buildWidebody, buildNarrowbody, buildRegional];
-const PLANE_SCALES   = [2.4, 2.0, 1.6];
+const PLANE_SCALES   = [2.1, 1.75, 1.4];   // ~12 % smaller than before
 const PLANE_SPEEDS   = [[52,68],[58,78],[64,88]];
-const PLANE_SIZES    = [55, 42, 30];
+const PLANE_SIZES    = [48, 37, 26];
 function createPassengerPlane(x, y, z, planeType) {
   const t = planeType !== undefined ? planeType : Math.floor(Math.random() * 3);
   const g = new THREE.Group(); scene.add(g);
@@ -721,10 +721,11 @@ function createLightPlane(x, z) {
   box(g, [.12, .7, .12], dark, [.8, -.95, -.6]); box(g, [.12, .7, .12], dark, [-.8, -.95, -.6]); box(g, [.1, .6, .1], dark, [0, -.85, -2.8]);   // gear
   const prop = new THREE.Group(); prop.position.set(0, -.05, -3.66); g.add(prop);
   box(prop, [.09, 1.9, .05], dark, [0, 0, 0]).userData.th = .25; cylinder(prop, .12, .12, .15, mat(0x9aa1a8, .3, .8), [0, 0, 0], [Math.PI / 2, 0, 0]).userData.th = .4;
+  g.scale.setScalar(1.35);   // ~15 m wingspan: a bit bigger than a prop scout
   registerGroup(g, .3, true);
   const agl = 110 + Math.random() * 260, y = terrainHeight(x, z) + agl; g.position.set(x, y, z);
   const a = {type:'cessna', kind:'cessna', isAmbient:true, group:g, propeller:prop, pos:new THREE.Vector3(x, y, z), prev:new THREE.Vector3(x, y, z), vel:new THREE.Vector3(),
-    speed:46 + Math.random() * 14, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:12, detect:1500, sig:.45,
+    speed:46 + Math.random() * 14, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:16, detect:1500, sig:.45,
     curiosity:Math.random(), identified:false};
   aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
 }
@@ -1920,7 +1921,7 @@ function physicsStep(h) {
   if (state.recording && Math.floor(state.time * 20) !== Math.floor((state.time - h) * 20)) state.history.push({t:+state.time.toFixed(3), x:+state.pos.x.toFixed(2), y:+state.pos.y.toFixed(2), z:+state.pos.z.toFixed(2), speed:+speed.toFixed(2), battery:+state.battery.toFixed(4)});
   // Confirmed pursuit of a bird flock or airliner ends in a collision too.
   if (state.pursuitMode && tgt && tgt.isAmbient) {
-    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : tgt.type === 'cessna' ? 7 : 10;
+    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : tgt.type === 'cessna' ? 9 : 10;
     if (state.pos.distanceTo(tgt.pos) < hitR) {
       state.tagCount++;
       const name = CLS_NAME[truthClass(tgt)];

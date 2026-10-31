@@ -16,7 +16,7 @@ A single-file Three.js drone simulator game.
 
 ## AI / contacts
 - `scouts[]` — spawnable enemy scouts (light/heavy/fast)
-- `ambientActors[]` — birds, airliners (`type:'plane'`) and light hobby aircraft (`type:'cessna'`, `createLightPlane`, scout-sized, confusable with prop scouts) — civilian, never engage
+- `ambientActors[]` — birds, airliners (`type:'plane'`) and light hobby aircraft (`type:'cessna'`, `createLightPlane`, scaled 1.35 → ~15 m span, slightly bigger than a scout, confusable with prop scouts) — civilian, never engage
 - `state.pursuitMode` — false = classify loop, true = user-selected pursuit
 - `state.ignoredTargets` Set — contacts drone won't re-approach
 - `identifyContact(c)` — forces a confident, *correct* classification (used for tests); normal play classifies via `classifyTick`
