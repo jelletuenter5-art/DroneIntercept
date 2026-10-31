@@ -1373,8 +1373,7 @@ const hasTrack = c => !!(c.trk && !c.trk.lost);
 // Best current position knowledge: live position when on radar, dead-reckoned estimate otherwise.
 function trackPos(c, out) {
   const k = c.trk; if (!k) return out.copy(c.pos);
-  if (c.detected) return out.copy(c.pos);
-  // Coordinated-turn dead reckoning: follow the last measured turn rate for up to 30 s, then straight on.
+  // Coordinated-turn dead reckoning from the last radar plot (also between sweeps while detected): follow the last measured turn rate for up to 30 s, then straight on.
   const dt = Math.min(state.time - k.seen, 300), V = Math.hypot(k.vx, k.vz), w = k.w || 0, h0 = Math.atan2(-k.vx, -k.vz);
   const tt = Math.min(dt, 30), y = k.y + k.vy * Math.min(dt, 10);
   if (Math.abs(w) < 1e-3) return out.set(k.x + k.vx * dt, y, k.z + k.vz * dt);
@@ -1382,7 +1381,7 @@ function trackPos(c, out) {
   return out.set(ax - Math.sin(h1) * V * rest, y, az - Math.cos(h1) * V * rest);
 }
 function trackSigma(c) {
-  if (!c.trk) return 0; if (c.detected) return 12;
+  if (!c.trk) return 0; if (c.detected) return c.trk.noise || 12;
   const dt = state.time - c.trk.seen, v = Math.hypot(c.trk.vx, c.trk.vz);
   return Math.min(1500, 40 + .14 * v * dt + 1.5 * dt);   // honest about manoeuvres: rough guess after ~3-4 min
 }
@@ -1401,12 +1400,15 @@ function sensorQuality(c) {
 function classifyTick(c, d) {
   // Identification only happens while the drone is working on this object: before it is identified (passive
   // looks / investigation) or while it is the active target (investigation or pursuit). Otherwise the % is frozen.
-  const active = c === state.aiTarget;
-  if (c.identified && !active) return;
-  const cr = classifyRange(c), qr = clamp(1 - (d - .4 * cr) / (2.6 * cr), 0, 1), q = sensorQuality(c) * qr;
+  // Also whenever the drone gets a clear close look at it (fly-by): a good view corrects an old wrong guess.
+  const active = c === state.aiTarget, blur = blurAmount(c, d), closeLook = blur < .3;
+  if (c.identified && !active && !closeLook) return;
+  // Reading quality follows what the sensor actually resolves: the sharper the image, the better the reading.
+  const q = sensorQuality(c) * (1 - blur);
   if (q < .05) return;
-  // While it's being tracked, older readings fade (~20 s) so the current sensor & weather drive the confidence.
-  if (active && c.votes) for (const k in c.votes) c.votes[k] *= Math.exp(-SCAN_DT / 20);
+  // While tracked or seen up close, older readings fade so the current view drives the confidence
+  // (~20 s normally, a few seconds when it's right in front of the sensor).
+  if ((active || closeLook) && c.votes) { const tau = lerp(3, 20, smoothstep(.05, .3, blur)); for (const k in c.votes) c.votes[k] *= Math.exp(-SCAN_DT / tau); }
   const truth = truthClass(c), pCorrect = .38 + .6 * q;
   let reading = truth;
   if (Math.random() > pCorrect) { const opts = CLS_CONFUSE[truth]; reading = opts[Math.floor(Math.random() * opts.length)]; }
@@ -1419,24 +1421,35 @@ function classifyTick(c, d) {
     radioMessage('IDENTIFIED: ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '% · SELECT ON MAP TO TRACK');
   } else if (c.identified && prevGuess && prevGuess !== c.guess) radioMessage('RE-IDENTIFIED: ' + CLS_NAME[prevGuess] + ' → ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '%');
 }
+// Radar cross-section factor → how far each type can be detected (birds/small scouts much closer than airliners).
+const RCS = {light:.6, heavy:.85, fast:.7, plane:1.4, birds:.45};
+const RADAR_SWEEP = 1.0;                                     // one antenna sweep per second
+const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.41;
+function radarDetectRange(c) { return Math.min(2400, radarRange() * RCS[truthClass(c)]); }
 function radarScan(h) {
   state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = SCAN_DT;
-  const R = radarRange(), on = !state.crashed && !state.returning && !state.batteryDead;
+  state.sweepT = (state.sweepT || 0) - SCAN_DT; const sweep = state.sweepT <= 0; if (sweep) state.sweepT = RADAR_SWEEP;
+  const on = !state.crashed && !state.returning && !state.batteryDead;
   for (const c of [...scouts, ...ambientActors]) {
     if (c.destroyed || c.tagged) { c.detected = false; continue; }
-    const d = state.pos.distanceTo(c.pos), det = on && d < R && losPoint(c.pos.x, c.pos.y, c.pos.z);
+    const d = state.pos.distanceTo(c.pos), los = losPoint(c.pos.x, c.pos.y, c.pos.z);
+    // Camera / thermal identification: needs line of sight and a visible image (independent of the radar).
+    if (on && los) classifyTick(c, d);
+    if (!sweep) continue;
+    const det = on && los && d < radarDetectRange(c);
     c.detected = det;
     if (det) {
       if (!c.trk || c.trk.lost) { c.trk = {}; if (c.identified) radioMessage('TRACK REACQUIRED · ' + CLS_SHORT[c.guess]); }
-      // Radar measures position, velocity and (from successive plots) the turn rate.
-      Object.assign(c.trk, {x:c.pos.x, y:c.pos.y, z:c.pos.z, vx:c.vel.x, vy:c.vel.y, vz:c.vel.z, w:c.turnRate || 0, seen:state.time, lost:false, covered:0});
-      classifyTick(c, d);
+      // A radar plot: noisy position (≈6 m + 1.5 % of range), rough velocity, turn rate from successive plots.
+      const n = 6 + d * .015, vn = 1 + .04 * Math.hypot(c.vel.x, c.vel.z);
+      Object.assign(c.trk, {x:c.pos.x + gauss() * n, y:c.pos.y + gauss() * n * .5, z:c.pos.z + gauss() * n,
+        vx:c.vel.x + gauss() * vn, vy:c.vel.y, vz:c.vel.z + gauss() * vn, w:c.turnRate || 0, seen:state.time, lost:false, covered:0, noise:n});
     } else if (c.trk && !c.trk.lost) {
       // Radar sweeps the estimated area and finds nothing → drop the track.
       const e = trackPos(c, _est), de = state.pos.distanceTo(e);
-      const covered = on && de + trackSigma(c) < R * .85 && losPoint(e.x, e.y, e.z);   // whole uncertainty area swept
-      c.trk.covered = covered ? c.trk.covered + SCAN_DT : 0;
-      const atEstimate = on && Math.hypot(e.x - state.pos.x, e.z - state.pos.z) < 100;   // flew there: nothing within 100 m
+      const covered = on && de + trackSigma(c) < radarDetectRange(c) * .85 && losPoint(e.x, e.y, e.z);   // whole uncertainty area swept
+      c.trk.covered = covered ? c.trk.covered + RADAR_SWEEP : 0;
+      const atEstimate = on && Math.hypot(e.x - state.pos.x, e.z - state.pos.z) < 100 && d > 150;   // flew there: nothing within 100 m
       if (atEstimate || c.trk.covered > 2 || state.time - c.trk.seen > 600) {
         c.trk.lost = true;
         if (c.identified || c === state.aiTarget) radioMessage('NOTHING AT ESTIMATED POSITION · TRACK TERMINATED · ' + (c.identified ? CLS_SHORT[c.guess] : 'UNKNOWN'));
@@ -2025,7 +2038,8 @@ function updateVisuals(alpha, rdt) {
 // object goes smoothly from sharp → soft → smeared → a round unresolved spot. A bird flock is one image, so its birds
 // merge into a single smudge far away and separate / sharpen as you close in.
 // shapeRange = distance where the shape is about half-resolved (doubled twice vs. the first version).
-function shapeRange(c) { return classifyRange(c) * 3.2 * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
+const SHAPE_RANGE = {light:800, fast:850, heavy:1000, plane:1200, birds:440};
+function shapeRange(c) { return SHAPE_RANGE[truthClass(c)] * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
 function blurAmount(c, d) { return smoothstep(shapeRange(c) * .15, shapeRange(c) * 1.6, d); }   // 0 sharp … 1 unresolved
 const IMP_RES = 128;
 const impScene = new THREE.Scene();
@@ -2232,8 +2246,8 @@ function drawRadar() {
     if (isT) { x.strokeStyle='rgba(255,238,119,.35)'; x.lineWidth=7; x.beginPath(); x.arc(px,py,9,0,TAU); x.stroke(); }
     count++;
   };
-  for (const s of scouts) { if (s.destroyed) continue; const px=cx+(s.pos.x-state.pos.x)*scale, py=cy+(s.pos.z-state.pos.z)*scale; if (Math.hypot(px-cx,py-cy)<85) drawContact(s,px,py); }
-  for (const a of ambientActors) { const px=cx+(a.pos.x-state.pos.x)*scale, py=cy+(a.pos.z-state.pos.z)*scale; if (Math.hypot(px-cx,py-cy)<85) drawContact(a,px,py); }
+  for (const o of [...scouts, ...ambientActors]) { if (o.destroyed || !o.detected || !o.trk) continue; trackPos(o, _est);
+    const px = cx + (_est.x - state.pos.x) * scale, py = cy + (_est.z - state.pos.z) * scale; if (Math.hypot(px - cx, py - cy) < 85) drawContact(o, px, py); }
   $('radarCount').textContent = 'CONTACTS ' + count + ' · ' + (radarRange() / 1000).toFixed(1) + ' KM';
 }
 function resize() {
