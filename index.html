@@ -966,15 +966,22 @@ function drawMap() {
     const live = c.detected, e = trackPos(c, _est), [mx, mz] = worldToMap(e.x, e.z);
     const isT = c === tgt && state.pursuitMode, sig = trackSigma(c) / MAP_WORLD * MAP_SIZE, age = state.time - c.trk.seen;
     if (!live) {
+      // uncertainty circle, clipped to the area (nothing can be outside it)
+      const [b0] = worldToMap(-ARENA, -ARENA), [b1] = worldToMap(ARENA, ARENA);
+      ctx.save(); ctx.beginPath(); ctx.rect(b0, b0, b1 - b0, b1 - b0); ctx.clip();
       ctx.setLineDash([2,3]); ctx.strokeStyle = isT ? 'rgba(255,238,119,.6)' : 'rgba(170,190,205,.45)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(mx, mz, Math.max(4, sig), 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      ctx.restore();
     }
+    // labels flip to the left near the right-hand border so they don't run over it
+    const [, bR] = worldToMap(ARENA, ARENA), flip = mx > bR - 95;
+    ctx.textAlign = flip ? 'right' : 'left';
     ctx.globalAlpha = live ? 1 : .55;
     if (!c.identified) {
       const g = ctx.createRadialGradient(mx, mz, 0, mx, mz, 9); g.addColorStop(0, 'rgba(190,200,210,.85)'); g.addColorStop(1, 'rgba(190,200,210,0)');
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx + Math.sin(state.time * 7 + c.curiosity * 9), mz + Math.cos(state.time * 5 + c.curiosity * 7), 9, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(200,210,220,.7)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText(live ? 'UNKNOWN' : 'UNKNOWN · ' + Math.round(age) + 's', mx + 9, mz + 3);
-      ctx.globalAlpha = 1; return;
+      ctx.fillStyle = 'rgba(200,210,220,.7)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText(live ? 'UNKNOWN' : 'UNKNOWN · ' + Math.round(age) + 's', flip ? mx - 9 : mx + 9, mz + 3);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left'; return;
     }
     const threat = isThreatClass(c.guess), col = isT ? '#ffee77' : threat ? '#ff9a6b' : '#9ec4d8';
     if (live) { const hd = Math.atan2(-c.vel.x, -c.vel.z), hx2 = -Math.sin(hd) * 10, hz2 = -Math.cos(hd) * 10;
@@ -983,8 +990,8 @@ function drawMap() {
     if (threat) { ctx.beginPath(); ctx.moveTo(mx, mz-6); ctx.lineTo(mx+4, mz+3); ctx.lineTo(mx-4, mz+3); ctx.closePath(); ctx.fill(); }
     else ctx.fillRect(mx-4, mz-4, 8, 8);
     ctx.font = 'bold 8px ui-monospace,monospace';
-    ctx.fillText(CLS_SHORT[c.guess] + ' ' + confPct(c) + '%' + (live ? '' : ' · EST ' + Math.round(age) + 's'), mx + 7, mz + 3);
-    ctx.globalAlpha = 1;
+    ctx.fillText(CLS_SHORT[c.guess] + ' ' + confPct(c) + '%' + (live ? '' : ' · EST ' + Math.round(age) + 's'), flip ? mx - 7 : mx + 7, mz + 3);
+    ctx.globalAlpha = 1; ctx.textAlign = 'left';
     if (isT) {
       const pulse = .45 + .35 * Math.sin(state.time * 6);
       ctx.strokeStyle = `rgba(255,238,119,${pulse})`; ctx.lineWidth = 1.5;
@@ -1306,7 +1313,7 @@ function stepScout(s, h) {
   // Look ~20 s ahead: if that point is near the border, head back towards the middle now (turn circle up to ~0.8 km).
   const lx = s.pos.x + s.vel.x * 20, lz = s.pos.z + s.vel.z * 20;
   const out = Math.max(Math.abs(s.pos.x), Math.abs(s.pos.z));
-  if (out > ARENA - 50 && !s.returning) {                 // crossed: random point well inside, turn back briskly
+  if (out > ARENA - 250 && !s.returning) {                 // crossed: random point well inside, turn back briskly
     s.returning = true; s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 60;
   } else if (!s.returning && Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.max(Math.abs(s.waypoint.x), Math.abs(s.waypoint.z)) > ARENA * .6) {
     s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 40;   // about to reach it → head back in
@@ -1363,7 +1370,7 @@ function stepPlane(a, h) {
   const fx = -Math.sin(a.hdg), fz = -Math.cos(a.hdg), lookX = a.pos.x + fx * a.speed * 40, lookZ = a.pos.z + fz * a.speed * 40;
   const leaving = Math.max(Math.abs(lookX), Math.abs(lookZ)) > ARENA - 300;   // ~40 s look-ahead: turn circle is ~1 km
   const out = Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z));
-  if (out > ARENA - 50 && !a.returning) { a.returning = true; a.goal = {x:randInside(ARENA * .5), z:randInside(ARENA * .5)}; }   // crossed → back in
+  if (out > ARENA - 250 && !a.returning) { a.returning = true; a.goal = {x:randInside(ARENA * .5), z:randInside(ARENA * .5)}; }   // crossed → back in
   if (a.returning && out < ARENA - 700) a.returning = false;
   if (!a.goal || Math.hypot(a.goal.x - a.pos.x, a.goal.z - a.pos.z) < 700 || (leaving && !a.turningIn && !a.returning)) {
     a.goal = leaving ? {x:randInside(ARENA * .55), z:randInside(ARENA * .55)} : {x:randInside(900), z:randInside(900)}; a.turningIn = leaving;
@@ -1456,8 +1463,10 @@ function trackPos(c, out) {
       if (Math.max(Math.abs(x), Math.abs(z)) < ARENA * .55) ret = false;
     }
     h += rate * st; x += -Math.sin(h) * V * st; z += -Math.cos(h) * V * st; t += st;
+    const M = ARENA - 150;                                  // estimates never get closer than 150 m to the border
+    if (Math.abs(x) > M || Math.abs(z) > M) { x = clamp(x, -M, M); z = clamp(z, -M, M); ret = true; }
   }
-  return out.set(clamp(x, -ARENA, ARENA), y, clamp(z, -ARENA, ARENA));
+  return out.set(x, y, z);
 }
 function trackSigma(c) {
   if (!c.trk) return 0; if (c.detected) return c.trk.noise || 12;
