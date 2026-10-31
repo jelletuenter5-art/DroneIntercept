@@ -26,6 +26,17 @@ h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#a9bfd3;ma
 #graph{width:100%;height:78px;display:block;background:#0a131d;border:1px solid var(--line);border-radius:6px}
 kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738;border-radius:4px;padding:2px 4px;color:#c9d8e6}.hint{font-size:10px;color:var(--muted);line-height:1.6}.field:has(#mass),.field:has(#power),.field:has(#wing),.field:has(#battery),.section:has(#wind),.field:has(#thrust){display:none}.danger{color:var(--red)}.good{color:var(--green)}.warn{color:var(--orange)}
 #toast{display:none!important}
+body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadout,body.replaying #targetLock,body.replaying #abortBtn,body.replaying .crosshair,body.replaying #contactLabels,body.replaying #envPanel{visibility:hidden}
+#replayOverlay{display:none;position:absolute;inset:0;z-index:40;pointer-events:none}#replayOverlay.show{display:block}
+#replayOverlay .lb{position:absolute;left:0;right:0;height:9%;background:#000}#replayOverlay .top{top:0}#replayOverlay .bot{bottom:0}
+#replayInfo{position:absolute;top:calc(9% + 12px);left:18px;font:700 13px ui-monospace,monospace;letter-spacing:.12em;color:#ffd27a;text-shadow:0 0 8px #000}
+#replayOverlay .skip{position:absolute;bottom:calc(9% + 12px);right:18px;font:11px ui-monospace,monospace;color:#cfe6f5aa}
+#abortBtn{display:none;position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:12;pointer-events:auto;padding:9px 22px 8px;background:#3a0c10ee;border:1.5px solid #ff6b6b;border-radius:8px;color:#ffd6d6;font:700 13px ui-monospace,monospace;letter-spacing:.1em;box-shadow:0 6px 24px #000a;text-align:center;cursor:pointer}
+#abortBtn:hover{background:#561419}#abortBtn.show{display:block}#abortBtn small{display:block;font-weight:500;font-size:10px;color:#ffb3b3;letter-spacing:.04em;margin-top:2px}#abortBtn kbd{position:absolute;right:6px;top:5px;font-size:9px}
+#envBtn{white-space:nowrap}#envPanel{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:30;width:270px;padding:10px 12px;background:#07131df2;border:1px solid #3c6174;border-radius:9px;box-shadow:0 8px 30px #0008;font:11px ui-monospace,monospace;color:#cfe6f5;pointer-events:auto}
+#envPanel.open{display:block}#envPanel .envHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;color:#7affca;letter-spacing:.12em}
+#envPanel .envHead button{padding:2px 7px;font-size:10px}#envPanel label{display:block;margin:7px 0 2px;color:#9fb8cc}#envPanel label span{float:right;color:#7affca}
+#envPanel label.chk{display:flex;gap:6px;align-items:center;color:#cfe6f5}#envPanel select{width:100%;margin-top:3px;padding:4px;font:11px ui-monospace,monospace}#envPanel input[type=range]{display:block;margin-top:4px}
 .threatStats{margin-top:6px;display:grid;grid-template-columns:auto auto;gap:2px 14px;justify-content:end;font:600 10.5px ui-monospace,monospace;letter-spacing:.05em;color:#9fb8cc}
 .threatStats b{color:#e8f6ff;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}.threatStats b.hot{color:#ff8a7a}#missionBanner{display:none!important}
 .leftcol{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
@@ -55,7 +66,7 @@ kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738
 #mapUI{color:#9dc7db;font:700 11px ui-monospace,monospace;text-align:center;letter-spacing:.06em;display:flex;flex-direction:row;align-items:center;gap:10px;background:#07131de8;border:1px solid #2a4f62;border-radius:8px;padding:8px 16px;max-width:min(520px,85vw);box-sizing:border-box;flex-wrap:wrap;justify-content:center;flex-shrink:0}
 #mapUI b{color:#7affca}#mapUI span{font-weight:400;color:#7a9db4;font-size:10px}#cancelWpBtn,#cancelTrackBtn{padding:4px 11px;background:#1a0808;border:1px solid #c05050;border-radius:5px;color:#e09090;font:700 9.5px ui-monospace,monospace;cursor:pointer;pointer-events:auto;display:none;white-space:nowrap}#cancelWpBtn:hover,#cancelTrackBtn:hover{background:#2c1010;color:#f5c0c0}
 #mapCloseBtn{padding:5px 16px;background:#0d2332;border:1px solid #3e778e;border-radius:5px;color:#9dc7db;font:700 10px ui-monospace,monospace;cursor:pointer;pointer-events:auto;white-space:nowrap}
-#mapCloseBtn:hover{background:#163344;color:#cce8f5}#trackConfirm{display:none;position:fixed;z-index:1001;background:#06111be8;border:1.5px solid #3a778e;border-radius:9px;padding:14px 18px;color:#dff9ff;font:700 11px ui-monospace,monospace;box-shadow:0 6px 28px #000d;text-align:center;transform:translateX(-50%);pointer-events:auto;min-width:190px}#trackConfirm.show{display:block}#trackConfirm .tc-name{color:#7affca;font-size:13px;margin:4px 0 10px}#trackConfirm.unknown-type .tc-name{color:#aaddff}#trackConfirm .tc-btns{display:flex;gap:8px;justify-content:center}#trackConfirm .tc-btns button{padding:6px 18px;border-radius:5px;font:700 10px ui-monospace,monospace;cursor:pointer;border:1.5px solid}#tc-auth{background:#0e3828;border-color:#7affca;color:#7affca}#tc-auth:hover{background:#174d38}#tc-cancel{background:#1a0808;border-color:#e06060;color:#e09090}#tc-cancel:hover{background:#280e0e}
+#mapCloseBtn:hover{background:#163344;color:#cce8f5}#trackConfirm{display:none;position:fixed;z-index:1001;background:#06111be8;border:1.5px solid #3a778e;border-radius:9px;padding:14px 18px;color:#dff9ff;font:700 11px ui-monospace,monospace;box-shadow:0 6px 28px #000d;text-align:center;transform:translateX(-50%);pointer-events:auto;min-width:190px}#trackConfirm.show{display:block}#trackConfirm .tc-name{color:#7affca;font-size:13px;margin:4px 0 4px}#trackConfirm .tc-note{color:#8fa8ba;font-weight:400;font-size:9px;margin-bottom:9px}#trackConfirm.unknown-type .tc-name{color:#aaddff}#trackConfirm .tc-btns{display:flex;gap:8px;justify-content:center}#trackConfirm .tc-btns button{padding:6px 18px;border-radius:5px;font:700 10px ui-monospace,monospace;cursor:pointer;border:1.5px solid}#tc-auth{background:#0e3828;border-color:#7affca;color:#7affca}#tc-auth:hover{background:#174d38}#tc-cancel{background:#1a0808;border-color:#e06060;color:#e09090}#tc-cancel:hover{background:#280e0e}
 
 .speedbig{font-size:22px!important}#battBar{width:92px;height:6px;background:#07182299;border-radius:3px;border:1px solid #1a3e5a;overflow:hidden;margin-top:3px}#battFill{height:100%;border-radius:2px;transition:width .9s,background 1.2s;background:#7affca}
 #targetLock.unknown span{border-color:#a8782f;color:#ffe2ad;background:#1d1405f2}#targetLock.unknown{border-color:#ffca77;filter:drop-shadow(0 0 7px #ffb347)}
@@ -106,7 +117,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
 <header>
   <div class="brand"><span>VTOL</span> DRONE LAB <span style="color:#8199af;font-weight:500">/ AUTONOMOUS SIMULATOR</span></div>
   <div class="status"><span class="dot"></span><span id="simStatus">SIM RUNNING</span><span class="wide">· Alpine terrain · high-speed mode</span><span id="thermalBadge">· THERMAL</span><span class="wide" id="weatherHud">DAY / CLEAR</span></div>
-  <div class="row" style="flex:0 0 auto"><button id="resetBtn">Reset</button><button id="pauseBtn">Pause</button></div>
+  <div class="row" style="flex:0 0 auto"><button id="envBtn">☁ Environment</button><button id="resetBtn">Reset</button><button id="pauseBtn">Pause</button></div>
 </header>
 <div id="main">
   <aside id="left" class="panel">
@@ -148,7 +159,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div></div><div id="eventLog"></div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Classification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -168,6 +179,18 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div id="radioMeta"><span>LINK <b id="radioLink">SECURE</b></span><span id="signalBars">▂▄▆█</span><span>AI/TACTICAL</span></div>
     </div>
     <div id="toast"></div>
+    <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div class="skip">click or Space to skip</div></div>
+    <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
+    <div id="envPanel">
+      <div class="envHead"><b>ENVIRONMENT</b><button id="envClose">✕</button></div>
+      <label>Weather <select id="envWeather"><option value="AUTO">Auto (changes over time)</option><option>CLEAR</option><option>HIGH CLOUD</option><option>MIST</option><option>RAIN</option></select></label>
+      <label class="chk"><input type="checkbox" id="envWindAuto" checked> Wind follows weather</label>
+      <label>Wind speed <span id="envWindV">4 m/s</span><input type="range" id="envWind" min="0" max="15" step=".5" value="4"></label>
+      <label>Wind from <span id="envDirV">SE</span><input type="range" id="envDir" min="0" max="359" value="315"></label>
+      <label>Gusts / turbulence <span id="envGustV">35%</span><input type="range" id="envGust" min="0" max="100" value="35"></label>
+      <label class="chk"><input type="checkbox" id="envTimeAuto" checked> Time of day runs</label>
+      <label>Time of day <span id="envTimeV">12:00</span><input type="range" id="envTime" min="0" max="24" step=".25" value="12"></label>
+    </div>
   </section>
   <aside id="right" class="panel">
     <h2>Live telemetry</h2>
@@ -205,7 +228,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
 <footer id="bottom">
   <div class="controlGroup">
     <div class="controlTitle">Simulation time</div>
-    <div class="controlLine"><button id="playBottom">Pause</button><button id="stepBtn">Single step</button><button id="slowBtn">Slow motion ×0.25</button><button id="recordBtn">● Record</button></div>
+    <div class="controlLine"><button id="playBottom">Pause</button><button id="stepBtn">Single step</button><button id="slowBtn">Slow motion ×0.25</button><button id="recordBtn">● Record</button><button id="replayBtn" disabled>⟲ Replay last impact</button></div>
     <div class="hint" id="timeLabel" style="margin-top:5px">t = 0.00 s · 120 Hz physics</div>
   </div>
   <div class="controlGroup">
@@ -691,6 +714,28 @@ function logEvent(msg, cls) {
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 750); }, 5000);
 }
 function toast(s) { logEvent(s); }
+// ── Environment panel ──
+const COMPASS = ['N','NE','E','SE','S','SW','W','NW'];
+const compass = deg => COMPASS[Math.round((((deg % 360) + 360) % 360) / 45) % 8];
+const WEATHER_STRENGTH = {'CLEAR':0, 'HIGH CLOUD':.22, 'MIST':.55, 'RAIN':.72};
+function hoursFromClock(c) { return ((c / TAU * 24 + 12) % 24 + 24) % 24; }
+function syncEnvPanel() {
+  $('envWindV').textContent = (+$('envWind').value).toFixed(1) + ' m/s'; $('envDirV').textContent = compass(+$('envDir').value) + ' ' + $('envDir').value + '°';
+  $('envGustV').textContent = $('envGust').value + '%';
+  const hh = +$('envTime').value; $('envTimeV').textContent = String(Math.floor(hh) % 24).padStart(2, '0') + ':' + String(Math.round(hh % 1 * 60)).padStart(2, '0');
+  $('envWind').disabled = $('envWindAuto').checked; $('envDir').disabled = $('envWindAuto').checked;
+}
+function applyEnv() {
+  const wsel = $('envWeather').value; env.weatherAuto = wsel === 'AUTO';
+  if (!env.weatherAuto && state.weatherMode !== wsel) { state.weatherMode = wsel; state.weatherTarget = WEATHER_STRENGTH[wsel]; state.windRetarget = 0; radioMessage('WEATHER SET · ' + wsel); }
+  env.windAuto = $('envWindAuto').checked; env.windSpeed = +$('envWind').value;
+  env.windDir = -((+$('envDir').value + 180) * Math.PI / 180);   // slider = compass bearing it blows FROM; internal = heading it blows towards
+  env.gust = +$('envGust').value / 100; env.timeAuto = $('envTimeAuto').checked;
+  syncEnvPanel();
+}
+['envWeather','envWindAuto','envWind','envDir','envGust','envTimeAuto'].forEach(id => $(id).addEventListener('input', applyEnv));
+$('envTime').addEventListener('input', () => { state.dayClock = ((+$('envTime').value - 12) / 24) * TAU; syncEnvPanel(); });
+$('envBtn').onclick = () => $('envPanel').classList.toggle('open'); $('envClose').onclick = () => $('envPanel').classList.remove('open');
 const DEFAULT_BANNER = $('missionBanner').textContent; let bannerTimer = null;
 function radioMessage(message) {
   const el = $('radioLine'); if (el) el.textContent = message;
@@ -725,6 +770,7 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase(); keys.add(k);
   if ([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
   if (e.repeat) return;
+  if (replay.active) { if (k === ' ' || k === 'escape') { e.preventDefault(); finishReplay(); } return; }
   if (k === ' ') togglePause(); if (k === 'c') toggleCamera(); if (k === 't') setThermal(!thermalOn); if (k === 'p') cyclePalette(); if (k === 'n') spawnSelected();
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -732,6 +778,7 @@ window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 // Targets set here; updateCamera() eases the actual camera towards them every frame.
 let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .3, orbitDist = 34, orbitVX = 0, orbitVY = 0;
 const ORBIT_MIN_P = -.2, ORBIT_MAX_P = 1.45;
+canvas.addEventListener('click', () => { if (replay.active) finishReplay(); });
 canvas.addEventListener('pointerdown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; orbitVX = orbitVY = 0; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointerup', () => drag = false);
 canvas.addEventListener('pointercancel', () => drag = false);
@@ -760,6 +807,7 @@ function updateConfig() {
 $('hoverMode').onclick = () => { state.hover = true; state.altCmd = state.pos.y; $('hoverMode').classList.add('active'); $('cruiseMode').classList.remove('active'); };
 $('cruiseMode').onclick = () => { state.hover = false; state.altCmd = Math.max(state.altCmd, state.pos.y); $('cruiseMode').classList.add('active'); $('hoverMode').classList.remove('active'); };
 $('pauseBtn').onclick = togglePause; $('playBottom').onclick = togglePause;
+$('replayBtn').onclick = () => { if (state.lastReplay && !replay.active) startReplay(state.lastReplay, false); };
 $('stepBtn').onclick = () => { if (state.paused) { physicsStep(dt); updateHud(1); } else toast('Pause before single-stepping'); };
 $('slowBtn').onclick = () => { state.slow = !state.slow; $('slowBtn').textContent = state.slow ? 'Normal speed' : 'Slow motion ×0.25'; };
 function exportTelemetry(label) {
@@ -855,37 +903,45 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(dx2,dz2); ctx.lineTo(wx2,wz2); ctx.stroke(); ctx.setLineDash([]);
   }
 
-  // 4 & 5. All contacts — unclassified = dim dot; classified = labelled
-  const drawMapContact = (c, isScoutObj) => {
-    const [mx, mz] = worldToMap(c.pos.x, c.pos.z);
-    const isT = c === tgt && state.pursuitMode;
-    if (!c.identified) return;  // not yet classified — invisible on map
-    // Classified — heading tick
-    const hx2 = -Math.sin(c.yaw) * 10, hz2 = -Math.cos(c.yaw) * 10;
-    ctx.strokeStyle = isT ? '#ffee77' : (isScoutObj ? '#7affca' : '#a0c8e0');
-    ctx.lineWidth = isT ? 1.8 : 1;
-    ctx.beginPath(); ctx.moveTo(mx, mz); ctx.lineTo(mx+hx2, mz+hz2); ctx.stroke();
-    // Marker: scout=triangle, ambient=square
-    ctx.fillStyle = isT ? '#ffee77' : (isScoutObj ? '#7affca' : '#9ec4d8');
-    if (isScoutObj) {
-      ctx.beginPath(); ctx.moveTo(mx, mz-6); ctx.lineTo(mx+4, mz+3); ctx.lineTo(mx-4, mz+3); ctx.closePath(); ctx.fill();
-    } else {
-      ctx.fillRect(mx-4, mz-4, 8, 8);
+  // 4. Radar coverage around the drone
+  { const [cx3, cz3] = worldToMap(state.pos.x, state.pos.z), rr = radarRange() / MAP_WORLD * MAP_SIZE;
+    ctx.fillStyle = 'rgba(80,220,200,.05)'; ctx.strokeStyle = 'rgba(80,220,200,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
+    ctx.beginPath(); ctx.arc(cx3, cz3, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
+  // 5. Tracks. Live (on radar) = solid; off radar = dead-reckoned estimate with uncertainty circle.
+  //    Unclassified = grey fuzzy blip (not selectable). Classified = guess + confidence (may be wrong).
+  const drawMapContact = c => {
+    if (!hasTrack(c)) return;
+    const live = c.detected, e = trackPos(c, _est), [mx, mz] = worldToMap(e.x, e.z);
+    const isT = c === tgt && state.pursuitMode, sig = trackSigma(c) / MAP_WORLD * MAP_SIZE, age = state.time - c.trk.seen;
+    if (!live) {
+      ctx.setLineDash([2,3]); ctx.strokeStyle = isT ? 'rgba(255,238,119,.6)' : 'rgba(170,190,205,.45)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(mx, mz, Math.max(4, sig), 0, TAU); ctx.stroke(); ctx.setLineDash([]);
     }
-    // Label
-    ctx.fillStyle = isT ? '#ffee77' : (isScoutObj ? '#7affcacc' : '#9ec4d8cc');
+    ctx.globalAlpha = live ? 1 : .55;
+    if (!c.identified) {
+      const g = ctx.createRadialGradient(mx, mz, 0, mx, mz, 9); g.addColorStop(0, 'rgba(190,200,210,.85)'); g.addColorStop(1, 'rgba(190,200,210,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx + Math.sin(state.time * 7 + c.curiosity * 9), mz + Math.cos(state.time * 5 + c.curiosity * 7), 9, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(200,210,220,.7)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText(live ? 'UNKNOWN' : 'UNKNOWN · ' + Math.round(age) + 's', mx + 9, mz + 3);
+      ctx.globalAlpha = 1; return;
+    }
+    const threat = isThreatClass(c.guess), col = isT ? '#ffee77' : threat ? '#ff9a6b' : '#9ec4d8';
+    if (live) { const hd = Math.atan2(-c.vel.x, -c.vel.z), hx2 = -Math.sin(hd) * 10, hz2 = -Math.cos(hd) * 10;
+      ctx.strokeStyle = col; ctx.lineWidth = isT ? 1.8 : 1; ctx.beginPath(); ctx.moveTo(mx, mz); ctx.lineTo(mx + hx2, mz + hz2); ctx.stroke(); }
+    ctx.fillStyle = col;
+    if (threat) { ctx.beginPath(); ctx.moveTo(mx, mz-6); ctx.lineTo(mx+4, mz+3); ctx.lineTo(mx-4, mz+3); ctx.closePath(); ctx.fill(); }
+    else ctx.fillRect(mx-4, mz-4, 8, 8);
     ctx.font = 'bold 8px ui-monospace,monospace';
-    const lbl = isScoutObj ? c.spec.label.split(' ')[0] : (c.type==='plane' ? 'AIRLINER' : 'BIRDS');
-    ctx.fillText(lbl, mx+7, mz+3);
-    // Pulsing ring for active pursuit target
+    ctx.fillText(CLS_SHORT[c.guess] + ' ' + confPct(c) + '%' + (live ? '' : ' · EST ' + Math.round(age) + 's'), mx + 7, mz + 3);
+    ctx.globalAlpha = 1;
     if (isT) {
       const pulse = .45 + .35 * Math.sin(state.time * 6);
-      ctx.strokeStyle = `rgba(255,238,119,${pulse})`; ctx.lineWidth=1.5;
-      ctx.beginPath(); ctx.arc(mx, mz, 11 + 4*pulse, 0, Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = `rgba(255,238,119,${pulse})`; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(mx, mz, 11 + 4 * pulse, 0, TAU); ctx.stroke();
     }
   };
-  for (const a of ambientActors) drawMapContact(a, false);
-  for (const s of scouts) { if (!s.destroyed && !s.tagged) drawMapContact(s, true); }
+  for (const a of ambientActors) drawMapContact(a);
+  for (const sc of scouts) { if (!sc.destroyed && !sc.tagged) drawMapContact(sc); }
 
   // 6. Drone — triangle pointing in heading direction
   const heading = state.rot.y;
@@ -924,7 +980,7 @@ function drawMap() {
   } else if (mapWaypoint) {
     lbl.textContent = 'Waypoint set'; if(span) span.textContent = 'Drone en route · will resume search on arrival';
   } else {
-    lbl.innerHTML = 'Click anywhere &rarr; waypoint &nbsp;|&nbsp; Click a contact label &rarr; track';
+    lbl.innerHTML = 'Click anywhere &rarr; waypoint &nbsp;|&nbsp; Click a classified contact &rarr; pursue<br><span style="font-weight:400;color:#8fa8ba;font-size:9.5px">Grey = unclassified · dashed circle = estimated position off radar · classifications are estimates and may be wrong</span>';
   }
 }
 
@@ -934,8 +990,7 @@ $('tc-auth').onclick = () => {
   const c = _pendingContact; _pendingContact = null; $('trackConfirm').classList.remove('show');
   state.aiTarget = c; state.pursuitMode = true; state.attack = {phase:'intercept', side:0}; state.manualWaypointActive = false; mapWaypoint = null; state.searchWp = null; hudAcc = 1;
   $('cancelTrackBtn').style.display = 'inline-block'; $('cancelWpBtn').style.display = 'none';
-  const name = c.isScout ? c.spec.label : (c.type==='plane'?'AIRLINER':'BIRD FLOCK');
-  radioMessage('TRACKING: ' + name + ' · PURSUING');
+  radioMessage('PURSUING: ' + CLS_NAME[c.guess] + ' (' + confPct(c) + '%)');
 };
 $('tc-cancel').onclick = () => { _pendingContact = null; $('trackConfirm').classList.remove('show'); };
 $('mapCanvas').addEventListener('click', e => {
@@ -944,9 +999,9 @@ $('mapCanvas').addEventListener('click', e => {
   const mz = (e.clientY - r.top)  * (MAP_SIZE / r.height);
   let nearContact = null, nearDist = 20;
   const check = (c, isS) => {
-    if (!c.identified) return;
+    if (!c.identified || !hasTrack(c)) return;
     if (isS && (c.destroyed || c.tagged)) return;
-    const [cx2, cz2] = worldToMap(c.pos.x, c.pos.z);
+    trackPos(c, _est); const [cx2, cz2] = worldToMap(_est.x, _est.z);
     const d = Math.hypot(mx - cx2, mz - cz2);
     if (d < nearDist) { nearDist = d; nearContact = c; }
   };
@@ -954,10 +1009,10 @@ $('mapCanvas').addEventListener('click', e => {
   for (const a of ambientActors) check(a, false);
   if (nearContact) {
     _pendingContact = nearContact;
-    const name = nearContact.isScout ? nearContact.spec.label : (nearContact.type==='plane'?'AIRLINER':'BIRD FLOCK');
-    $('tc-name').textContent = name; $('trackConfirm').classList.toggle('unknown-type', !nearContact.isScout);
+    $('tc-name').textContent = CLS_NAME[nearContact.guess] + ' · ' + confPct(nearContact) + '%' + (nearContact.detected ? '' : ' · EST. POSITION');
+    $('trackConfirm').classList.toggle('unknown-type', !isThreatClass(nearContact.guess));
     const canvasRect = $('mapCanvas').getBoundingClientRect();
-    const [px, pz] = worldToMap(nearContact.pos.x, nearContact.pos.z);
+    trackPos(nearContact, _est); const [px, pz] = worldToMap(_est.x, _est.z);
     const screenX = canvasRect.left + px * (canvasRect.width / MAP_SIZE);
     const screenY = canvasRect.top + pz * (canvasRect.height / MAP_SIZE);
     $('trackConfirm').style.left = screenX + 'px'; $('trackConfirm').style.top = (screenY - 80) + 'px';
@@ -985,10 +1040,12 @@ $('cancelWpBtn').onclick = () => {
   $('cancelWpBtn').style.display = 'none'; toast('Waypoint cancelled · scanning from current position');
 };
 $('cancelTrackBtn').onclick = () => endPursuit('Tracking cancelled · returning to classify mode');
+$('abortBtn').onclick = () => { if (state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR'); };
 
 window.addEventListener('keydown', e => {
   if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
   if (e.key.toLowerCase() === 'm') { if (mapOpen) closeMap(); else openMap(); }
+  if (e.key.toLowerCase() === 'x' && state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR');
   if (e.key === 'Escape' && mapOpen) { closeMap(); }
 }, {capture:false});
 $('pan').addEventListener('input', () => { state.camPan = +$('pan').value; }); $('tilt').addEventListener('input', () => { state.camTilt = +$('tilt').value; });
@@ -1087,20 +1144,19 @@ function hasLOS(c) {
 }
 function scoreContact(c, fx, fz, mode) {
   const dx = c.pos.x - state.pos.x, dy = c.pos.y - state.pos.y, dz = c.pos.z - state.pos.z, dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
-  // Unidentified contacts only detected inside radar range; confirmed scouts use their full detect range.
-  const baseDet = (c.identified && c.isScout) ? c.detect : Math.min(c.detect, 1050);
-  const det = baseDet * (thermalOn ? 1.12 : 1);
-  if (dist < 1 || dist > det) return -1;
+  if (!c.detected || dist < 1) return -1;            // only what the radar currently shows
+  const det = radarRange();
   const hd = Math.hypot(dx, dz) || 1, align = ((fx*dx + fz*dz) / hd + 1) / 2, prox = 1 - dist / det;
   let s = align * .38 + prox * .34 + c.sig * .10 + c.curiosity * .10;
   if (c.isScout && c.identified) { s += .22; if (mode === c.kind) s += .18; }
   else if (mode === 'heat') s += c.sig * .12;       // before identification the hottest-looking contact is the most interesting
   return s;
 }
+// Mark a contact as classified as what it really is with high confidence (used for confirmed / test contacts).
 function identifyContact(c) {
-  c.identified = true;
-  const name = c.isScout ? 'SCOUT · ' + c.spec.label : (c.type === 'plane' ? 'CIVILIAN AIRLINER' : 'BIRD FLOCK');
-  radioMessage('IDENTIFIED: ' + name + ' · SELECT ON MAP TO TRACK');
+  c.identified = true; c.guess = truthClass(c); c.conf = .95; c.votes = {[c.guess]: 6};
+  if (!c.trk || c.trk.lost) c.trk = {x:c.pos.x, y:c.pos.y, z:c.pos.z, vx:c.vel.x, vy:c.vel.y, vz:c.vel.z, seen:state.time, lost:false, covered:0};
+  radioMessage('CLASSIFIED: ' + CLS_NAME[c.guess] + ' · SELECT ON MAP TO TRACK');
   // Classify loop: once identified, every contact (scouts included) is left alone unless the user confirms a pursuit on the map.
   if (state.pursuitMode && state.aiTarget === c) return;
   state.ignoredTargets.add(c);
@@ -1116,23 +1172,29 @@ function aiThink() {
   if (state.pursuitMode) {
     const t = state.aiTarget;
     if (!t || !contactAlive(t) || (t.isAmbient && !ambientActors.includes(t))) endPursuit('Pursuit target lost · returning to search');
+    else if (!hasTrack(t)) endPursuit('TRACK LOST · pursuit ended · returning to search');
     else return;
   }
   if (state.manualWaypointActive) return;   // pilot override: fly to the waypoint first, check radar on arrival
   const mode = $('aiMode').value, fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);
   let cur = state.aiTarget;
   if (cur) {
-    if (!contactAlive(cur) || cur.identified || state.ignoredTargets.has(cur)) cur = null;
+    if (!contactAlive(cur) || state.ignoredTargets.has(cur) || !cur.detected) cur = null;
     else {
+      // Done with it once the classification is confident, or we've had a good close look.
+      // …or after ~45 s of trying (poor sensor conditions): keep the best guess so far and move on.
       const d = state.pos.distanceTo(cur.pos);
-      if (d < classifyRange(cur)) { identifyContact(cur); cur = null; }
-      else if (d > 1100) cur = null;   // drifted off radar
+      if ((cur.conf || 0) >= .85 || d < classifyRange(cur) * .5 || state.time - (cur.inspectStart || state.time) > 45) {
+        state.ignoredTargets.add(cur);
+        if (!cur.identified && cur.guess) { cur.identified = true; }
+        logEvent(cur.guess ? 'Classification done · ' + CLS_SHORT[cur.guess] + ' ' + confPct(cur) + '% · moving on' : 'Could not classify contact · moving on', cur.guess && cur.conf > .6 ? 'ok' : 'warn'); cur = null;
+      }
     }
   }
-  // Only unidentified contacts on radar are candidates for inspection.
+  // Candidates: radar contacts not yet confidently classified.
   const list = [];
   for (const c of [...scouts, ...ambientActors]) {
-    if (c.identified || !contactAlive(c) || state.ignoredTargets.has(c)) continue;
+    if (!c.detected || (c.conf || 0) >= .85 || !contactAlive(c) || state.ignoredTargets.has(c)) continue;
     const sc = scoreContact(c, fx, fz, mode); if (sc >= 0) list.push({c, sc});
   }
   list.sort((a, b) => b.sc - a.sc);
@@ -1143,7 +1205,7 @@ function aiThink() {
     if (chosen && chosen.c !== cur && chosen.sc > curScore + .22) cur = chosen.c;
   } else if (chosen) cur = chosen.c;
   if (cur !== state.aiTarget) {
-    state.aiTarget = cur; hudAcc = 1;
+    state.aiTarget = cur; hudAcc = 1; if (cur) cur.inspectStart = state.time;
     if (cur) radioMessage('UNKNOWN CONTACT · ' + Math.round(state.pos.distanceTo(cur.pos)) + ' m · INVESTIGATING');
   }
 }
@@ -1203,17 +1265,18 @@ function stepScout(s, h) {
   // Max 30° bank (standard for small fixed-wing UAVs), roll rate ~20°/s, climb/descent ≤ ~8°.
   if (s.hdg === undefined) s.hdg = Math.atan2(-s.vel.x, -s.vel.z);
   s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -2 * h, 2 * h);
-  const maxBank = .52, hdgErr = wrapAngle(Math.atan2(-hx, -hz) - s.hdg);
+  const maxBank = .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
   const bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
   s.bank = moveToward(s.bank || 0, bankCmd, .35 * h);
   s.turnRate = 9.81 * Math.tan(s.bank) / Math.max(20, s.spd);
   s.hdg += s.turnRate * h;
   const vyMax = s.spd * .14, vy = clamp((s.routeY + altWave - s.pos.y) * .12, -vyMax, vyMax);
-  s.vel.x = -Math.sin(s.hdg) * s.spd; s.vel.z = -Math.cos(s.hdg) * s.spd; s.vel.y = moveToward(s.vel.y, vy, 2 * h);
+  s.vy = moveToward(s.vy || 0, vy, 2 * h);
+  s.vel.set(-Math.sin(s.hdg) * s.spd + wind.x, s.vy + wind.y * .6, -Math.cos(s.hdg) * s.spd + wind.z);   // ground velocity
   s.pos.addScaledVector(s.vel, h);
-  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 60) { s.pos.y = lerp(s.pos.y, gh + 60, .05); s.vel.y = Math.max(s.vel.y, 4); } if (s.pos.y > 650) s.pos.y = lerp(s.pos.y, 620, .05);
+  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 60) { s.pos.y = lerp(s.pos.y, gh + 60, .05); s.vy = Math.max(s.vy || 0, 4); } if (s.pos.y > 650) s.pos.y = lerp(s.pos.y, 620, .05);
   s.yaw = s.hdg; s.roll = s.bank;
-  s.pitch = damp(s.pitch, Math.asin(clamp(s.vel.y / Math.max(1, s.spd), -.3, .3)), 3, h);   // nose on the flight path
+  s.pitch = damp(s.pitch, Math.asin(clamp((s.vy || 0) / Math.max(1, s.spd), -.3, .3)), 3, h);   // nose on the flight path
   s.trailTimer -= h;
   if (s.trailTimer <= 0) {
     s.trailTimer = .1; const n = TRAIL_PTS[s.kind]; s.trailPts.push(s.pos.x, s.pos.y, s.pos.z); if (s.trailPts.length > n * 3) s.trailPts.splice(0, 3);
@@ -1228,7 +1291,7 @@ function stepBird(a, h) {
   a.vel.set(-s * a.rx * a.angSpeed, (y - a.pos.y) / h, c * a.rz * a.angSpeed); a.pos.set(x, y, z); a.yaw = Math.atan2(-a.vel.x, -a.vel.z);
 }
 function stepPlane(a, h) {
-  a.pos.x += a.vel.x * h; a.pos.z += a.vel.z * h;
+  a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
   // smooth altitude oscillation — stays 200–600m
   a.altPhase += h * .06; const targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);
   a.pos.y += (targetY - a.pos.y) * (1 - Math.exp(-0.4 * h));
@@ -1247,12 +1310,120 @@ function updateWorld(h) {
   }
 }
 
-function runPassiveScan(h) {
-  state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = .35;
+// ───────────────────────── Radar, tracks & classification ─────────────────────────
+// Radar: range set by the weather (≈1.5 km clear, 1.2 km mist, 0.9 km rain), blocked by terrain. Every contact
+// the radar has seen gets a track: live while covered; otherwise dead-reckoned from its last position/velocity with
+// an uncertainty radius that grows to a rough guess over ~4 min. If the radar sweeps the estimated area and finds
+// nothing (2 s), the track is dropped.
+// Classification: each sweep inside camera range gives a noisy reading (quality = range × sensor × light × weather).
+// Readings vote, weighted by quality, so the guess keeps refining as the drone gets closer — and can be wrong.
+const CLS_NAME = {light:'PROPELLER SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'CIVILIAN AIRLINER', birds:'BIRD FLOCK'};
+const CLS_SHORT = {light:'PROP SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'AIRLINER', birds:'BIRDS'};
+const CLS_CONFUSE = {light:['birds','heavy'], heavy:['light','fast'], fast:['plane','heavy'], plane:['fast'], birds:['light']};
+const isThreatClass = k => k === 'light' || k === 'heavy' || k === 'fast';
+const truthClass = c => c.isScout ? c.kind : (c.type === 'plane' ? 'plane' : 'birds');
+const SCAN_DT = .35;
+function radarRange() {
+  const ws = state.weatherStrength || 0;
+  return ws < .55 ? lerp(1500, 1200, ws / .55) : lerp(1200, 900, clamp((ws - .55) / .17, 0, 1));
+}
+function losPoint(x, y, z) {
+  const ox = state.pos.x, oy = state.pos.y, oz = state.pos.z, dx = x - ox, dy = y - oy, dz = z - oz;
+  const n = clamp(Math.ceil(Math.hypot(dx, dz) / 120), 4, 28);
+  for (let i = 1; i < n; i++) { const t = i / n; if (terrainHeight(ox + dx*t, oz + dz*t) + 6 > oy + dy*t) return false; }
+  return true;
+}
+const hasTrack = c => !!(c.trk && !c.trk.lost);
+// Best current position knowledge: live position when on radar, dead-reckoned estimate otherwise.
+function trackPos(c, out) {
+  const k = c.trk; if (!k) return out.copy(c.pos);
+  if (c.detected) return out.copy(c.pos);
+  // Coordinated-turn dead reckoning: follow the last measured turn rate for up to 30 s, then straight on.
+  const dt = Math.min(state.time - k.seen, 300), V = Math.hypot(k.vx, k.vz), w = k.w || 0, h0 = Math.atan2(-k.vx, -k.vz);
+  const tt = Math.min(dt, 30), y = k.y + k.vy * Math.min(dt, 10);
+  if (Math.abs(w) < 1e-3) return out.set(k.x + k.vx * dt, y, k.z + k.vz * dt);
+  const h1 = h0 + w * tt, ax = k.x + V / w * (Math.cos(h1) - Math.cos(h0)), az = k.z - V / w * (Math.sin(h1) - Math.sin(h0)), rest = dt - tt;
+  return out.set(ax - Math.sin(h1) * V * rest, y, az - Math.cos(h1) * V * rest);
+}
+function trackSigma(c) {
+  if (!c.trk) return 0; if (c.detected) return 12;
+  const dt = state.time - c.trk.seen, v = Math.hypot(c.trk.vx, c.trk.vz);
+  return Math.min(1500, 40 + .14 * v * dt + 1.5 * dt);   // honest about manoeuvres: rough guess after ~3-4 min
+}
+const contactName = c => c.identified ? CLS_NAME[c.guess] : 'UNKNOWN CONTACT';
+const confPct = c => Math.round((c.conf || 0) * 100);
+// Sensor quality for classification right now (0..1): thermal sees engines day or night but suffers in rain;
+// the normal camera needs daylight and clear air.
+function sensorQuality() {
+  const ws = state.weatherStrength || 0, cosC = Math.cos(state.dayClock || 0), daylight = clamp((cosC + .28) / .75, 0, 1);
+  return thermalOn ? .9 * (1 - .4 * smoothstep(.5, .75, ws)) * (state.night ? 1.05 : 1) : (.25 + .75 * daylight) * (1 - .6 * ws);
+}
+function classifyTick(c, d) {
+  const cr = classifyRange(c), qr = clamp(1 - (d - .4 * cr) / (2.6 * cr), 0, 1), q = sensorQuality() * qr;
+  if (q < .05) return;
+  const truth = truthClass(c), pCorrect = .38 + .6 * q;
+  let reading = truth;
+  if (Math.random() > pCorrect) { const opts = CLS_CONFUSE[truth]; reading = opts[Math.floor(Math.random() * opts.length)]; }
+  c.votes = c.votes || {}; c.votes[reading] = (c.votes[reading] || 0) + q;
+  let total = 0, best = null; for (const k in c.votes) { total += c.votes[k]; if (!best || c.votes[k] > c.votes[best]) best = k; }
+  const prevGuess = c.guess;
+  c.guess = best; c.conf = c.votes[best] / total * (1 - Math.exp(-total / 1.5));
+  if (!c.identified && c.conf >= .6) {
+    c.identified = true;
+    radioMessage('CLASSIFIED: ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '% · SELECT ON MAP TO TRACK');
+  } else if (c.identified && prevGuess && prevGuess !== c.guess) radioMessage('RECLASSIFIED: ' + CLS_NAME[prevGuess] + ' → ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '%');
+}
+function radarScan(h) {
+  state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = SCAN_DT;
+  const R = radarRange(), on = !state.crashed && !state.returning && !state.batteryDead;
   for (const c of [...scouts, ...ambientActors]) {
-    if (c.identified || c.destroyed || c.tagged) continue;
-    if (state.pos.distanceTo(c.pos) < classifyRange(c)) identifyContact(c);
+    if (c.destroyed || c.tagged) { c.detected = false; continue; }
+    const d = state.pos.distanceTo(c.pos), det = on && d < R && losPoint(c.pos.x, c.pos.y, c.pos.z);
+    c.detected = det;
+    if (det) {
+      if (!c.trk || c.trk.lost) { c.trk = {}; if (c.identified) radioMessage('TRACK REACQUIRED · ' + CLS_SHORT[c.guess]); }
+      // Radar measures position, velocity and (from successive plots) the turn rate.
+      Object.assign(c.trk, {x:c.pos.x, y:c.pos.y, z:c.pos.z, vx:c.vel.x, vy:c.vel.y, vz:c.vel.z, w:c.turnRate || 0, seen:state.time, lost:false, covered:0});
+      classifyTick(c, d);
+    } else if (c.trk && !c.trk.lost) {
+      // Radar sweeps the estimated area and finds nothing → drop the track.
+      const e = trackPos(c, _est), de = state.pos.distanceTo(e);
+      const covered = on && de + trackSigma(c) < R * .85 && losPoint(e.x, e.y, e.z);   // whole uncertainty area swept
+      c.trk.covered = covered ? c.trk.covered + SCAN_DT : 0;
+      if (c.trk.covered > 2 || state.time - c.trk.seen > 600) {
+        c.trk.lost = true;
+        if (c.identified || c === state.aiTarget) radioMessage('TRACK DROPPED · ' + (c.identified ? CLS_SHORT[c.guess] : 'UNKNOWN') + ' NOT FOUND AT ESTIMATE');
+      }
+    }
   }
+}
+const _est = new THREE.Vector3();
+// ───────────────────────── Wind, gusts & turbulence ─────────────────────────
+// Mean wind (auto: follows the weather; or user-set) + gusts (layered sine noise, mostly along the wind) +
+// vertical turbulence. Everything that flies moves at airspeed + wind; aircraft crab into crosswinds.
+const env = {windAuto:true, windSpeed:4, windDir:2.4, gust:.35, weatherAuto:true, timeAuto:true};
+const WEATHER_WIND = {'CLEAR':[2,6], 'HIGH CLOUD':[4,9], 'MIST':[1,4], 'RAIN':[7,15]};
+const wind = new THREE.Vector3();          // current wind at the drone incl. gusts (x, vertical, z) m/s
+let windMean = 4, windDirNow = 2.4, windTarget = 4;
+function updateWind(h) {
+  const t = state.time;
+  if (env.windAuto) {
+    const band = WEATHER_WIND[state.weatherMode] || [2, 6];
+    if (!state.windRetarget || t > state.windRetarget) { state.windRetarget = t + 40 + (Math.sin(t * 12.9898) * .5 + .5) * 60; windTarget = lerp(band[0], band[1], Math.sin(t * 78.233) * .5 + .5); }
+    windMean = damp(windMean, windTarget, .05, h);
+    windDirNow += (Math.sin(t * .011) * .5 + Math.sin(t * .037 + 1.3) * .3) * .01 * h;   // slow veer/back
+  } else { windMean = damp(windMean, env.windSpeed, .6, h); windDirNow = dampAngle(windDirNow, env.windDir, .6, h); }
+  const gA = env.gust * (.25 + windMean * .06);
+  const gust = gA * windMean * (.55 * Math.sin(t * .37 + 1.1) + .3 * Math.sin(t * 1.13 + 2.3) + .25 * Math.sin(t * 2.71 + .4)) + gA * 2 * Math.sin(t * 3.9);
+  const dj = gA * .25 * Math.sin(t * .53 + 4.2);         // gusts swing the direction a little
+  const sp = Math.max(0, windMean + gust), d = windDirNow + dj;
+  // windDir = direction the wind blows TOWARDS (radians, 0 = -Z / north on the map)
+  wind.set(-Math.sin(d) * sp, (.6 * Math.sin(t * 1.7 + .3) + .4 * Math.sin(t * 4.3)) * gA * (1 + windMean * .12), -Math.cos(d) * sp);
+}
+// Heading that makes good a ground track `track` at airspeed V in the current wind (wind-correction / crab angle).
+function crabHeading(track, V) {
+  const tx = -Math.sin(track), tz = -Math.cos(track), cross = wind.x * tz - wind.z * tx;   // wind component to the left of track
+  return track - Math.asin(clamp(cross / Math.max(V, 1), -.9, .9));   // point into the wind
 }
 // ───────────────────────── Flight envelope & guidance ─────────────────────────
 const V_CRUISE = 69, V_DASH = 111, V_MIN = 30;           // m/s: ~250 km/h efficient cruise, 400 km/h pursuit dash
@@ -1260,7 +1431,7 @@ const ACCEL = 8, DECEL = 10;                             // m/s² available from
 const BANK_CRUISE = 1.13, BANK_COMBAT = 1.27, BANK_RATE = 1.7;   // 65° / 73° bank limit, roll rate rad/s
 const GAMMA_UP = .38, GAMMA_DN = -.45, GAMMA_RATE = .35;          // climb/dive angle limits (22° / 26°), rad/s
 const moveToward = (a, b, step) => a + clamp(b - a, -step, step);
-const guide = {aim:new THREE.Vector3(), alt:0, speed:V_CRUISE, bank:BANK_CRUISE, terminal:false, vy:0, clear:90, track:false, tau:3, ff:0, look:Infinity};
+const guide = {aim:new THREE.Vector3(), alt:0, speed:V_CRUISE, bank:BANK_CRUISE, terminal:false, vy:0, clear:90, track:false, tau:3, ff:0, look:Infinity, rateCmd:null};
 // Highest terrain on the straight line between two points.
 function routeFloor(x0, z0, x1, z1) {
   const d = Math.hypot(x1 - x0, z1 - z0), n = clamp(Math.ceil(d / 60), 2, 60);
@@ -1278,11 +1449,13 @@ function interceptTime(rx, ry, rz, tv, Vs) {
 // Where will contact t be in tg seconds? Scouts are propagated along their current coordinated turn
 // (constant speed + turn rate), everything else in a straight line. Writes position into out, returns heading.
 function predictContact(t, tg, out) {
-  const V = Math.hypot(t.vel.x, t.vel.z), w = t.turnRate || 0, h0 = t.hdg !== undefined ? t.hdg : Math.atan2(-t.vel.x, -t.vel.z);
+  const w = t.turnRate || 0, h0 = t.hdg !== undefined ? t.hdg : Math.atan2(-t.vel.x, -t.vel.z);
   tg = Math.min(tg, 25);
-  if (Math.abs(w) < 1e-3 || !t.isScout) out.set(t.pos.x + t.vel.x * tg, t.pos.y + t.vel.y * tg, t.pos.z + t.vel.z * tg);
-  else { const h1 = h0 + w * tg; out.set(t.pos.x + V / w * (Math.cos(h1) - Math.cos(h0)), t.pos.y + t.vel.y * tg, t.pos.z - V / w * (Math.sin(h1) - Math.sin(h0))); return h1; }
-  return h0;
+  if (Math.abs(w) < 1e-3 || !t.isScout) { out.set(t.pos.x + t.vel.x * tg, t.pos.y + t.vel.y * tg, t.pos.z + t.vel.z * tg); return h0; }
+  // Scouts: turn arc flown in the air mass at airspeed, plus the wind drift over tg (heading ≈ ground track for the aim)
+  const V = t.spd || Math.hypot(t.vel.x, t.vel.z), h1 = h0 + w * tg;
+  out.set(t.pos.x + V / w * (Math.cos(h1) - Math.cos(h0)) + wind.x * tg, t.pos.y + t.vel.y * tg, t.pos.z - V / w * (Math.sin(h1) - Math.sin(h0)) + wind.z * tg);
+  return h1;
 }
 // Time-to-go to a point that rides along with the (possibly turning) target at offset (back, side), flown at speed Vs.
 const _pp = new THREE.Vector3();
@@ -1344,7 +1517,10 @@ function attackGuidance(t, G) {
   // Speed. Behind: closing speed limited by braking distance (planned 4 m/s²) → eases in, no overshoot.
   // Not yet behind: fastest speed whose turn radius (V²/(g·tan73°)) still fits in ~45 % of the range, applied only
   // as far as the drone still has to turn to match the target's heading (little turn left → keep dashing).
-  const closure = Math.min(V_DASH - Vt, Math.sqrt(2 * 4 * Math.max(0, R3 - 22)) + 6);
+  // Gentle closure (planned 1.5 m/s² braking), and slower still while the target is turning so we don't fly
+  // through its turn and weave across its track (the S-shape).
+  const turning = smoothstep(.03, .1, Math.abs(t.turnRate || 0)) * (1 - smoothstep(250, 600, R3));
+  const closure = Math.min(V_DASH - Vt, Math.max(4, (Math.sqrt(2 * 1.5 * Math.max(0, R3 - 15)) + 5) * (1 - .4 * turning)));
   const vTurn = Math.max(Vt + 12, 58), vFit = clamp(Math.sqrt(.45 * R * 9.81 * Math.tan(BANK_COMBAT)), vTurn, V_DASH);
   const turnLeft = smoothstep(.15, .6, (1 - align) / 2);
   const vBehind = Vt + closure, vAround = lerp(V_DASH, vFit, turnLeft);
@@ -1352,8 +1528,28 @@ function attackGuidance(t, G) {
   // Plan the collision course with the mean speed actually flown (it slows down while closing), not current speed.
   const vPlan = clamp(.7 * V + .3 * G.speed, Vt + 4, V_DASH);
   let tg = solveRendezvous(t, L, lat, vPlan, G.aim);     // aim point rides on its predicted turn arc
-  // Very close in, keep the aim at least ~1 s ahead along its path so metre-level offsets don't whip the heading.
-  if (tg < 1 && wL < .5) { predictContact(t, 1, G.aim); tg = Math.max(tg, .3); }
+  // Close in, keep the aim at least ~1.5 s ahead along its path so metre-level offsets don't whip the heading.
+  if (tg < 1.5 && wL < .5) { predictContact(t, 1.5, G.aim); tg = Math.max(tg, .3); }
+  // S-turn (weave) detection: repeated bank reversals while already behind it = overshooting its six.
+  // Settle: match its speed (+3 m/s), limit bank, aim ~3 s ahead along its path until the weave dies out.
+  if (wL < .5) {
+    const sg = Math.abs(state.bank) > .44 ? Math.sign(state.bank) : 0;
+    if (sg && a.lastBankSign && sg !== a.lastBankSign) { a.reversals = (a.reversals || []).filter(x => state.time - x < 4); a.reversals.push(state.time); if (a.reversals.length >= 2 && !(a.settleUntil > state.time)) { a.settleUntil = state.time + 3.5; logEvent('Overshooting · settling in behind target', 'warn'); } }
+    if (sg) a.lastBankSign = sg;
+  }
+  if (a.settleUntil > state.time) { G.speed = Math.min(G.speed, Vt + 3); a.settling = true; } else a.settling = false;
+  // Committed behind and within 600 m: augmented proportional navigation instead of an aim point.
+  // Turn rate = (N·Vc·λ̇ + ½N·a_target⊥)/V  +  a small pursuit term that keeps the nose near the line of sight.
+  // Smooth, needs no long-range prediction, and handles a turning target without weaving across its track.
+  if (wL < .3 && R3 < 600) {
+    const vrx = tv.x - state.vel.x, vrz = tv.z - state.vel.z, R2 = rx * rx + rz * rz;
+    const losRate = (rz * vrx - rx * vrz) / Math.max(1, R2);
+    const Vc = Math.max(2, -(rx * vrx + rz * vrz) / R);
+    const N = 4, Vd = Math.max(V_MIN, state.cruiseSpeed), los = Math.atan2(-rx, -rz);
+    const pnRate = (N * Vc * losRate + .5 * N * Vt * (t.turnRate || 0)) / Vd;
+    G.rateCmd = pnRate + .35 * wrapAngle(los - state.rot.y) * (a.settling ? .6 : 1);
+    G.aim.set(t.pos.x, 0, t.pos.z);
+  }
   // Altitude: target height (+ its climb) with a side offset that collapses to 0 inside ~40 m → shallow dive/climb in.
   const off = a.side * clamp((R3 - 40) * .06, 0, 25);
   // Collision-course vertical law: copy its climb rate (feed-forward) and null the height error by arrival.
@@ -1392,7 +1588,7 @@ function stepPowerLoss(h) {
   const sp = state.vel.length(), drag = .0009 * sp;   // quadratic drag, terminal velocity ~105 m/s
   state.vel.multiplyScalar(Math.max(0, 1 - drag * h));
   state.cruiseSpeed = Math.hypot(state.vel.x, state.vel.z);
-  state.pos.addScaledVector(state.vel, h);
+  state.pos.addScaledVector(state.vel, h); state.pos.x += wind.x * h; state.pos.z += wind.z * h;
   // Nose follows the flight path down; slight uncommanded roll and yaw drift as it tumbles.
   const fpa = Math.atan2(state.vel.y, Math.max(1, state.cruiseSpeed));
   state.modeBlend = damp(state.modeBlend, 0, 1.5, h);
@@ -1418,7 +1614,8 @@ function resetToPad(reason) {
   state.launchStage = 'parked'; state.aiActivated = false; state.aiActivationTime = 0; state.hover = true; state.modeBlend = 1; state.takeoffT = 0;
   state.gamma = 0; state.bank = 0; state.searchAltFor = null; state.attack = {phase:'intercept', side:0};
   state.battery = 1;   // recharged on the pad
-  if (reason === 'battery') for (const c of [...scouts, ...ambientActors]) c.identified = false;
+  for (const sc of scouts) if (sc.destroyed) sc.removeAt = Math.min(sc.removeAt, state.time + .1);
+  if (reason === 'battery') for (const c of [...scouts, ...ambientActors]) { c.identified = false; c.guess = null; c.conf = 0; c.votes = null; c.trk = null; }
   state.rot.set(0,0,0); snapPrev(); craft.visible = true;
   $('launchOverlay').style.display = 'flex'; $('launchBtn').disabled = false;
   $('launchTitle').textContent = reason === 'battery' ? 'BATTERY REPLACED · ON PAD' : 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
@@ -1430,7 +1627,7 @@ function resetToPad(reason) {
 const aim = new THREE.Vector3();
 function physicsStep(h) {
   state.prevPos.copy(state.pos); state.prevYaw = state.rot.y; state.prevPitch = state.rot.x; state.prevRoll = state.rot.z;
-  state.time += h; updateWorld(h); updateExplosions(h); runPassiveScan(h);
+  state.time += h; updateWind(h); updateWorld(h); updateExplosions(h); radarScan(h); recordFrame(h);
   if (state.returning) {
     state.returnTimer -= h;
     if (state.returnTimer <= 0) resetToPad(state.returnReason);
@@ -1483,11 +1680,14 @@ function physicsStep(h) {
   const px = state.pos.x, pz = state.pos.z;
   let range = Infinity;
   // Guidance output: aim point, arrival altitude, desired airspeed, bank limit, terminal tracking flag
-  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity;
+  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null;
   if (tgt) {
     range = state.pos.distanceTo(tgt.pos);
-    if (!state.pursuitMode && tgt.identified) state.aiTarget = null;   // classify loop: identified → move on
-    if (state.pursuitMode) attackGuidance(tgt, G_);
+    if (state.pursuitMode && !tgt.detected) {
+      // Off radar: fly to the dead-reckoned estimate (fast, efficient-ish) until the radar picks it up again.
+      trackPos(tgt, _est); G_.aim.set(_est.x, 0, _est.z); G_.alt = _est.y; G_.speed = V_DASH * .85; G_.clear = 80;
+      state.attack.phase = 'search';
+    } else if (state.pursuitMode) attackGuidance(tgt, G_);
     else {
       // Investigate: fly a lead course towards the unknown contact, arriving at its altitude.
       const tg = Math.min(30, range / Math.max(30, state.cruiseSpeed));
@@ -1508,6 +1708,8 @@ function physicsStep(h) {
       state.searchAlt = Math.max(routeFloor(px, pz, state.searchWp.x, state.searchWp.z) + 150, terrainHeight(state.searchWp.x, state.searchWp.z) + 200);
     }
     G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.searchAlt + inp.z * 60; G_.clear = 120;
+    { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
+      G_.speed = V_CRUISE + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind
   }
   // Keep inside the play area.
   // Keep inside the play area (mountain wall beyond ~2.6 km). A chase may run closer to the wall.
@@ -1522,9 +1724,9 @@ function physicsStep(h) {
 
   // ── Lateral: coordinated turn. Bank towards the heading error; yaw rate = g·tan(bank)/V ──
   const V = Math.max(V_MIN, state.cruiseSpeed);
-  const desiredYaw = Math.atan2(-(G_.aim.x - px), -(G_.aim.z - pz));
+  const desiredYaw = crabHeading(Math.atan2(-(G_.aim.x - px), -(G_.aim.z - pz)), Math.max(V_MIN, state.cruiseSpeed));
   const hErr = wrapAngle(desiredYaw - state.rot.y);
-  const wantRate = clamp(hErr * 1.1 + inp.r * .3, -1.2, 1.2);
+  const wantRate = clamp((G_.rateCmd !== null ? G_.rateCmd : hErr * 1.1) + inp.r * .3, -1.2, 1.2);
   const bankCmd = clamp(Math.atan(wantRate * V / 9.81), -G_.bank, G_.bank);
   state.bank = moveToward(damp(state.bank || 0, bankCmd, 5, h), bankCmd, BANK_RATE * h);
   state.rot.y += 9.81 * Math.tan(state.bank) / V * h;
@@ -1557,7 +1759,8 @@ function physicsStep(h) {
 
   // ── Integrate: velocity is always along the flight path ──
   const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y), cg = Math.cos(state.gamma), sg = Math.sin(state.gamma);
-  state.vel.set(fx * cg * state.cruiseSpeed, sg * state.cruiseSpeed, fz * cg * state.cruiseSpeed);
+  // Ground velocity = air velocity along the flight path + wind (incl. gusts and vertical turbulence).
+  state.vel.set(fx * cg * state.cruiseSpeed + wind.x, sg * state.cruiseSpeed + wind.y, fz * cg * state.cruiseSpeed + wind.z);
   state.pos.addScaledVector(state.vel, h);
   state.altCmd = goalY;
   const groundY = terrainHeight(state.pos.x, state.pos.z);
@@ -1579,11 +1782,12 @@ function physicsStep(h) {
   if (state.pursuitMode && tgt && tgt.isAmbient) {
     const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : 10;
     if (state.pos.distanceTo(tgt.pos) < hitR) {
-      explodeAt(state.pos.clone(), 2.2); craft.visible = false; state.tagCount++;
-      const name = tgt.type === 'plane' ? 'AIRLINER' : 'BIRD FLOCK';
-      radioMessage('COLLISION · ' + name + ' · RETURNING TO PAD');
+      state.tagCount++;
+      const name = tgt.type === 'plane' ? 'CIVILIAN AIRLINER' : 'BIRD FLOCK';
+      state.civilianIncidents = (state.civilianIncidents || 0) + 1;
+      radioMessage('CIVILIAN INCIDENT · collided with ' + name + (tgt.guess !== truthClass(tgt) ? ' (was classified as ' + CLS_NAME[tgt.guess] + ' ' + confPct(tgt) + '%)' : ''));
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
-      state.returning = true; state.returnTimer = 2.8; state.returnReason = 'intercept'; state.vel.set(0,0,0); endPursuit(); return;
+      impact(tgt, 'CIVILIAN INCIDENT · ' + name); return;
     }
   }
   // Intercept test against each scout's oriented bounding volume
@@ -1593,15 +1797,109 @@ function physicsStep(h) {
     const lx = c*dx - sn*dz, lz = sn*dx + c*dz, sc = s.spec.scale;
     const DR = 1.5;   // drone's own half-span: contact is airframe touching airframe
     if ((Math.abs(lx) < sc*2.8 + DR && Math.abs(dy) < sc*1.35 + DR && Math.abs(lz) < sc*3.1 + DR) || Math.sqrt(dx*dx + dy*dy + dz*dz) < sc*2.35 + DR) {
-      s.destroyed = true; s.tagged = true; s.group.visible = false; s.trail.visible = false; s.removeAt = state.time + 3; state.tagCount++;
-      explodeAt(s.pos, 2.2);
-      $('missionState').textContent = 'SCOUT TAGGED'; radioMessage('SCOUT TAGGED · RETURNING TO PAD');
+      s.destroyed = true; s.tagged = true; s.removeAt = state.time + 1e9; state.tagCount++;   // removed after the replay
+      $('missionState').textContent = 'THREAT NEUTRALISED'; radioMessage('THREAT NEUTRALISED · ' + s.spec.label + (s.guess && s.guess !== s.kind ? ' (was classified as ' + CLS_NAME[s.guess] + ')' : '') + ' · RETURNING TO PAD');
       actLog('Scout tagged: ' + s.spec.label + ' · total ' + state.tagCount + ' · returning to pad', 'ok');
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
-      state.returning = true; state.returnTimer = 2.8; state.returnReason = 'intercept'; state.vel.set(0,0,0); endPursuit();
+      impact(s, 'THREAT NEUTRALISED · ' + s.spec.label);
       return;
     }
   }
+}
+
+// ───────────────────────── Impact replay ─────────────────────────
+// A ring buffer keeps the last ~8 s of the drone and every object near it (30 Hz). On a collision the buffer is
+// frozen into a replay that plays back in slow motion with cinematic camera cuts: chase → side → impact close-up.
+const REC_HZ = 30, REC_SECONDS = 8, recBuf = [];
+let recAcc = 0;
+function recordFrame(h) {
+  recAcc += h; if (recAcc < 1 / REC_HZ) return; recAcc = 0;
+  if (state.launchStage !== 'active' || state.crashed || state.returning) return;
+  const objs = [];
+  const add = o => { if (o.group) objs.push([o, o.pos.x, o.pos.y, o.pos.z, o.yaw || 0, o.pitch || 0, o.roll || 0]); };
+  for (const sc of scouts) if (!sc.destroyed && sc.pos.distanceTo(state.pos) < 500) add(sc);
+  for (const a of ambientActors) if (a.pos.distanceTo(state.pos) < 500 || a === state.aiTarget) add(a);
+  if (state.aiTarget && state.aiTarget.isScout && state.aiTarget.pos.distanceTo(state.pos) >= 500) add(state.aiTarget);
+  recBuf.push({t:state.time, d:[state.pos.x, state.pos.y, state.pos.z, state.rot.x, state.rot.y, state.rot.z, state.modeBlend], objs});
+  while (recBuf.length && state.time - recBuf[0].t > REC_SECONDS) recBuf.shift();
+}
+// Freeze the buffer at the moment of impact and explode both aircraft.
+function impact(target, label) {
+  recordFrame(1);   // force the final frame
+  const tScale = target.type === 'plane' ? 6 : target.type === 'birds' ? 1.2 : 2.4;
+  explodeAt(state.pos.clone(), 1.8); explodeAt(target.pos.clone(), tScale);
+  craft.visible = false; target.group.visible = false; if (target.trail) target.trail.visible = false;
+  if (target.isAmbient) { const i = ambientActors.indexOf(target); if (i >= 0) ambientActors.splice(i, 1); target.removed = true; }
+  state.lastReplay = {frames: recBuf.slice(), impactPos: state.pos.clone(), target, tScale, label};
+  $('replayBtn').disabled = false;
+  state.vel.set(0, 0, 0); endPursuit();
+  state.returning = true; state.returnTimer = 1e9; state.returnReason = 'intercept';
+  setTimeout(() => startReplay(state.lastReplay, true), 900);   // let the live fireball show briefly first
+}
+const replay = {active:false};
+const _rq = new THREE.Vector3(), _rc = new THREE.Vector3(), _rf = new THREE.Vector3();
+function startReplay(rp, thenReset) {
+  if (!rp || rp.frames.length < 4 || replay.active) { if (thenReset) resetToPad('intercept'); return; }
+  // Clear live explosions so they don't hang frozen in the scene during playback.
+  for (const ex of state.explosions) { scene.remove(ex.group); } state.explosions = [];
+  Object.assign(replay, {active:true, rp, thenReset, t:rp.frames[0].t, t0:rp.frames[0].t, tEnd:rp.frames[rp.frames.length - 1].t, boomed:false, hold:0, side:null, close:null,
+    wasPaused:state.paused});
+  state.paused = true;
+  $('replayOverlay').classList.add('show'); document.body.classList.add('replaying'); if (mapOpen) closeMap();
+}
+function finishReplay() {
+  if (!replay.active) return;
+  replay.active = false; $('replayOverlay').classList.remove('show'); document.body.classList.remove('replaying');
+  for (const ex of state.explosions) scene.remove(ex.group); state.explosions = [];
+  const rp = replay.rp;
+  if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); }
+  for (const sc of scouts) sc.group.visible = !sc.destroyed;
+  if (replay.thenReset) { state.paused = false; resetToPad('intercept'); }
+  else { state.paused = replay.wasPaused; craft.visible = !state.crashed && !state.returning; }
+  camInit = false; updatePauseButtons();
+}
+function frameAt(t) {
+  const f = replay.rp.frames; let i = 0; while (i < f.length - 2 && f[i + 1].t < t) i++;
+  const a = f[i], b = f[i + 1], k = clamp((t - a.t) / Math.max(1e-6, b.t - a.t), 0, 1);
+  return {a, b, k};
+}
+function stepReplay(rdt) {
+  const rp = replay.rp, toImpact = replay.tEnd - replay.t;
+  // Real time while chasing, slow motion as it closes, extra-slow for the final second (≈17 s total).
+  const speed = replay.boomed ? .45 : toImpact < 1 ? .15 : toImpact < 3 ? .4 : 1;
+  const {a, b, k} = frameAt(replay.t);
+  const L = (i) => lerp(a.d[i], b.d[i], k);
+  _rq.set(L(0), L(1), L(2)); const ry = a.d[4] + wrapAngle(b.d[4] - a.d[4]) * k, mb = L(6);
+  if (!replay.boomed) {
+    craft.visible = true; craft.position.copy(_rq); craft.rotation.set(Math.PI / 2 * mb + L(3) * (1 - mb), ry, L(5), 'YXZ');
+    for (const sc of scouts) sc.group.visible = false;
+    for (const o of a.objs) {
+      const ob = b.objs.find(x => x[0] === o[0]) || o, g = o[0].group; g.visible = true;
+      g.position.set(lerp(o[1], ob[1], k), lerp(o[2], ob[2], k), lerp(o[3], ob[3], k));
+      if (o[0].isScout) g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); else g.rotation.y = o[4];
+    }
+  }
+  // Camera: chase → side (fixed, drone flies past) → impact close-up (fixed, near the impact point)
+  const fx = -Math.sin(ry), fz = -Math.cos(ry);
+  const cut = replay.boomed || toImpact < 1 ? 'IMPACT CAM' : toImpact < 3 ? 'SIDE CAM' : 'CHASE CAM';
+  if (cut === 'CHASE CAM') { camera.position.set(_rq.x - fx * 16, _rq.y + 4.5, _rq.z - fz * 16); camera.up.set(0, 1, 0); camera.lookAt(_rq.x + fx * 20, _rq.y, _rq.z + fz * 20); }
+  else if (cut === 'SIDE CAM') {
+    if (!replay.side) replay.side = new THREE.Vector3(_rq.x + fx * 70 - fz * 38, _rq.y + 7, _rq.z + fz * 70 + fx * 38);
+    camera.position.copy(replay.side); camera.up.set(0, 1, 0); camera.lookAt(_rq);
+  } else {
+    if (!replay.close) { const ip = rp.impactPos; replay.close = new THREE.Vector3(ip.x - fz * 22 - fx * 10, ip.y + 5, ip.z + fx * 22 - fz * 10); }
+    camera.position.copy(replay.close); camera.up.set(0, 1, 0); camera.lookAt(replay.boomed ? rp.impactPos : _rq);
+  }
+  { const gy = terrainHeight(camera.position.x, camera.position.z) + 2; if (camera.position.y < gy) camera.position.y = gy; }
+  $('replayInfo').textContent = '▶ REPLAY · ' + (rp.label || 'IMPACT') + ' · ' + cut + (speed < 1 ? ' · SLOW MOTION ×' + speed : '');
+  if (!replay.boomed) {
+    replay.t += rdt * speed;
+    if (replay.t >= replay.tEnd) {
+      replay.boomed = true; craft.visible = false; rp.target.group.visible = false;
+      explodeAt(rp.impactPos.clone(), 1.8); explodeAt(rp.impactPos.clone().addScaledVector(_rf.set(fx, 0, fz), 3), rp.tScale);
+    }
+  } else { replay.hold += rdt; if (replay.hold > 2.6) finishReplay(); }
+  updateExplosions(rdt * speed);
 }
 
 // ───────────────────────── Environment ─────────────────────────
@@ -1609,10 +1907,10 @@ const cTopN = new THREE.Color(0x03060d), cTopD = new THREE.Color(0x3f7fc4), cHor
 const cSunLow = new THREE.Color(0xffa860), cSunHi = new THREE.Color(0xffffff), tmpC = new THREE.Color(), tmpC2 = new THREE.Color();
 function updateEnvironment(rdt) {
   const edt = state.paused ? 0 : rdt * (state.slow ? .25 : 1);
-  state.dayClock = (state.dayClock + edt / 260) % TAU;
+  if (env.timeAuto) state.dayClock = (state.dayClock + edt / 260) % TAU;
   const cosC = Math.cos(state.dayClock); state.night = cosC < -.25;
   state.weatherTimer -= edt;
-  if (state.weatherTimer <= 0) {
+  if (state.weatherTimer <= 0 && env.weatherAuto) {
     const choices = [['CLEAR',0],['HIGH CLOUD',.22],['MIST',.55],['RAIN',.72],['CLEAR',0]], pick = choices[Math.floor(Math.random() * choices.length)];
     state.weatherMode = pick[0]; state.weatherTarget = pick[1]; state.weatherTimer = 48 + Math.random() * 72; radioMessage('WEATHER UPDATE · ' + state.weatherMode); actLog('Weather changing: ' + state.weatherMode);
   }
@@ -1632,7 +1930,13 @@ function updateEnvironment(rdt) {
   scene.background.copy(skyU.uHorizon.value); scene.fog.color.copy(skyU.uHorizon.value);
   if (thermalOn) { paletteRGB(.03); scene.background.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); scene.fog.color.copy(scene.background); scene.fog.near = 500; scene.fog.far = 3400; }
   skyGroup.visible = !thermalOn; cloudGroup.visible = !thermalOn; skyGroup.position.copy(camera.position);
-  $('weatherHud').textContent = (state.night ? 'NIGHT' : 'DAY') + ' / ' + state.weatherMode;
+  const hh = hoursFromClock(state.dayClock), wsp = Math.hypot(wind.x, wind.z), from = compass(Math.atan2(-wind.x, wind.z) * 180 / Math.PI);   // bearing it blows FROM (north = -Z)
+  $('weatherHud').textContent = (state.night ? 'NIGHT ' : 'DAY ') + String(Math.floor(hh)).padStart(2,'0') + ':' + String(Math.floor(hh % 1 * 60)).padStart(2,'0') + ' / ' + state.weatherMode + ' · WIND ' + wsp.toFixed(0) + ' m/s from ' + from;
+  if ($('envPanel').classList.contains('open')) {
+    if (env.timeAuto && document.activeElement !== $('envTime')) { $('envTime').value = hh.toFixed(2); }
+    if (env.windAuto) { $('envWind').value = windMean.toFixed(1); $('envDir').value = Math.round(((-windDirNow * 180 / Math.PI - 180) % 360 + 360) % 360); }
+    syncEnvPanel();
+  }
 }
 
 // ───────────────────────── Visuals (interpolated for smooth motion) ─────────────────────────
@@ -1698,11 +2002,12 @@ function updateCamera(rdt) {
 // ───────────────────────── HUD & radar ─────────────────────────
 let hudAcc = 0; const tmpP = new THREE.Vector3();
 function contactInfo(c) {
+  if (c.identified) return {name: CLS_NAME[c.guess] + ' · ' + confPct(c) + '%', temp: c.isScout ? `BODY ${c.bodyTemp}°C · EXHAUST ${c.exhaustTemp}°C` : c.type === 'plane' ? 'BODY 28°C · ENGINES 165°C' : 'BODY 39°C'};
   if (c.isScout) return {name:c.spec.label, temp:`BODY ${c.bodyTemp}°C · ${c.kind === 'light' ? 'ENGINE' : 'EXHAUST'} ${c.exhaustTemp}°C`};
   return c.type === 'plane' ? {name:'CIVILIAN AIRLINER', temp:'BODY 28°C · ENGINES 165°C'} : {name:'BIRD FLOCK', temp:'BODY 39°C'};
 }
 function updateHud(rdt) {
-  const lock = $('targetLock'), tgt = (state.launchStage === 'active' && !state.crashed && !state.batteryDead && (state.pursuitMode || state.aiTarget)) ? state.aiTarget : null;
+  const lock = $('targetLock'), tgt0 = (state.launchStage === 'active' && !state.crashed && !state.batteryDead && (state.pursuitMode || state.aiTarget)) ? state.aiTarget : null, tgt = tgt0 && tgt0.detected ? tgt0 : null;
   let dist = 0, known = false;
   if (tgt) {
     dist = state.pos.distanceTo(tgt.pos); known = !!tgt.identified;
@@ -1712,8 +2017,11 @@ function updateHud(rdt) {
     } else lock.classList.remove('show');
   } else lock.classList.remove('show');
   hudAcc += rdt; if (hudAcc < .12 && rdt !== 1) return; hudAcc = 0;
+  { const pt = state.pursuitMode && state.aiTarget, ab = $('abortBtn'); ab.classList.toggle('show', !!pt);
+    if (pt) $('abortInfo').textContent = CLS_NAME[pt.guess] + ' · ' + confPct(pt) + '% confidence · ' + (pt.detected ? Math.round(state.pos.distanceTo(pt.pos)) + ' m' : 'off radar · flying to estimate'); }
   const speed = state.vel.length(), alt = state.pos.y, spdTxt = speed.toFixed(1) + ' m/s';
-  $('speedBig').textContent = (speed * 3.6).toFixed(0) + ' km/h'; $('speedHud').textContent = spdTxt; $('altHud').textContent = Math.max(0, alt - terrainHeight(state.pos.x, state.pos.z)).toFixed(0) + ' m'; $('aslHud').textContent = 'ASL ' + alt.toFixed(0) + ' m'; const _bp = state.battery * 100;
+  const air = state.launchStage === 'active' && !state.batteryDead ? state.cruiseSpeed : speed;
+  $('speedBig').textContent = (air * 3.6).toFixed(0) + ' km/h'; $('speedHud').textContent = 'GS ' + (Math.hypot(state.vel.x, state.vel.z) * 3.6).toFixed(0) + ' km/h'; $('altHud').textContent = Math.max(0, alt - terrainHeight(state.pos.x, state.pos.z)).toFixed(0) + ' m'; $('aslHud').textContent = 'ASL ' + alt.toFixed(0) + ' m'; const _bp = state.battery * 100;
   $('batteryHud').textContent = _bp.toFixed(0) + '%';
   $('battFill').style.width = _bp.toFixed(1) + '%';
   $('battFill').style.background = _bp > 55 ? '#7affca' : _bp > 25 ? '#ffe47d' : '#ff5555'; { const w = Math.max(150, state.lastWatts || 0), secLeft = state.battery * BATTERY_WH * 3600 / w;
@@ -1723,11 +2031,13 @@ function updateHud(rdt) {
   $('timeLabel').textContent = `t = ${state.time.toFixed(2)} s · 120 Hz physics · ${state.history.length} samples`;
   // Threats = scouts still flying; identified threats = those of them the drone has classified;
   // total identified = every classified object (scouts + birds + airliners).
-  const threats = scouts.filter(s => !s.destroyed && !s.tagged), idThreats = threats.filter(s => s.identified).length;
-  const totalId = idThreats + ambientActors.filter(a => a.identified).length;
-  $('targetStatus').innerHTML = `<span>THREATS LEFT</span><b class="${threats.length ? 'hot' : ''}">${threats.length}</b><span>IDENTIFIED THREATS</span><b>${idThreats}</b><span>TOTAL IDENTIFIED</span><b>${totalId}</b>`;
+  // Identified = classified and still tracked; "threat" by the system's own guess (which can be wrong).
+  const threats = scouts.filter(s => !s.destroyed && !s.tagged), live = [...threats, ...ambientActors].filter(c => c.identified && hasTrack(c));
+  const idThreats = live.filter(c => isThreatClass(c.guess)).length, inc = state.civilianIncidents || 0;
+  $('targetStatus').innerHTML = `<span>THREATS LEFT</span><b class="${threats.length ? 'hot' : ''}">${threats.length}</b><span>IDENTIFIED THREATS</span><b>${idThreats}</b><span>TOTAL IDENTIFIED</span><b>${live.length}</b>` +
+    (inc ? `<span style="color:#ff8a7a">CIVILIAN INCIDENTS</span><b class="hot">${inc}</b>` : '');
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
-    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
+    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
       const conf = known ? Math.round(clamp(70 + (1 - dist / 800) * 28, 70, 98)) : Math.round(progress * 60);
@@ -1750,14 +2060,14 @@ function updateHud(rdt) {
   }
   const ro = $('contactReadout');
   if (show) {
-    const cr = classifyRange(show), seen = show.identified || showD < cr, info = contactInfo(show);
-    const prog = clamp(1 - (showD - cr) / (cr * 3), 0, 1);
-    const line = seen ? `RANGE ${showD.toFixed(0)} m` + (thermalOn ? ` · ${info.temp}` : '') : `RANGE ${showD.toFixed(0)} m · ` + (prog > .4 ? `CLASSIFYING ${Math.round(prog * 100)}%` : 'SEARCH CONTACT');
+    const seen = show.identified, info = contactInfo(show), sq = Math.round(sensorQuality() * 100);
+    const line = seen ? `RANGE ${showD.toFixed(0)} m` + (thermalOn ? ` · ${info.temp}` : '') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`
+                      : `RANGE ${showD.toFixed(0)} m · ` + (show.conf ? `CLASSIFYING · best guess ${CLS_SHORT[show.guess]} ${confPct(show)}%` : 'SEARCH CONTACT') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`;
     ro.style.display = 'block'; ro.innerHTML = `<b>${seen ? info.name : 'UNKNOWN CONTACT'}</b><small>${line}</small>`; ro.classList.toggle('unknown', !seen);
   } else ro.style.display = 'none';
 }
 function drawRadar() {
-  const c = $('radarCanvas'); if (!c) return; const x = c.getContext('2d'), w = c.width, h = c.height, cx = w / 2, cy = h / 2, scale = 84 / 1200;
+  const c = $('radarCanvas'); if (!c) return; const x = c.getContext('2d'), w = c.width, h = c.height, cx = w / 2, cy = h / 2, scale = 84 / radarRange();
   x.clearRect(0, 0, w, h); x.fillStyle = '#06141c'; x.fillRect(0, 0, w, h); x.strokeStyle = '#2d8a8a'; x.lineWidth = 1;
   for (const r of [28, 56, 84]) { x.beginPath(); x.arc(cx, cy, r, 0, TAU); x.stroke(); }
   x.beginPath(); x.moveTo(cx, 5); x.lineTo(cx, h - 5); x.moveTo(5, cy); x.lineTo(w - 5, cy); x.stroke();
@@ -1766,15 +2076,16 @@ function drawRadar() {
   x.strokeStyle = '#3fffc0'; x.beginPath(); x.moveTo(cx, cy); x.lineTo(cx + hx * 84, cy + hz * 84); x.stroke();
   let count = 0; const tgt = state.aiTarget;
   const drawContact = (c, px, py) => {
+    if (!c.detected) return;                     // radar shows only what it currently detects
     const isT = c === tgt, r = isT ? 4 : 2.5;
-    x.fillStyle = isT ? '#ffee77' : '#4effa0';   // active target slightly brighter
+    x.fillStyle = isT ? '#ffee77' : !c.identified ? '#b8c4cc' : isThreatClass(c.guess) ? '#ff9a6b' : '#4effa0';
     x.beginPath(); x.arc(px, py, r, 0, TAU); x.fill();
     if (isT) { x.strokeStyle='rgba(255,238,119,.35)'; x.lineWidth=7; x.beginPath(); x.arc(px,py,9,0,TAU); x.stroke(); }
     count++;
   };
   for (const s of scouts) { if (s.destroyed) continue; const px=cx+(s.pos.x-state.pos.x)*scale, py=cy+(s.pos.z-state.pos.z)*scale; if (Math.hypot(px-cx,py-cy)<85) drawContact(s,px,py); }
   for (const a of ambientActors) { const px=cx+(a.pos.x-state.pos.x)*scale, py=cy+(a.pos.z-state.pos.z)*scale; if (Math.hypot(px-cx,py-cy)<85) drawContact(a,px,py); }
-  $('radarCount').textContent = 'CONTACTS ' + count;
+  $('radarCount').textContent = 'CONTACTS ' + count + ' · ' + (radarRange() / 1000).toFixed(1) + ' KM';
 }
 function resize() {
   const w = $('viewport').clientWidth, h = $('viewport').clientHeight; vpW = w; vpH = h;
@@ -1792,6 +2103,7 @@ function animate(now) {
     while (accumulator >= dt && steps < 12) { physicsStep(dt); accumulator -= dt; steps++; }
     if (steps >= 12) accumulator = 0; alpha = accumulator / dt;
   }
+  if (replay.active) { updateEnvironment(0); stepReplay(rdt); renderer.render(scene, camera); return; }
   updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt); renderer.render(scene, camera); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
 }
 requestAnimationFrame(animate);
