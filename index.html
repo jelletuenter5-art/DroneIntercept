@@ -77,9 +77,9 @@ table.keys td{padding:3px 0;vertical-align:top;color:#cfe6f5}table.keys td:first
 #zoomView{right:190px!important;bottom:10px!important;width:290px!important}#zvFrame{height:160px!important}
 #contactReadout{top:10px!important;bottom:auto!important;font-size:11px!important;padding:5px 12px!important}
 #abortBtn{top:58px!important;bottom:auto!important;padding:6px 18px 5px!important;font-size:12px!important}
-#zoomView{position:absolute;right:226px;bottom:14px;width:300px;z-index:9;pointer-events:auto;background:transparent;border:1px solid #3c6174;border-radius:8px;box-shadow:0 5px 22px #0006;overflow:hidden;font:10px ui-monospace,monospace;color:#cfe6f5}
+#zoomView{position:absolute;right:226px;bottom:14px;width:300px;z-index:9;user-select:none;-webkit-user-select:none;pointer-events:auto;background:transparent;border:1px solid #3c6174;border-radius:8px;box-shadow:0 5px 22px #0006;overflow:hidden;font:10px ui-monospace,monospace;color:#cfe6f5}
 #zoomView.hidden{display:none}.zvHead{display:flex;gap:8px;align-items:center;padding:5px 8px;white-space:nowrap;background:#07131dee;color:#7affca;letter-spacing:.12em}.zvHead span{margin-left:auto;color:#ffd27a}.zvHead button{padding:1px 6px;font-size:9px}
-#zvFrame{position:relative;height:170px;cursor:crosshair;touch-action:none;border-top:1px solid #2a4f62;border-bottom:1px solid #2a4f62;background:transparent}
+#zvFrame{position:relative;height:170px;cursor:crosshair;touch-action:none;user-select:none;-webkit-user-select:none;border-top:1px solid #2a4f62;border-bottom:1px solid #2a4f62;background:transparent}
 .zvRet{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border:1px solid #7affca88;border-radius:2px}
 .zvRet::before,.zvRet::after{content:'';position:absolute;background:#7affca88}.zvRet::before{left:50%;top:-10px;width:1px;height:66px}.zvRet::after{top:50%;left:-10px;height:1px;width:66px}
 .zvInfo{padding:4px 8px;background:#07131dee}.zvInfo b{display:block;color:#e8f6ff}.zvInfo small{color:#8fb3c8}
@@ -641,9 +641,12 @@ function updateCloudBanks(edt, daylight) {
 // ───────────────────────── Launch pad & player aircraft ─────────────────────────
 const launchPadY = terrainHeight(0, 0);
 const launchPad = new THREE.Group(); scene.add(launchPad);
-th(box(launchPad, [22,.65,22], mat(0x263542,.7,.35), [0, launchPadY+.1, 0]), .4);
-th(box(launchPad, [18,.08,18], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), .4);
-for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.22,.1,2.2], mat(0x7dffcb,.4,.5), [sx*8.5, launchPadY+.55, sz*8.5], [0, Math.PI/4, 0]), .5);
+// 34 m pad, 30 m landing surface with a touchdown circle and an H
+th(box(launchPad, [34,.65,34], mat(0x263542,.7,.35), [0, launchPadY+.1, 0]), .4);
+th(box(launchPad, [30,.08,30], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), .4);
+for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.3,.1,3.2], mat(0x7dffcb,.4,.5), [sx*14, launchPadY+.55, sz*14], [0, Math.PI/4, 0]), .5);
+{ const ring = new THREE.Mesh(new THREE.RingGeometry(9.2, 10, 48).rotateX(-Math.PI / 2), mat(0xe9eef2, .6, .1)); ring.position.y = launchPadY + .54; launchPad.add(ring); th(ring, .35);
+  const hm = mat(0xe9eef2, .6, .1); th(box(launchPad, [1.1,.06,7], hm, [-2.6, launchPadY+.54, 0]), .35); th(box(launchPad, [1.1,.06,7], hm, [2.6, launchPadY+.54, 0]), .35); th(box(launchPad, [4.1,.06,1.1], hm, [0, launchPadY+.54, 0]), .35); }
 const craft = new THREE.Group(); scene.add(craft);
 // Bullet-shaped tail-sitter: ogive fuselage, four swept arms with nose-facing motors, four tail fins.
 const bodyMat = mat(0x16191d,.6,.22), motorMat = mat(0x1d2024,.45,.5), accentMat = mat(0xb08a3a,.35,.8);
@@ -895,7 +898,7 @@ function createPassengerPlane(x, y, z, planeType) {
 function createLightPlane(x, z) {
   const g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
   // Livery: white, black or red body with a contrasting stripe / tail
-  const LIV = [[0xe6eaee, 0xb3262a], [0x1c1f24, 0xd8dcdf], [0xb3262a, 0xf2f2f2]][Math.floor(Math.random() * 3)];
+  const rl = Math.random(), LIV = rl < .5 ? [0x1c1f24, 0xd8dcdf] : rl < .75 ? [0xe6eaee, 0xb3262a] : [0xb3262a, 0xf2f2f2];   // 50 % black · 25 % white · 25 % red
   const white = mat(LIV[0], .5, .15), stripe = mat(LIV[1], .5, .2), glass = mat(0x1b2a38, .2, .6), dark = mat(0x2a2f35, .6, .3);
   box(g, [1.2, 1.3, 4.0], white, [0, 0, -.6]).userData.th = .34;            // cabin
   box(g, [.75, .75, 3.8], white, [0, .2, 3.2]).userData.th = .28;           // tail cone
@@ -1058,7 +1061,8 @@ $('rtbGo').onclick = acceptRtb; $('rtbDismiss').onclick = () => { $('rtbCard').c
 $('zvClose').onclick = () => { zv.open = false; $('zoomView').classList.add('hidden'); };
 $('zoomView').addEventListener('wheel', e => { e.preventDefault(); setZoom(zv.zoom * Math.exp(-e.deltaY * .0015)); }, {passive:false});
 // Drag inside the picture to aim: the image follows the mouse at any zoom.
-$('zvFrame').addEventListener('pointerdown', e => { zv.drag = true; zv.lx = e.clientX; zv.ly = e.clientY; $('zvFrame').setPointerCapture(e.pointerId); });
+$('zvFrame').addEventListener('dragstart', e => e.preventDefault());
+$('zvFrame').addEventListener('pointerdown', e => { e.preventDefault(); zv.drag = true; zv.lx = e.clientX; zv.ly = e.clientY; $('zvFrame').setPointerCapture(e.pointerId); });
 $('zvFrame').addEventListener('pointerup', () => zv.drag = false); $('zvFrame').addEventListener('pointercancel', () => zv.drag = false);
 $('zvFrame').addEventListener('pointermove', e => {
   if (!zv.drag) return; const h = $('zvFrame').clientHeight || 170, radPerPx = THREE.MathUtils.degToRad(38 / zv.zoom) / h;
@@ -1174,6 +1178,12 @@ function drawMap() {
     ctx.fillStyle = 'rgba(80,220,200,.05)'; ctx.strokeStyle = 'rgba(80,220,200,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.arc(cx3, cz3, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
+  // 4b. Home / landing pad with a dashed line and distance from the drone
+  { const [hx, hz] = worldToMap(PAD.x, PAD.z), [dx3, dz3] = worldToMap(state.pos.x, state.pos.z), dkm = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000;
+    ctx.setLineDash([2, 4]); ctx.strokeStyle = 'rgba(122,255,202,.45)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(dx3, dz3); ctx.lineTo(hx, hz); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#0a1824'; ctx.strokeStyle = '#7affca'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hx, hz, 7, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#7affca'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.fillText('⌂', hx, hz + 3.5);
+    ctx.font = 'bold 8px ui-monospace,monospace'; ctx.fillText('HOME · ' + dkm.toFixed(1) + ' km', hx, hz + 17); ctx.textAlign = 'left'; }
   // 5. Tracks. Live (on radar) = solid; off radar = dead-reckoned estimate with uncertainty circle.
   //    Unclassified = grey fuzzy blip (not selectable). Classified = guess + confidence (may be wrong).
   const drawMapContact = c => {
@@ -2150,11 +2160,35 @@ function playSfx(name, pos) {
   const near = pos ? 1 / (1 + camera.position.distanceTo(pos) / 350) : 1;
   if (name === 'ping') { tone('fx', 1250, 1150, .35, 'sine', .12); }
   else if (name === 'lock') { tone('fx', 1320, 1320, .06, 'square', .06); }
-  else if (name === 'boom') { noiseBurst('fx', 2.2, 1800, 60, .9 * near); tone('fx', 70, 30, 1.2, 'sine', .7 * near); }
+  else if (name === 'boom') boomSound(pos);
   else if (name === 'flare') { for (let i = 0; i < 5; i++) noiseBurst('fx', .18, 4000, 900, .25 * near, i * .12); }
   else if (name === 'slap') { noiseBurst('fx', .12, 900, 120, .35); tone('fx', 110, 60, .12, 'sine', .3); }
   else if (name === 'chime') { tone('alerts', 660, 660, .25, 'sine', .25); tone('alerts', 880, 880, .35, 'sine', .25, .22); }
   else if (name === 'alarm') { for (let i = 0; i < 3; i++) { tone('alerts', 1000, 1000, .14, 'square', .14, i * .3); tone('alerts', 760, 760, .14, 'square', .14, i * .3 + .15); } }
+}
+// Explosion: arrives after the speed of sound, muffled with distance. Sharp crack → roaring body sweep → deep
+// sub-bass thump → long low rumble, plus a few debris crackles.
+function boomSound(pos) {
+  const c = audio.ctx; if (!c) return;
+  const d = pos ? camera.position.distanceTo(pos) : 50, delay = replay.active ? 0 : Math.min(3, d / 343);
+  const near = 1 / (1 + d / 450), out = c.createBiquadFilter(); out.type = 'lowpass'; out.frequency.value = 9000 / (1 + d / 350);
+  const og = c.createGain(); og.gain.value = Math.min(1, .25 + near); out.connect(og); og.connect(audio.fx);
+  const t0 = c.currentTime + delay;
+  const nz = (dur, type, f0, f1, vol, att, dly = 0, q = .7) => {
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), t = t0 + dly;
+    src.buffer = audio.noise; src.playbackRate.value = .7 + Math.random() * .3; f.type = type; f.Q.value = q;
+    f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(25, f1), t + dur);
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+    src.connect(f); f.connect(g); g.connect(out); src.start(t); src.stop(t + dur + .1);
+  };
+  nz(.09, 'highpass', 2500, 1800, .9 * near + .1, .002);              // crack
+  nz(1.4, 'lowpass', 4200, 160, .95, .01);                            // roaring body
+  nz(3.6, 'lowpass', 220, 60, .55, .12, .05, 1.2);                    // rumble tail
+  const o = c.createOscillator(), g = c.createGain(); o.type = 'sine';  // sub-bass thump
+  o.frequency.setValueAtTime(95, t0); o.frequency.exponentialRampToValueAtTime(28, t0 + .9);
+  g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(1, t0 + .015); g.gain.exponentialRampToValueAtTime(.001, t0 + 1.1);
+  o.connect(g); g.connect(out); o.start(t0); o.stop(t0 + 1.2);
+  for (let i = 0; i < 6; i++) nz(.05 + Math.random() * .06, 'bandpass', 1500 + Math.random() * 2500, 900, .25 * near, .002, .3 + Math.random() * 1.6, 2);   // debris crackle
 }
 // Continuous sounds follow the flight state every frame.
 function updateAudio(rdt) {
@@ -2199,7 +2233,7 @@ function missionSample(h) {
 const esc = t => String(t).replace(/[&<>]/g, ch => ({'&':'&amp;', '<':'&lt;', '>':'&gt;'}[ch]));
 function showDebrief(reason) {
   const m = state.mission; if (!m) return;
-  m.path.push([state.pos.x, state.pos.z]); state.mission = null;
+  const end = m.end || [state.pos.x, state.pos.z]; m.path.push(end); m.end = end; m.reason = reason; state.mission = null;
   const dur = state.time - m.t0, mm = Math.floor(dur / 60), ss = Math.floor(dur % 60);
   const ids = [...new Map(m.ids.map(i => [i.c, i])).values()];
   const idRows = ids.map(i => { const c = i.c, tr = truthClass(c), ok = c.guess === tr; return {c, ok, tr}; });
@@ -2219,7 +2253,7 @@ function showDebrief(reason) {
       <div class="dbStats">${stat('DURATION', mm + ':' + String(ss).padStart(2, '0'))}${stat('DISTANCE', (m.dist / 1000).toFixed(1) + ' km')}${stat('HITS', m.hits)}${stat('SCORE', score)}</div></div>
     <div class="dbGrid">
       <div class="dbSec slap" style="--d:.35s"><h4>FLIGHT PATH</h4><canvas id="dbMap" width="320" height="320"></canvas>
-        <div class="dbLegend"><i class="lp"></i>path <i class="lb">⌂</i>base <i class="lok">●</i>correct ID <i class="lx">●</i>wrong ID <i class="lt">★</i>call <i class="lh">✕</i>engagement</div></div>
+        <div class="dbLegend"><i class="lp"></i>flight path <i class="lb">⌂</i>home <i class="lh">✕</i>collision / end of mission</div></div>
       <div class="dbCol">
         <div class="dbSec slap" style="--d:.7s"><h4>IDENTIFICATIONS <small>${idOk}/${idRows.length} correct</small></h4>${idTable}</div>
         <div class="dbSec slap" style="--d:1.05s"><h4>CALLS YOU MADE <small>${callOk}/${calls.length} correct</small></h4>${callTable}</div>
@@ -2231,26 +2265,29 @@ function showDebrief(reason) {
   $('debrief').classList.add('show');
   for (const [i, d] of [0, .35, .7, 1.05, 1.4, 1.75].entries()) setTimeout(() => playSfx('slap'), d * 1000 + 120);
   $('dbContinue').onclick = closeDebrief;
-  drawDebriefMap(m, idRows, calls);
+  drawDebriefMap(m);
 }
 function closeDebrief() { $('debrief').classList.remove('show'); }
-function drawDebriefMap(m, idRows, calls) {
+function drawDebriefMap(m) {
   const cv = $('dbMap'), x = cv.getContext('2d'), W = cv.width;
   if (!mapTerrainCache) buildTerrainCache();
   const [a0] = worldToMap(-ARENA, -ARENA), [a1] = worldToMap(ARENA, ARENA);
   x.drawImage(mapTerrainCache, a0, a0, a1 - a0, a1 - a0, 0, 0, W, W);
   x.fillStyle = 'rgba(4,12,20,.35)'; x.fillRect(0, 0, W, W);
   const P = (wx, wz) => [(wx / (2 * ARENA) + .5) * W, (wz / (2 * ARENA) + .5) * W];
-  x.lineWidth = 2.2; x.strokeStyle = '#5ee0ff'; x.shadowColor = '#5ee0ff'; x.shadowBlur = 6; x.beginPath();
+  // flight path (ends exactly where the sortie ended)
+  x.lineWidth = 2.2; x.strokeStyle = '#5ee0ff'; x.shadowColor = '#5ee0ff'; x.shadowBlur = 6; x.lineJoin = 'round'; x.beginPath();
   m.path.forEach(([px, pz], i) => { const [u, v] = P(px, pz); i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.stroke(); x.shadowBlur = 0;
-  const [bx, bz] = P(PAD.x, PAD.z); x.fillStyle = '#7affca'; x.font = 'bold 15px system-ui'; x.textAlign = 'center'; x.fillText('⌂', bx, bz + 5);
-  for (const r of idRows) { const [u, v] = P(r.c.pos.x, r.c.pos.z); const k = m.ids.find(i => i.c === r.c); const [iu, iv] = k ? P(k.x, k.z) : [u, v];
-    x.fillStyle = r.ok ? '#7affca' : '#ff6b6b'; x.beginPath(); x.arc(iu, iv, 3.5, 0, TAU); x.fill(); }
-  x.font = 'bold 12px system-ui';
-  for (const c of calls) { const [u, v] = P(c.x, c.z); x.fillStyle = c.mark === 'threat' ? '#ff9a6b' : '#9ec4d8'; x.fillText('★', u, v + 4); }
-  for (const e of m.eng) { const [u, v] = P(e.x, e.z); x.strokeStyle = e.result === 'HIT' ? '#ffd27a' : e.result === 'CIVILIAN INCIDENT' ? '#ff6b6b' : '#9fb8cc'; x.lineWidth = 2;
-    x.beginPath(); x.moveTo(u - 5, v - 5); x.lineTo(u + 5, v + 5); x.moveTo(u + 5, v - 5); x.lineTo(u - 5, v + 5); x.stroke(); }
-  const [ex, ez] = P(m.path[m.path.length - 1][0], m.path[m.path.length - 1][1]); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.beginPath(); x.arc(ex, ez, 5, 0, TAU); x.stroke();
+  // home
+  const [bx, bz] = P(PAD.x, PAD.z); x.fillStyle = '#0a1824'; x.strokeStyle = '#7affca'; x.lineWidth = 1.5; x.beginPath(); x.arc(bx, bz, 8, 0, TAU); x.fill(); x.stroke();
+  x.fillStyle = '#7affca'; x.font = 'bold 11px system-ui'; x.textAlign = 'center'; x.fillText('⌂', bx, bz + 4); x.font = 'bold 9px ui-monospace,monospace'; x.fillText('HOME', bx, bz + 19);
+  // end of mission: collision ✕ / landed ✓ / aircraft lost ✕ (red)
+  const [ex, ez] = P(m.end[0], m.end[1]);
+  if (m.reason !== 'landed') {
+    const col = m.reason === 'battery' ? '#ff6b6b' : m.incidents ? '#ff6b6b' : '#ffd27a';
+    x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); x.moveTo(ex - 7, ez - 7); x.lineTo(ex + 7, ez + 7); x.moveTo(ex + 7, ez - 7); x.lineTo(ex - 7, ez + 7); x.stroke();
+    x.fillStyle = col; x.font = 'bold 9px ui-monospace,monospace'; x.fillText(m.reason === 'battery' ? 'AIRCRAFT LOST' : 'COLLISION', ex, ez - 11);
+  }
   x.strokeStyle = 'rgba(255,120,100,.6)'; x.setLineDash([5, 4]); x.strokeRect(1, 1, W - 2, W - 2); x.setLineDash([]);
 }
 // ── Return to base ──
@@ -2316,8 +2353,10 @@ function stepPowerLoss(h) {
   }
 }
 function resetToPad(reason) {
+  if (state.mission && !state.mission.end) state.mission.end = [state.pos.x, state.pos.z];   // where the sortie ended (before moving to the pad)
   state.returning = false; state.crashed = false; state.batteryDead = false;
-  state.pos.set(0, terrainHeight(0,0) + 2.6, 0); state.vel.set(0,0,0); state.altCmd = state.pos.y;
+  if (reason === 'landed') state.pos.y = terrainHeight(0, 0) + 2.6; else state.pos.set(0, terrainHeight(0,0) + 2.6, 0);   // landed: stays where it touched down
+  state.vel.set(0,0,0); state.altCmd = state.pos.y; state.tiltP = state.tiltR = 0;
   state.cruiseSpeed = 0; state.turnCmd = 0; state.searchWp = null; state.ignoredTargets.clear();
   state.aiTarget = null; state.pursuitMode = false; state.manualWaypointActive = false; mapWaypoint = null;
   $('cancelTrackBtn').style.display = 'none'; $('cancelWpBtn').style.display = 'none';
@@ -2384,25 +2423,43 @@ function physicsStep(h) {
   }
 
 
-  // ── Vertical landing on the pad: slow down while the nose comes up into hover, hold over the pad, descend ──
+  // ── Landing: like a real VTOL multirotor. Forward flight bleeds off while the nose comes up; then an
+  //    acceleration-limited, slightly under-damped hover position controller (with gusts) flies it over the pad —
+  //    it overshoots, swings back and settles, tilting into each correction. It descends once roughly settled, slows
+  //    near the ground and touches down a few metres off centre, wherever it settles on the 30 m pad. ──
   if (state.rtb === 'landing') {
     const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + 2.6;
-    const dx = PAD.x - state.pos.x, dz = PAD.z - state.pos.z, dH = Math.hypot(dx, dz);
-    state.cruiseSpeed = Math.max(0, state.cruiseSpeed - 7 * h);
-    // In hover the lift rotors can still translate the drone (up to ~8 m/s) so it always reaches the pad.
-    const vh = Math.min(Math.max(state.cruiseSpeed, 8), dH * .5), ux = dH > .01 ? dx / dH : 0, uz = dH > .01 ? dz / dH : 0;
-    state.vel.x = damp(state.vel.x, ux * vh, 3, h); state.vel.z = damp(state.vel.z, uz * vh, 3, h);
+    if (!state.landAim) state.landAim = {x:PAD.x + (Math.random() - .5) * 6, z:PAD.z + (Math.random() - .5) * 6};
+    const ex = state.landAim.x - state.pos.x, ez = state.landAim.z - state.pos.z, dH = Math.hypot(ex, ez);
     const hs = Math.hypot(state.vel.x, state.vel.z), agl = state.pos.y - padY;
-    // Descend once close: fast high up, gently in the last metres (≈5 m/s → 0.8 m/s).
-    const descend = dH < 40 ? clamp(agl * .25, .8, 5) * (1 - smoothstep(10, 40, dH) * .7) : 0;
-    state.vel.y = damp(state.vel.y, -descend, 2, h);
+    // horizontal: far out, follow a braking profile towards the spot (v = √(2·2.2·d)); in the last 25 m a slightly
+    // under-damped PD (ωn≈.55, ζ≈.5) takes over → a small overshoot and correction, like a real pilot / autopilot.
+    let ax, az;
+    if (dH > 25) { const vd = Math.min(45, Math.sqrt(2 * 2.2 * dH)); ax = 1.2 * (vd * ex / dH - state.vel.x); az = 1.2 * (vd * ez / dH - state.vel.z); }
+    else { ax = .3 * ex - .55 * state.vel.x; az = .3 * ez - .55 * state.vel.z; }
+    const aLim = hs > 12 ? 6 : 3.2, am = Math.hypot(ax, az); if (am > aLim) { ax *= aLim / am; az *= aLim / am; }
+    // gusts push the hovering drone around (it has to keep correcting)
+    state.gx = damp(state.gx || 0, (wind.x - (state.wxAvg || wind.x)) * 1.6, 2, h); state.gz = damp(state.gz || 0, (wind.z - (state.wzAvg || wind.z)) * 1.6, 2, h);
+    state.wxAvg = damp(state.wxAvg || wind.x, wind.x, .3, h); state.wzAvg = damp(state.wzAvg || wind.z, wind.z, .3, h);
+    state.vel.x += (ax + state.gx) * h; state.vel.z += (az + state.gz) * h;
+    // vertical: hold height until settled over the spot, then descend; slow down in the last metres (ground effect)
+    const settled = dH < 4 && hs < 2.5 || t > 45;
+    const vyCmd = settled ? -clamp(agl * .35, .55, 3.5) * (agl < 2.5 ? .6 : 1) : clamp((60 - agl) * .3, -2, 2) * (agl > 70 ? 1 : 0);
+    state.vel.y = damp(state.vel.y, vyCmd + wind.y * .5, 2.2, h);
     state.pos.addScaledVector(state.vel, h);
+    state.cruiseSpeed = Math.hypot(state.vel.x, state.vel.z);
+    // attitude: nose comes up into hover as speed bleeds off; tilts into the acceleration like a multirotor
     state.modeBlend = damp(state.modeBlend, 1 - smoothstep(4, 40, hs), 1.5, h);
+    const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);
+    state.tiltP = damp(state.tiltP || 0, clamp((ax * fx + az * fz) / 9.81, -.35, .35) * state.modeBlend, 4, h);
+    state.tiltR = damp(state.tiltR || 0, clamp((ax * -fz + az * fx) / 9.81, -.35, .35) * state.modeBlend, 4, h);
     state.gamma = 0; state.bank = damp(state.bank, 0, 3, h); state.rot.x = damp(state.rot.x, 0, 2, h); state.rot.z = state.bank;
     drainBattery(h, LAND_POWER);
-    $('flightState').textContent = 'LANDING · ' + Math.max(0, state.pos.y - padY).toFixed(0) + ' m';
-    if (state.pos.y <= padY + .3 && dH < 8) {
-      state.rtb = false; radioMessage('TOUCHDOWN · LANDED SAFELY · RECHARGING');
+    $('flightState').textContent = (settled ? 'LANDING · ' : 'HOVER · POSITIONING · ') + Math.max(0, agl).toFixed(0) + ' m';
+    if (agl <= .25) {
+      const off = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z);
+      state.rtb = false; state.landAim = null; state.tiltP = state.tiltR = 0;
+      radioMessage('TOUCHDOWN · ' + (off < 15 ? off.toFixed(1) + ' m from centre' : 'OFF THE PAD · ' + off.toFixed(0) + ' m') + ' · RECHARGING');
       missionLog('landed'); resetToPad('landed');
     }
     return;
@@ -2424,7 +2481,7 @@ function physicsStep(h) {
     G_.alt = Math.max(padY + 60 + Math.max(0, dH - 150) * .08, dH > 1500 ? state.routeFloorY + 100 : 0);
     G_.speed = lerp(40, V_CRUISE, smoothstep(250, 1500, dH));
     if (dH < 1500) { G_.track = true; G_.vy = 0; G_.ff = 0; G_.tau = 3; G_.clear = 35; G_.look = 400; }   // fly the glide path tightly
-    if (dH < 150 && state.pos.y - padY < 130) { state.rtb = 'landing'; state.landT = 0; radioMessage('ON FINAL · TRANSITION TO HOVER · LANDING'); }
+    if (dH < 400 && state.pos.y - padY < 130) { state.rtb = 'landing'; state.landT = 0; radioMessage('ON FINAL · TRANSITION TO HOVER · LANDING'); }
   } else if (tgt) {
     range = state.pos.distanceTo(tgt.pos);
     if (state.pursuitMode && !tgt.detected) {
@@ -2767,7 +2824,7 @@ function updateVisuals(alpha, rdt) {
   renderPos.lerpVectors(state.prevPos, state.pos, alpha);
   renderYaw = state.prevYaw + wrapAngle(state.rot.y - state.prevYaw) * alpha;
   const rx = lerp(state.prevPitch, state.rot.x, alpha), rz = lerp(state.prevRoll, state.rot.z, alpha), mb = state.modeBlend;
-  craft.position.copy(renderPos); craft.rotation.set(Math.PI / 2 * mb + rx * (1 - mb), renderYaw, rz, 'YXZ');
+  craft.position.copy(renderPos); craft.rotation.set(Math.PI / 2 * mb + rx * (1 - mb) - (state.tiltP || 0), renderYaw, rz + (state.tiltR || 0), 'YXZ');   // + hover tilt
   rotorSpin = damp(rotorSpin, (state.launchStage === 'parked' || state.batteryDead) ? 0 : 38, 2, rdt);
   for (let i = 0; i < liftRotors.length; i++) liftRotors[i].rotation.z += (rotorSpin * (i % 2 ? -1 : 1) + (i % 2) * 2) * rdt;
   camGimbal.rotation.set(THREE.MathUtils.degToRad(state.camTilt), THREE.MathUtils.degToRad(state.camPan), 0);
@@ -3084,14 +3141,15 @@ state.cameraMode = 'behind'; state.freeCam = false; updateCameraButton(); update
 
 function animate(now) {
   requestAnimationFrame(animate);
-  const rdt = Math.min(.1, (now - last) / 1000); last = now;
+  const rawDt = Math.min(.5, Math.max(0, (now - last) / 1000)), rdt = Math.min(.1, rawDt); last = now;
   let alpha = 1;
   if (!state.paused) {
     accumulator += rdt * (state.slow ? .25 : 1); let steps = 0;
     while (accumulator >= dt && steps < 12) { physicsStep(dt); accumulator -= dt; steps++; }
     if (steps >= 12) accumulator = 0; alpha = accumulator / dt;
   }
-  if (replay.active) { updateEnvironment(0); stepReplay(rdt); updateAircraftLights(); renderer.render(scene, camera); return; }
+  // replay runs on true wall-clock time, so a heavy frame never slows it down
+  if (replay.active) { updateEnvironment(0); stepReplay(rawDt); updateAircraftLights(); renderer.render(scene, camera); return; }
   updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt);
   updateContactViews(); updateAircraftLights();
   updateAudio(rdt); renderer.render(scene, camera); drawGlare($('glare'), camera); renderZoomView(rdt); if (zv.open) drawGlare($('zvGlare'), zoomCam); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
