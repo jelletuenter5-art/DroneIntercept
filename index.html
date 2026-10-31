@@ -45,7 +45,7 @@ kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738
 #mapUI{color:#9dc7db;font:700 11px ui-monospace,monospace;text-align:center;letter-spacing:.06em;display:flex;flex-direction:row;align-items:center;gap:10px;background:#07131de8;border:1px solid #2a4f62;border-radius:8px;padding:8px 16px;max-width:min(520px,85vw);box-sizing:border-box;flex-wrap:wrap;justify-content:center;flex-shrink:0}
 #mapUI b{color:#7affca}#mapUI span{font-weight:400;color:#7a9db4;font-size:10px}#cancelWpBtn,#cancelTrackBtn{padding:4px 11px;background:#1a0808;border:1px solid #c05050;border-radius:5px;color:#e09090;font:700 9.5px ui-monospace,monospace;cursor:pointer;pointer-events:auto;display:none;white-space:nowrap}#cancelWpBtn:hover,#cancelTrackBtn:hover{background:#2c1010;color:#f5c0c0}
 #mapCloseBtn{padding:5px 16px;background:#0d2332;border:1px solid #3e778e;border-radius:5px;color:#9dc7db;font:700 10px ui-monospace,monospace;cursor:pointer;pointer-events:auto;white-space:nowrap}
-#mapCloseBtn:hover{background:#163344;color:#cce8f5}#trackConfirm{display:none;position:fixed;z-index:60;background:#06111be8;border:1.5px solid #3a778e;border-radius:9px;padding:14px 18px;color:#dff9ff;font:700 11px ui-monospace,monospace;box-shadow:0 6px 28px #000d;text-align:center;transform:translateX(-50%);pointer-events:auto;min-width:190px}#trackConfirm.show{display:block}#trackConfirm .tc-name{color:#7affca;font-size:13px;margin:4px 0 10px}#trackConfirm.unknown-type .tc-name{color:#aaddff}#trackConfirm .tc-btns{display:flex;gap:8px;justify-content:center}#trackConfirm .tc-btns button{padding:6px 18px;border-radius:5px;font:700 10px ui-monospace,monospace;cursor:pointer;border:1.5px solid}#tc-auth{background:#0e3828;border-color:#7affca;color:#7affca}#tc-auth:hover{background:#174d38}#tc-cancel{background:#1a0808;border-color:#e06060;color:#e09090}#tc-cancel:hover{background:#280e0e}
+#mapCloseBtn:hover{background:#163344;color:#cce8f5}#trackConfirm{display:none;position:fixed;z-index:1001;background:#06111be8;border:1.5px solid #3a778e;border-radius:9px;padding:14px 18px;color:#dff9ff;font:700 11px ui-monospace,monospace;box-shadow:0 6px 28px #000d;text-align:center;transform:translateX(-50%);pointer-events:auto;min-width:190px}#trackConfirm.show{display:block}#trackConfirm .tc-name{color:#7affca;font-size:13px;margin:4px 0 10px}#trackConfirm.unknown-type .tc-name{color:#aaddff}#trackConfirm .tc-btns{display:flex;gap:8px;justify-content:center}#trackConfirm .tc-btns button{padding:6px 18px;border-radius:5px;font:700 10px ui-monospace,monospace;cursor:pointer;border:1.5px solid}#tc-auth{background:#0e3828;border-color:#7affca;color:#7affca}#tc-auth:hover{background:#174d38}#tc-cancel{background:#1a0808;border-color:#e06060;color:#e09090}#tc-cancel:hover{background:#280e0e}
 
 .speedbig{font-size:22px!important}#battBar{width:56px;height:5px;background:#07182299;border-radius:3px;border:1px solid #1a3e5a;overflow:hidden;margin-top:3px}#battFill{height:100%;border-radius:2px;transition:width .9s,background 1.2s;background:#7affca}
 #targetLock.unknown span{border-color:#a8782f;color:#ffe2ad;background:#1d1405f2}#targetLock.unknown{border-color:#ffca77;filter:drop-shadow(0 0 7px #ffb347)}
@@ -138,7 +138,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div class="hudfoot" id="targetStatus">SCANNING · 7 contacts</div><div class="hudfoot" id="lockState">LOCK STATUS: SEARCHING</div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Initiate vertical takeoff. AI remains inactive until you enable it.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track contact?</div><div class="tc-name" id="tc-name">—</div><div class="tc-btns"><button id="tc-auth">✓ Authorize</button><button id="tc-cancel">✕ Cancel</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -900,8 +900,8 @@ let _pendingContact = null;
 $('tc-auth').onclick = () => {
   if (!_pendingContact) return;
   const c = _pendingContact; _pendingContact = null; $('trackConfirm').classList.remove('show');
-  state.aiTarget = c; state.pursuitMode = true; state.manualWaypointActive = false; mapWaypoint = null; hudAcc = 1;
-  $('cancelTrackBtn').style.display = ''; $('cancelWpBtn').style.display = 'none';
+  state.aiTarget = c; state.pursuitMode = true; state.manualWaypointActive = false; mapWaypoint = null; state.searchWp = null; hudAcc = 1;
+  $('cancelTrackBtn').style.display = 'inline-block'; $('cancelWpBtn').style.display = 'none';
   const name = c.isScout ? c.spec.label : (c.type==='plane'?'AIRLINER':'BIRD FLOCK');
   radioMessage('TRACKING: ' + name + ' · PURSUING'); toast('Tracking: ' + name);
 };
@@ -932,11 +932,12 @@ $('mapCanvas').addEventListener('click', e => {
     $('trackConfirm').classList.add('show');
   } else {
     $('trackConfirm').classList.remove('show'); _pendingContact = null;
+    if (state.batteryDead) { toast('Battery depleted · no commands possible'); return; }
     const [wx, wz] = mapToWorld(mx, mz);
     mapWaypoint = new THREE.Vector3(wx, 0, wz);
     state.aiTarget = null; state.pursuitMode = false;
     state.searchWp = new THREE.Vector3(wx, 0, wz); state.searchTimer = 99999; state.manualWaypointActive = true;
-    $('cancelWpBtn').style.display = ''; $('cancelTrackBtn').style.display = 'none';
+    $('cancelWpBtn').style.display = 'inline-block'; $('cancelTrackBtn').style.display = 'none';
     toast('Waypoint → [' + Math.round(wx) + ', ' + Math.round(wz) + ']');
   }
 });
@@ -947,16 +948,15 @@ function closeMap() { mapOpen = false; $('mapOverlay').classList.remove('open');
 $('openMapBtn').onclick = openMap;
 $('mapCloseBtn').onclick = closeMap;
 $('cancelWpBtn').onclick = () => {
-  mapWaypoint = null; state.manualWaypointActive = false; state.searchTimer = 0;
-  $('cancelWpBtn').style.display = 'none'; toast('Waypoint cancelled · resuming search');
+  // Abort the waypoint right where we are: check radar now, otherwise fly a random search path from here.
+  mapWaypoint = null; state.manualWaypointActive = false; state.searchWp = null; state.searchTimer = 0; state.aiThink = 0;
+  $('cancelWpBtn').style.display = 'none'; toast('Waypoint cancelled · scanning from current position');
 };
-$('cancelTrackBtn').onclick = () => {
-  state.aiTarget = null; state.pursuitMode = false;
-  $('cancelTrackBtn').style.display = 'none'; toast('Tracking cancelled · returning to classify mode');
-};
+$('cancelTrackBtn').onclick = () => endPursuit('Tracking cancelled · returning to classify mode');
 
 window.addEventListener('keydown', e => {
-  if (e.key.toLowerCase() === 'm') { mapOpen = !mapOpen; $('mapOverlay').classList.toggle('open', mapOpen); if (!mapOpen) { $('trackConfirm').classList.remove('show'); } }
+  if (e.target && /INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
+  if (e.key.toLowerCase() === 'm') { if (mapOpen) closeMap(); else openMap(); }
   if (e.key === 'Escape' && mapOpen) { closeMap(); }
 }, {capture:false});
 $('pan').addEventListener('input', () => { state.camPan = +$('pan').value; }); $('tilt').addEventListener('input', () => { state.camTilt = +$('tilt').value; });
@@ -1002,21 +1002,20 @@ $('tagBtn').onclick = () => {
 $('aiMode').addEventListener('change', () => { state.aiTarget = null; state.aiThink = 0; toast('AI mode changed · re-evaluating contacts'); });
 $('terminateTrackBtn').addEventListener('click', () => {
   const t = state.aiTarget;
-  if (t) { state.aiTarget = null; state.pursuitMode = false; state.aiThink = 0; toast('Track terminated · returning to classify mode'); } else toast('No active track to terminate');
+  if (t) endPursuit('Track terminated · returning to classify mode'); else toast('No active track to terminate');
 });
 $('launchBtn').addEventListener('click', () => {
   if (state.launchStage !== 'parked') return;
-  state.launchStage = 'takeoff'; state.pos.y = terrainHeight(0, 0) + 2.6; state.vel.set(0,0,0); snapPrev();
-  $('launchBtn').disabled = true; $('launchTitle').textContent = 'VERTICAL TAKEOFF'; $('launchHint').textContent = 'Lift rotors engaged. Stabilizing before AI activation.'; $('launchSequence').textContent = 'TAKEOFF SEQUENCE · LIFTING';
+  state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = terrainHeight(0, 0) + 2.6; state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
+  $('launchBtn').disabled = true; $('launchOverlay').style.display = 'none';
+  $('flightState').textContent = 'VERTICAL TAKEOFF'; toast('Launch · vertical climb');
 });
 
 $('resetBtn').onclick = () => {
-  state.pos.set(0, terrainHeight(0,0) + 2.6, 0); state.vel.set(0,0,0); state.altCmd = state.pos.y; state.cruiseSpeed = 0; state.aiTarget = null; state.ignoredTargets.clear();
-  state.launchStage = 'parked'; state.aiActivated = false; state.aiActivationTime = 0; state.crashed = false; state.turnCmd = 0; state.searchWp = null;
-  $('launchOverlay').style.display = 'flex'; $('launchBtn').disabled = false; $('launchTitle').textContent = 'AIRCRAFT ON LAUNCH PAD';
-  $('launchHint').textContent = 'Press Launch to take off. The drone will automatically transition to cruise flight.'; $('launchSequence').textContent = 'SYSTEM STANDBY · WAITING FOR LAUNCH';
-  state.ang.set(0,0,0); state.rot.set(0,0,0); state.modeBlend = 1; state.hover = true; state.battery = 1; state.time = 0; state.paused = false; state.history = []; state.tagCount = 0; state.manualWaypointActive = false; mapWaypoint = null;
-  craft.visible = true; snapPrev(); updatePauseButtons(); toast('Aircraft reset to launch pad');
+  resetToPad('manual');
+  $('launchTitle').textContent = 'AIRCRAFT ON LAUNCH PAD'; $('launchHint').textContent = 'Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.';
+  state.ang.set(0,0,0); state.time = 0; state.paused = false; state.history = []; state.tagCount = 0;
+  updatePauseButtons(); toast('Aircraft reset to launch pad');
 };
 function getInput() {
   let p = 0, r = 0, y = 0, z = 0, boost = keys.has('shift') ? 1.35 : 1;
@@ -1069,52 +1068,53 @@ function scoreContact(c, fx, fz, mode) {
 }
 function identifyContact(c) {
   c.identified = true;
-  if (c.isAmbient) {
-    const name = c.type === 'plane' ? 'CIVILIAN AIRLINER' : 'BIRD FLOCK';
-    radioMessage('IDENTIFIED: ' + name + ' · SELECT ON MAP TO TRACK');
-    state.ignoredTargets.add(c);   // move on; don't revisit in classify mode
-    if (state.aiTarget === c && !state.pursuitMode) state.aiTarget = null;
-  } else {
-    radioMessage('SCOUT IDENTIFIED: ' + c.spec.label + ' · SELECT ON MAP TO TRACK');
-  }
+  const name = c.isScout ? 'SCOUT · ' + c.spec.label : (c.type === 'plane' ? 'CIVILIAN AIRLINER' : 'BIRD FLOCK');
+  radioMessage('IDENTIFIED: ' + name + ' · SELECT ON MAP TO TRACK');
+  toast('Identified: ' + name + ' · now on map');
+  // Classify loop: once identified, every contact (scouts included) is left alone unless the user confirms a pursuit on the map.
+  if (state.pursuitMode && state.aiTarget === c) return;
+  state.ignoredTargets.add(c);
+  if (state.aiTarget === c && !state.pursuitMode) state.aiTarget = null;
+}
+function endPursuit(msg) {
+  state.pursuitMode = false; state.aiTarget = null; state.aiThink = 0;
+  $('cancelTrackBtn').style.display = 'none';
+  if (msg) toast(msg);
 }
 function aiThink() {
-  if (state.manualWaypointActive) return;   // pilot override: do not pick new contacts
+  // User-confirmed pursuit: stay locked on that contact until collision, cancel, or it disappears.
+  if (state.pursuitMode) {
+    const t = state.aiTarget;
+    if (!t || !contactAlive(t) || (t.isAmbient && !ambientActors.includes(t))) endPursuit('Pursuit target lost · returning to search');
+    else return;
+  }
+  if (state.manualWaypointActive) return;   // pilot override: fly to the waypoint first, check radar on arrival
   const mode = $('aiMode').value, fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);
   let cur = state.aiTarget;
   if (cur) {
-    if (!contactAlive(cur) || state.ignoredTargets.has(cur)) cur = null;
+    if (!contactAlive(cur) || cur.identified || state.ignoredTargets.has(cur)) cur = null;
     else {
       const d = state.pos.distanceTo(cur.pos);
-      if (!cur.identified && d < classifyRange(cur)) { identifyContact(cur); if (cur.isAmbient) { state.ignoredTargets.add(cur); cur = null; } }
-      else if (cur.identified && cur.isScout && d > cur.detect * 1.4) cur = null;
-    else if (!(cur.identified && cur.isScout) && d > 1100) cur = null;
+      if (d < classifyRange(cur)) { identifyContact(cur); cur = null; }
+      else if (d > 1100) cur = null;   // drifted off radar
     }
   }
+  // Only unidentified contacts on radar are candidates for inspection.
   const list = [];
-  for (const s of scouts) if (contactAlive(s) && !state.ignoredTargets.has(s)) { const sc = scoreContact(s, fx, fz, mode); if (sc >= 0) list.push({c:s, sc}); }
-  for (const a of ambientActors) if (!state.ignoredTargets.has(a)) { const sc = scoreContact(a, fx, fz, mode); if (sc >= 0) list.push({c:a, sc}); }
-  list.sort((a, b) => b.sc - a.sc);
-  // Radar-first: heavily favour contacts within ~900m so the drone works the local area before ranging out.
-  let best = null, bestNear = null;
-  const RADAR_R = 950;
-  for (let i = 0; i < list.length; i++) {
-    const c = list[i].c, d = state.pos.distanceTo(c.pos);
-    if (!bestNear && d < RADAR_R && hasLOS(c)) bestNear = list[i];
-    if (!best && hasLOS(c)) best = list[i];
-    if (bestNear && best) break;
+  for (const c of [...scouts, ...ambientActors]) {
+    if (c.identified || !contactAlive(c) || state.ignoredTargets.has(c)) continue;
+    const sc = scoreContact(c, fx, fz, mode); if (sc >= 0) list.push({c, sc});
   }
-  const chosen = bestNear || best;
-  if (cur && !(cur.identified && cur.isScout)) {
+  list.sort((a, b) => b.sc - a.sc);
+  let chosen = null;
+  for (const e of list) if (hasLOS(e.c)) { chosen = e; break; }
+  if (cur) {
     const curScore = scoreContact(cur, fx, fz, mode);
     if (chosen && chosen.c !== cur && chosen.sc > curScore + .22) cur = chosen.c;
-  } else if (!cur && chosen) cur = chosen.c;
+  } else if (chosen) cur = chosen.c;
   if (cur !== state.aiTarget) {
-    const prev = state.aiTarget;
     state.aiTarget = cur; hudAcc = 1;
-    if (!cur && prev) actLog('Lost track — scanning radar for nearby contact', 'warn');
-    if (cur && !cur.identified) { radioMessage('UNKNOWN CONTACT · ' + Math.round(state.pos.distanceTo(cur.pos)) + ' m · INVESTIGATING'); actLog('New contact detected · ' + Math.round(state.pos.distanceTo(cur.pos)) + ' m away'); }
-    else if (cur && cur.identified && cur.isScout) actLog('Reacquired: ' + cur.spec.label, 'ok');
+    if (cur) radioMessage('UNKNOWN CONTACT · ' + Math.round(state.pos.distanceTo(cur.pos)) + ' m · INVESTIGATING');
   }
 }
 function pickSearchWaypoint() {
@@ -1193,7 +1193,7 @@ function stepPlane(a, h) {
   a.pos.y += (targetY - a.pos.y) * (1 - Math.exp(-0.4 * h));
   if (Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z)) > 4000) {
     const ang = Math.random() * TAU; a.pos.set(Math.cos(ang) * 3800, clamp(a.altBase, 200, 600), Math.sin(ang) * 3800);
-    aimPlane(a, (Math.random()-.5)*4800, (Math.random()-.5)*4800); a.prev.copy(a.pos); a.identified = false;
+    aimPlane(a, (Math.random()-.5)*4800, (Math.random()-.5)*4800); a.prev.copy(a.pos); a.identified = false; state.ignoredTargets.delete(a);
   }
 }
 function updateWorld(h) {
@@ -1213,6 +1213,63 @@ function runPassiveScan(h) {
     if (state.pos.distanceTo(c.pos) < classifyRange(c)) identifyContact(c);
   }
 }
+// ───────────────────────── Battery ─────────────────────────
+// Usable pack energy, tuned so a full charge gives roughly 10 minutes of normal search flight (~950 W at ~120 m/s).
+const BATTERY_WH = 160;
+function drainBattery(h, speed, thrustPercent) {
+  const current = 4 + thrustPercent * 26 + speed * .13, voltage = 22.2 * (.82 + .18 * state.battery), watts = voltage * current;
+  const before = state.battery;
+  state.battery = Math.max(0, state.battery - (watts / 3600 / BATTERY_WH) * h); state.lastCurrent = current; state.lastVoltage = voltage; state.lastWatts = watts;
+  if (before > .2 && state.battery <= .2) { radioMessage('BATTERY LOW · 20%'); toast('Battery low · 20%'); }
+  if (before > .1 && state.battery <= .1) { radioMessage('BATTERY CRITICAL · 10%'); toast('Battery critical · 10%'); }
+  if (before > 0 && state.battery <= 0) startBatteryFailure();
+}
+function startBatteryFailure() {
+  state.batteryDead = true; state.lastWatts = 0; state.lastCurrent = 0;
+  endPursuit(); mapWaypoint = null; state.manualWaypointActive = false; $('cancelWpBtn').style.display = 'none';
+  state.launchStage = 'active';   // a takeoff in progress also just falls
+  radioMessage('BATTERY DEPLETED · MOTORS OFF'); toast('Battery depleted · motors off — falling');
+  $('flightState').textContent = 'POWER LOSS'; $('missionState').textContent = 'POWER LOSS';
+}
+// Unpowered flight: no thrust, gravity + aerodynamic drag, the drone keeps its momentum and noses over.
+function stepPowerLoss(h) {
+  state.vel.y -= 9.81 * h;
+  const sp = state.vel.length(), drag = .0009 * sp;   // quadratic drag, terminal velocity ~105 m/s
+  state.vel.multiplyScalar(Math.max(0, 1 - drag * h));
+  state.cruiseSpeed = Math.hypot(state.vel.x, state.vel.z);
+  state.pos.addScaledVector(state.vel, h);
+  // Nose follows the flight path down; slight uncommanded roll and yaw drift as it tumbles.
+  const fpa = Math.atan2(state.vel.y, Math.max(1, state.cruiseSpeed));
+  state.modeBlend = damp(state.modeBlend, 0, 1.5, h);
+  state.rot.x = damp(state.rot.x, clamp(fpa, -1.3, .3), 1.8, h);
+  state.rot.z = damp(state.rot.z, Math.sin(state.time * 1.7) * .5, 1.2, h);
+  state.rot.y += Math.sin(state.time * .9) * .12 * h;
+  state.turnCmd = 0;
+  const gy = terrainHeight(state.pos.x, state.pos.z);
+  if (state.pos.y < gy + 1.5) {
+    explodeAt(new THREE.Vector3(state.pos.x, gy + 1, state.pos.z), 2.0);
+    craft.visible = false; state.vel.set(0,0,0);
+    radioMessage('IMPACT · AIRCRAFT LOST · RESETTING'); toast('Crashed after power loss · resetting to pad');
+    if (state.recording && state.history.length) { exportTelemetry('crash'); state.recording = false; $('recordBtn').textContent = '● Record'; }
+    state.returning = true; state.returnTimer = 2.8; state.returnReason = 'battery';
+  }
+}
+function resetToPad(reason) {
+  state.returning = false; state.crashed = false; state.batteryDead = false;
+  state.pos.set(0, terrainHeight(0,0) + 2.6, 0); state.vel.set(0,0,0); state.altCmd = state.pos.y;
+  state.cruiseSpeed = 0; state.turnCmd = 0; state.searchWp = null; state.ignoredTargets.clear();
+  state.aiTarget = null; state.pursuitMode = false; state.manualWaypointActive = false; mapWaypoint = null;
+  $('cancelTrackBtn').style.display = 'none'; $('cancelWpBtn').style.display = 'none';
+  state.launchStage = 'parked'; state.aiActivated = false; state.aiActivationTime = 0; state.hover = true; state.modeBlend = 1; state.takeoffT = 0;
+  state.battery = 1;   // recharged on the pad
+  if (reason === 'battery') for (const c of [...scouts, ...ambientActors]) c.identified = false;
+  state.rot.set(0,0,0); snapPrev(); craft.visible = true;
+  $('launchOverlay').style.display = 'flex'; $('launchBtn').disabled = false;
+  $('launchTitle').textContent = reason === 'battery' ? 'BATTERY REPLACED · ON PAD' : 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
+  $('launchHint').textContent = reason === 'battery' ? 'Aircraft lost after power loss. Fresh battery fitted — launch when ready.' : 'Targets intercepted: ' + state.tagCount + '. Launch for next sortie.';
+  $('launchSequence').textContent = 'PAD STANDBY · AWAITING LAUNCH'; $('flightState').textContent = 'ON PAD';
+  updatePauseButtons();
+}
 // ───────────────────────── Flight physics ─────────────────────────
 const aim = new THREE.Vector3();
 function physicsStep(h) {
@@ -1220,20 +1277,10 @@ function physicsStep(h) {
   state.time += h; updateWorld(h); updateExplosions(h); runPassiveScan(h);
   if (state.returning) {
     state.returnTimer -= h;
-    if (state.returnTimer <= 0) {
-      state.returning = false; state.crashed = false;
-      state.pos.set(0, terrainHeight(0,0) + 2.6, 0); state.vel.set(0,0,0); state.altCmd = state.pos.y;
-      state.cruiseSpeed = 0; state.turnCmd = 0; state.searchWp = null; state.ignoredTargets.clear();
-      state.launchStage = 'parked'; state.aiActivated = false; state.aiActivationTime = 0; state.hover = true; state.modeBlend = 1;
-      state.rot.set(0,0,0); snapPrev(); craft.visible = true;
-      $('launchOverlay').style.display = 'flex'; $('launchBtn').disabled = false;
-      $('launchTitle').textContent = 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
-      $('launchHint').textContent = 'Scouts tagged: ' + state.tagCount + '. Launch for next sortie.';
-      $('launchSequence').textContent = 'PAD STANDBY · AWAITING LAUNCH'; $('flightState').textContent = 'ON PAD';
-      updatePauseButtons();
-    }
+    if (state.returnTimer <= 0) resetToPad(state.returnReason);
     return;
   }
+  if (state.batteryDead) { stepPowerLoss(h); return; }
   if (state.crashed) {
     state.crashTimer -= h;
     if (state.crashTimer <= 0) {
@@ -1247,30 +1294,25 @@ function physicsStep(h) {
   }
   if (state.launchStage === 'parked') { state.vel.set(0,0,0); state.pos.y = terrainHeight(state.pos.x, state.pos.z) + 2.6; state.hover = true; state.modeBlend = 1; return; }
   if (state.launchStage === 'takeoff') {
-    const _padH = terrainHeight(0, 0) + 2.6;
-    const _arcH = 130; // long arc — smooth continuous vertical→horizontal transition
-    const _rp = clamp((state.pos.y - _padH) / _arcH, 0, 1); // 0=ground, 1=arc complete
-    // Vertical velocity: starts fast, smoothly tapers as horizontal speed builds
-    const _vy = lerp(14, 0.5, smoothstep(0.0, 0.92, _rp));
-    state.vel.y = damp(state.vel.y, _vy, 3.5, h);
-    // Forward speed: begins building immediately, peaks at arc end
-    const _fwdR = smoothstep(0.08, 1.0, _rp);
-    state.cruiseSpeed = damp(state.cruiseSpeed ?? 0, _fwdR * 68, 1.8, h);
-    const _fx = -Math.sin(state.rot.y), _fz = -Math.cos(state.rot.y);
-    state.vel.x = damp(state.vel.x, _fx * state.cruiseSpeed, 2.5, h);
-    state.vel.z = damp(state.vel.z, _fz * state.cruiseSpeed, 2.5, h);
-    // modeBlend: 1=VTOL at start, 0=cruise when horizontal speed dominates
-    const _hsp = Math.hypot(state.vel.x, state.vel.z);
-    state.modeBlend = damp(state.modeBlend, Math.max(0, 1 - _hsp / 55), 1.2, h);
+    // ~8 s sequence: 0–2.5 s straight vertical climb, 2.5–7.5 s gradual pitch-over into forward flight.
+    const t = state.takeoffT = (state.takeoffT || 0) + h;
+    state.vel.y = damp(state.vel.y, lerp(15, 4, smoothstep(2.5, 7.5, t)), 3, h);
+    state.cruiseSpeed = damp(state.cruiseSpeed, smoothstep(2.0, 7.5, t) * 55, 1.6, h);
+    const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);
+    state.vel.x = damp(state.vel.x, fx * state.cruiseSpeed, 2.5, h);
+    state.vel.z = damp(state.vel.z, fz * state.cruiseSpeed, 2.5, h);
+    // Nose rotates from vertical (VTOL) to forward as airspeed builds.
+    state.modeBlend = damp(state.modeBlend, 1 - smoothstep(2.5, 7.5, t), 2.5, h);
+    state.rot.x = damp(state.rot.x, .12 * smoothstep(3, 7.5, t), 2, h);   // slight nose-up while climbing out
     state.pos.addScaledVector(state.vel, h);
-    const _gnd = terrainHeight(state.pos.x, state.pos.z);
-    if (state.pos.y < _gnd + 2) { state.pos.y = _gnd + 2; state.vel.y = Math.max(0, state.vel.y); }
-    if (_rp >= 0.92 && state.cruiseSpeed > 35) {
+    const gnd = terrainHeight(state.pos.x, state.pos.z);
+    if (state.pos.y < gnd + 2.6) { state.pos.y = gnd + 2.6; state.vel.y = Math.max(0, state.vel.y); }
+    drainBattery(h, state.vel.length(), .6);
+    if (t >= 8) {
       state.launchStage = 'active'; state.aiActivated = true;
-      state.aiActivationTime = state.time - 18; // skip most transitionRamp
-      state.hover = false; state.altCmd = Math.max(state.pos.y + 60, 320); state.aiThink = 0;
-      $('launchOverlay').style.display = 'none';
-      $('flightState').textContent = 'CRUISE · SEARCHING'; toast('In flight · beginning search pattern');
+      state.aiActivationTime = state.time - 4;   // speed ramp continues smoothly from takeoff speed
+      state.hover = false; state.altCmd = state.pos.y + 20; state.aiThink = 0;   // climb to search altitude gradually from here
+      $('flightState').textContent = 'CRUISE · SEARCHING'; toast('In flight · scanning radar');
     }
     return;
   }
@@ -1304,7 +1346,8 @@ function physicsStep(h) {
     if (state.manualWaypointActive && mapWaypoint && Math.hypot(mapWaypoint.x - px, mapWaypoint.z - pz) < 280) {
       actLog('✓ WAYPOINT REACHED · AI SEARCH RESUMED', 'ok');
       toast('Waypoint reached · resuming autonomous search');
-      mapWaypoint = null; state.manualWaypointActive = false; state.searchTimer = 0;
+      mapWaypoint = null; state.manualWaypointActive = false; state.searchWp = null; state.searchTimer = 0; state.aiThink = 0;
+      $('cancelWpBtn').style.display = 'none';
     }
     if (!state.searchWp || state.searchTimer <= 0 || (!mapWaypoint && Math.hypot(state.searchWp.x - px, state.searchWp.z - pz) < 260)) pickSearchWaypoint();
     const desiredYaw = Math.atan2(-(state.searchWp.x - px), -(state.searchWp.z - pz)) + (state.manualWaypointActive ? 0 : Math.sin(state.time * .5) * .16);
@@ -1324,8 +1367,12 @@ function physicsStep(h) {
   const speedResponse = tgt ? (range < 20 ? 2.8 : range < 55 ? 2.3 : 1.45) : 1.2;
   state.cruiseSpeed = damp(state.cruiseSpeed, Math.min(maxSpeed, desiredSpeed), speedResponse, h);
   // Smoothed steering: command is filtered and the turn rate shrinks at speed.
-  state.turnCmd = damp(state.turnCmd, turn, 3, h);
-  state.rot.y += state.turnCmd * (state.hover ? 1.0 : lerp(1.15, .62, clamp(state.cruiseSpeed / 200, 0, 1))) * h;
+  state.turnCmd = damp(state.turnCmd, turn, 2.2, h);
+  // Coordinated-turn limit: yaw rate = g·tan(bank)/v. Search flight banks up to ~60°, a confirmed chase up to ~75°.
+  const _v = Math.max(20, state.cruiseSpeed), _maxBank = (state.pursuitMode || (tgt && range < 400)) ? 1.31 : 1.05;
+  const _turnRate = state.hover ? 1.0 : Math.min(lerp(1.15, .62, clamp(state.cruiseSpeed / 200, 0, 1)), 9.81 * Math.tan(_maxBank) / _v);
+  const _yawRate = state.turnCmd * _turnRate;
+  state.rot.y += _yawRate * h;
   const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);
   state.vel.x = damp(state.vel.x, fx * state.cruiseSpeed, 3, h); state.vel.z = damp(state.vel.z, fz * state.cruiseSpeed, 3, h);
   let alt = Math.max(desiredAlt, state.routePeak + 72);
@@ -1343,7 +1390,7 @@ function physicsStep(h) {
   if (state.pos.y < groundY + 3) {
     if (state.vel.length() > 17) {
       explodeAt(new THREE.Vector3(state.pos.x, groundY + 1, state.pos.z), 2.0);
-      state.crashed = true; state.crashTimer = 1.45; state.vel.set(0,0,0); craft.visible = false; state.aiTarget = null;
+      state.crashed = true; state.crashTimer = 1.45; state.vel.set(0,0,0); craft.visible = false; endPursuit();
       radioMessage('WARNING · TERRAIN IMPACT · RECOVERY SEQUENCE'); toast('Terrain impact! Virtual explosion — respawning'); return;
     }
     state.pos.y = groundY + 3; state.vel.y = Math.max(0, state.vel.y); state.cruiseSpeed *= .9;
@@ -1353,7 +1400,7 @@ function physicsStep(h) {
   // Pitch reflects climb/dive; larger range so nose visibly pitches up during climbs
   const _pfa = clamp(state.vel.y * .014, -.28, .38);
   state.rot.x = damp(state.rot.x, (1 - state.modeBlend) * _pfa, 3.5, h);
-  state.rot.z = damp(state.rot.z, state.turnCmd * (state.hover ? .06 : .3), 4, h);          // bank INTO the turn
+  state.rot.z = damp(state.rot.z, state.hover ? state.turnCmd * .06 : clamp(Math.atan(_yawRate * _v / 9.81), -1.2, 1.2) * .75, 3, h);   // bank INTO the turn, matched to turn rate
   state.ang.set(0, turn, 0);
   const hSpd = Math.hypot(state.vel.x, state.vel.z);
   // Altitude deficit while pursuing: tip nose up to climb — reduces hSpd, which increases modeBlend, which increases vertical thrust
@@ -1368,9 +1415,19 @@ function physicsStep(h) {
     desiredSpeed = lerp(desiredSpeed, 16, _cf);
   }
   const thrustPercent = state.hover ? Math.max(.2, state.cruiseSpeed / 18) : Math.max(.25, state.cruiseSpeed / 112);
-  const current = 4 + thrustPercent * 26 + speed * .13, voltage = 22.2 * (.82 + .18 * state.battery), watts = voltage * current;
-  state.battery = Math.max(0, state.battery - (watts / 3600 / 180) * h); state.lastCurrent = current; state.lastVoltage = voltage; state.lastWatts = watts;
+  drainBattery(h, speed, thrustPercent);
   if (state.recording && Math.floor(state.time * 20) !== Math.floor((state.time - h) * 20)) state.history.push({t:+state.time.toFixed(3), x:+state.pos.x.toFixed(2), y:+state.pos.y.toFixed(2), z:+state.pos.z.toFixed(2), speed:+speed.toFixed(2), battery:+state.battery.toFixed(4)});
+  // Confirmed pursuit of a bird flock or airliner ends in a collision too.
+  if (state.pursuitMode && tgt && tgt.isAmbient) {
+    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : 10;
+    if (state.pos.distanceTo(tgt.pos) < hitR) {
+      explodeAt(state.pos.clone(), 2.2); craft.visible = false; state.tagCount++;
+      const name = tgt.type === 'plane' ? 'AIRLINER' : 'BIRD FLOCK';
+      radioMessage('COLLISION · ' + name + ' · RETURNING TO PAD'); toast('Collided with ' + name.toLowerCase() + ' · returning to pad');
+      if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
+      state.returning = true; state.returnTimer = 2.8; state.returnReason = 'intercept'; state.vel.set(0,0,0); endPursuit(); return;
+    }
+  }
   // Intercept test against each scout's oriented bounding volume
   for (const s of scouts) {
     if (s.destroyed) continue;
@@ -1382,7 +1439,7 @@ function physicsStep(h) {
       $('missionState').textContent = 'SCOUT TAGGED'; radioMessage('SCOUT TAGGED · RETURNING TO PAD');
       actLog('Scout tagged: ' + s.spec.label + ' · total ' + state.tagCount + ' · returning to pad', 'ok');
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
-      state.returning = true; state.returnTimer = 2.8; state.vel.set(0,0,0); state.aiTarget = null;
+      state.returning = true; state.returnTimer = 2.8; state.returnReason = 'intercept'; state.vel.set(0,0,0); endPursuit();
       toast('Scout tagged! Returning to pad for next sortie.'); return;
     }
   }
@@ -1426,7 +1483,7 @@ function updateVisuals(alpha, rdt) {
   renderYaw = state.prevYaw + wrapAngle(state.rot.y - state.prevYaw) * alpha;
   const rx = lerp(state.prevPitch, state.rot.x, alpha), rz = lerp(state.prevRoll, state.rot.z, alpha), mb = state.modeBlend;
   craft.position.copy(renderPos); craft.rotation.set(Math.PI / 2 * mb + rx * (1 - mb), renderYaw, rz, 'YXZ');
-  rotorSpin = damp(rotorSpin, state.launchStage === 'parked' ? 0 : 38, 2, rdt);
+  rotorSpin = damp(rotorSpin, (state.launchStage === 'parked' || state.batteryDead) ? 0 : 38, 2, rdt);
   for (let i = 0; i < liftRotors.length; i++) liftRotors[i].rotation.z += (rotorSpin * (i % 2 ? -1 : 1) + (i % 2) * 2) * rdt;
   camGimbal.rotation.set(THREE.MathUtils.degToRad(state.camTilt), THREE.MathUtils.degToRad(state.camPan), 0);
   for (const s of scouts) {
@@ -1476,7 +1533,7 @@ function contactInfo(c) {
   return c.type === 'plane' ? {name:'CIVILIAN AIRLINER', temp:'BODY 28°C · ENGINES 165°C'} : {name:'BIRD FLOCK', temp:'BODY 39°C'};
 }
 function updateHud(rdt) {
-  const lock = $('targetLock'), tgt = (state.launchStage === 'active' && !state.crashed && (state.pursuitMode || state.aiTarget)) ? state.aiTarget : null;
+  const lock = $('targetLock'), tgt = (state.launchStage === 'active' && !state.crashed && !state.batteryDead && (state.pursuitMode || state.aiTarget)) ? state.aiTarget : null;
   let dist = 0, known = false;
   if (tgt) {
     dist = state.pos.distanceTo(tgt.pos); known = !!(tgt.identified && tgt.isScout);
@@ -1484,7 +1541,7 @@ function updateHud(rdt) {
     if (tmpP.z > -1 && tmpP.z < 1 && x > 20 && x < vpW - 20 && y > 20 && y < vpH - 20 && dist < 1600) {
       lock.classList.add('show'); lock.style.left = x + 'px'; lock.style.top = y + 'px'; lock.classList.toggle('unknown', !known);
     } else lock.classList.remove('show');
-  } else lock.style.display = 'none';
+  } else lock.classList.remove('show');
   hudAcc += rdt; if (hudAcc < .12 && rdt !== 1) return; hudAcc = 0;
   const speed = state.vel.length(), alt = state.pos.y, spdTxt = speed.toFixed(1) + ' m/s';
   $('speedBig').textContent = (speed * 3.6).toFixed(0) + ' km/h'; $('speedHud').textContent = spdTxt; $('altHud').textContent = Math.max(0, alt - terrainHeight(state.pos.x, state.pos.z)).toFixed(0) + ' m'; $('aslHud').textContent = 'ASL ' + alt.toFixed(0) + ' m'; const _bp = state.battery * 100;
@@ -1496,7 +1553,7 @@ function updateHud(rdt) {
   $('timeLabel').textContent = `t = ${state.time.toFixed(2)} s · 120 Hz physics · ${state.history.length} samples`;
   const alive = scouts.filter(s => !s.destroyed).length;
   $('targetStatus').textContent = `${alive} scouts active · ${state.tagCount} disabled · ${ambientActors.length} civil contacts`;
-  if (state.launchStage === 'active' && !state.crashed) {
+  if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
     $('flightState').textContent = (tgt ? (known ? 'AI INTERCEPT' : 'AI INVESTIGATE') : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
