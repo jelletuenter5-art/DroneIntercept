@@ -566,7 +566,7 @@ function createScout(kind = 'heavy', difficulty = 'normal', start) {
   fillTrailColors(s); g.userData.scout = s; scouts.push(s); return s;
 }
 function removeScout(s) {
-  scene.remove(s.group, s.trail); unregisterGroup(s.group);
+  scene.remove(s.group, s.trail); unregisterGroup(s.group); if (s.blob) scene.remove(s.blob);
   for (const p of s.plumes) { const i = plumeList.indexOf(p); if (i >= 0) plumeList.splice(i, 1); }
   s.group.traverse(o => { if (o.geometry) o.geometry.dispose(); }); s.trail.geometry.dispose();
   const i = scouts.indexOf(s); if (i >= 0) scouts.splice(i, 1);
@@ -1300,13 +1300,31 @@ function stepPlane(a, h) {
 function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
   for (const a of ambientActors) { a.prev.copy(a.pos); if (a.type === 'birds') stepBird(a, h); else stepPlane(a, h); }
+  // Random traffic: every 15-45 s something new appears 1.6-2.6 km from the drone (usually outside radar range).
+  // No announcement — the radar has to find it.
   state.replenishTimer -= h;
   if (state.replenishTimer <= 0) {
-    state.replenishTimer = 25;
-    if (state.launchStage === 'active' && scouts.filter(s => !s.destroyed).length < 3) { const r = spawnScoutAhead(['light','heavy','fast'][Math.floor(Math.random()*3)], 'normal', 1300, 2000); if (r) { radioMessage('NEW CONTACT DETECTED · ' + Math.round(r.d) + ' m'); actLog('New scout appeared · ' + Math.round(r.d) + ' m from drone'); } }
+    state.replenishTimer = 15 + Math.random() * 30;
+    if (state.launchStage === 'active') spawnRandomTraffic();
   }
+
 }
 
+function spawnRandomTraffic() {
+  const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length;
+  const opts = []; if (nS < 6) opts.push('scout', 'scout'); if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane');
+  if (!opts.length) return;
+  const kind = opts[Math.floor(Math.random() * opts.length)];
+  for (let tries = 0; tries < 12; tries++) {
+    const a = Math.random() * TAU, d = 1600 + Math.random() * 1000;
+    const x = state.pos.x + Math.cos(a) * d, z = state.pos.z + Math.sin(a) * d;
+    if (Math.max(Math.abs(x), Math.abs(z)) > 2200) continue;
+    if (kind === 'scout') { const k = ['light', 'heavy', 'fast'][Math.floor(Math.random() * 3)]; createScout(k, 'normal', new THREE.Vector3(x, terrainHeight(x, z) + 140 + Math.random() * 180, z)); }
+    else if (kind === 'birds') createBirdFlock(x, z, 6 + Math.floor(Math.random() * 6), 200 + Math.random() * 150);
+    else createPassengerPlane(x, 240 + Math.random() * 320, z);
+    return;
+  }
+}
 // ───────────────────────── Radar, tracks & classification ─────────────────────────
 // Radar: range set by the weather (≈1.5 km clear, 1.2 km mist, 0.9 km rain), blocked by terrain. Every contact
 // the radar has seen gets a track: live while covered; otherwise dead-reckoned from its last position/velocity with
@@ -1568,8 +1586,8 @@ function attackGuidance(t, G) {
   a.phase = commit > .55 ? (R3 < 260 ? 'terminal' : 'join') : 'intercept';
 }
 // ───────────────────────── Battery ─────────────────────────
-// Usable pack energy: ~10 min of autonomous search at 250 km/h (~600-700 W). The 400 km/h dash draws ~1.6 kW (≈4 min).
-const BATTERY_WH = 114;
+// Usable pack energy: ~5 min of autonomous search at 250 km/h (~600-700 W). The 400 km/h dash draws ~1.6 kW (≈2 min).
+const BATTERY_WH = 57;
 // Electrical power for level flight at airspeed V with bank φ, plus climb power.
 function flightPower(V, bank, vs) {
   const load = 1 / Math.max(.3, Math.cos(bank));        // load factor in a turn raises induced drag
@@ -1838,6 +1856,7 @@ function impact(target, label) {
   explodeAt(state.pos.clone(), 1.8); explodeAt(target.pos.clone(), tScale);
   craft.visible = false; target.group.visible = false; if (target.trail) target.trail.visible = false;
   if (target.isAmbient) { const i = ambientActors.indexOf(target); if (i >= 0) ambientActors.splice(i, 1); target.removed = true; }
+  if (target.blob) target.blob.visible = false;
   state.lastReplay = {frames: recBuf.slice(), impactPos: state.pos.clone(), target, tScale, label};
   $('replayBtn').disabled = false;
   state.vel.set(0, 0, 0); endPursuit();
@@ -1853,6 +1872,8 @@ function startReplay(rp, thenReset) {
   Object.assign(replay, {active:true, rp, thenReset, t:rp.frames[0].t, t0:rp.frames[0].t, tEnd:rp.frames[rp.frames.length - 1].t, boomed:false, hold:0, side:null, close:null,
     wasPaused:state.paused});
   state.paused = true;
+  for (const o of [...scouts, ...ambientActors]) if (o.blob) o.blob.visible = false;
+  if (rp.target.blob) rp.target.blob.visible = false;
   $('replayOverlay').classList.add('show'); document.body.classList.add('replaying'); if (mapOpen) closeMap();
 }
 function finishReplay() {
@@ -1860,7 +1881,7 @@ function finishReplay() {
   replay.active = false; $('replayOverlay').classList.remove('show'); document.body.classList.remove('replaying');
   for (const ex of state.explosions) scene.remove(ex.group); state.explosions = [];
   const rp = replay.rp;
-  if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); }
+  if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); if (rp.target.blob) scene.remove(rp.target.blob); }
   for (const sc of scouts) sc.group.visible = !sc.destroyed;
   if (replay.thenReset) { state.paused = false; resetToPad('intercept'); }
   else { state.paused = replay.wasPaused; craft.visible = !state.crashed && !state.returning; }
@@ -1948,7 +1969,7 @@ function updateEnvironment(rdt) {
   cloudMat.opacity = .28 + ws * .5; cloudMat.color.setRGB(1, 1, 1).lerp(tmpC2.set(0x2a3342), 1 - daylight);
   for (const c of cloudGroup.children) { c.position.x += 6 * edt; if (c.position.x > 4200) c.position.x -= 8400; }
   scene.background.copy(skyU.uHorizon.value); scene.fog.color.copy(skyU.uHorizon.value);
-  if (thermalOn) { paletteRGB(.03); scene.background.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); scene.fog.color.copy(scene.background); scene.fog.near = 500; scene.fog.far = 3400; }
+  if (thermalOn) { paletteRGB(.03); scene.background.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); scene.fog.color.copy(scene.background); scene.fog.near = 250; scene.fog.far = lerp(2600, 1100, ws); }
   skyGroup.visible = !thermalOn; cloudGroup.visible = !thermalOn; skyGroup.position.copy(camera.position);
   const hh = hoursFromClock(state.dayClock), wsp = Math.hypot(wind.x, wind.z), from = compass(Math.atan2(-wind.x, wind.z) * 180 / Math.PI);   // bearing it blows FROM (north = -Z)
   $('weatherHud').textContent = (state.night ? 'NIGHT ' : 'DAY ') + String(Math.floor(hh)).padStart(2,'0') + ':' + String(Math.floor(hh % 1 * 60)).padStart(2,'0') + ' / ' + state.weatherMode + ' · WIND ' + wsp.toFixed(0) + ' m/s from ' + from;
@@ -1972,11 +1993,39 @@ function updateVisuals(alpha, rdt) {
   for (const s of scouts) {
     s.group.position.lerpVectors(s.prev, s.pos, alpha); s.group.rotation.set(s.pitch, s.yaw, s.roll);
     if (s.propeller) s.propeller.rotation.z += 70 * rdt;
-    s.trail.visible = thermalOn && !s.destroyed;
   }
   for (const a of ambientActors) {
     a.group.position.lerpVectors(a.prev, a.pos, alpha); a.group.rotation.y = a.yaw;
     if (a.type === 'birds') for (const b of a.group.children) { const f = Math.sin(state.time * 11 + b.userData.phase) * .38; b.userData.wings[0].rotation.z = -.16 - f; b.userData.wings[1].rotation.z = .16 + f; }
+  }
+}
+// ── Sensor resolution: far away every contact is just an unresolved blob ──
+// Beyond its "shape range" a contact is drawn as a small blurred speck (thermal: faint heat spot that fades with
+// distance and weather; camera: dark dot, near-invisible at night). Scouts, birds and airliners look alike that way —
+// only up close (≈150-250 m for scouts/birds, further for big airliners, less with a poor sensor) does the shape show.
+const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.35, 'rgba(255,255,255,.55)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const _bc = new THREE.Color();
+function shapeRange(c) { return classifyRange(c) * .8 * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
+function blobHeat(c) { return c.isScout ? .55 + .2 * c.sig : c.type === 'plane' ? .72 : .58; }
+function updateBlob(c, rdt) {
+  if (!c.blob) { c.blob = new THREE.Sprite(new THREE.SpriteMaterial({map:blobTex, transparent:true, depthWrite:false, toneMapped:false})); c.blob.renderOrder = 2; scene.add(c.blob); c.blobPh = Math.random() * 9; }
+  const g = c.group, alive = !(c.destroyed || c.tagged || c.removed);
+  const d = camera.position.distanceTo(g.position), R = shapeRange(c), k = alive ? smoothstep(R, R * 1.6, d) : 0;
+  g.visible = alive && k < .5;                               // resolved shape only when close enough
+  if (c.trail) c.trail.visible = thermalOn && alive && d < R * 1.3;
+  const b = c.blob; b.visible = alive && k > 0;
+  if (!b.visible) return;
+  const ws = state.weatherStrength || 0, daylight = clamp((Math.cos(state.dayClock || 0) + .28) / .75, 0, 1), flick = .85 + .15 * Math.sin(state.time * 13 + c.blobPh);
+  b.position.copy(g.position); b.scale.setScalar(Math.max(c.size * .5, d * .0065));
+  if (thermalOn) {
+    const att = Math.exp(-d / lerp(2200, 700, ws));          // atmosphere absorbs the heat signature with distance
+    paletteRGB(.1 + (blobHeat(c) - .1) * att); b.material.color.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace);
+    b.material.blending = THREE.AdditiveBlending; b.material.opacity = k * (.35 + .5 * att) * flick;
+  } else {
+    b.material.color.setHex(0x1c2128); b.material.blending = THREE.NormalBlending;
+    b.material.opacity = k * (.15 + .65 * daylight) * (1 - .6 * ws) * flick;
   }
 }
 const camLook = new THREE.Vector3();
@@ -2083,7 +2132,8 @@ function updateHud(rdt) {
   const ro = $('contactReadout');
   if (show) {
     const seen = show.identified, info = contactInfo(show), sq = Math.round(sensorQuality(show) * 100);
-    const line = seen ? `RANGE ${showD.toFixed(0)} m` + (thermalOn ? ` · ${info.temp}` : '') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`
+    const close = showD < shapeRange(show);   // temperatures/shape detail only once it is resolved
+    const line = seen ? `RANGE ${showD.toFixed(0)} m` + (thermalOn ? (close ? ` · ${info.temp}` : ' · UNRESOLVED HEAT SPOT') : (close ? '' : ' · UNRESOLVED')) + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`
                       : `RANGE ${showD.toFixed(0)} m · ` + (show.conf ? `IDENTIFYING · best guess ${CLS_SHORT[show.guess]} ${confPct(show)}%` : 'SEARCH CONTACT') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`;
     ro.style.display = 'block'; ro.innerHTML = `<b>${seen ? info.name : 'UNKNOWN CONTACT'}</b><small>${line}</small>`; ro.classList.toggle('unknown', !seen);
   } else ro.style.display = 'none';
@@ -2126,7 +2176,9 @@ function animate(now) {
     if (steps >= 12) accumulator = 0; alpha = accumulator / dt;
   }
   if (replay.active) { updateEnvironment(0); stepReplay(rdt); renderer.render(scene, camera); return; }
-  updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt); renderer.render(scene, camera); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
+  updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt);
+  for (const sc of scouts) updateBlob(sc, rdt); for (const a of ambientActors) updateBlob(a, rdt);
+  renderer.render(scene, camera); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
 }
 requestAnimationFrame(animate);
 
