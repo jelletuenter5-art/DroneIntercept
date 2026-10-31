@@ -586,7 +586,7 @@ function createScout(kind = 'heavy', difficulty = 'normal', start) {
   fillTrailColors(s); g.userData.scout = s; scouts.push(s); return s;
 }
 function removeScout(s) {
-  scene.remove(s.group, s.trail); unregisterGroup(s.group); if (s.blob) scene.remove(s.blob);
+  scene.remove(s.group, s.trail); unregisterGroup(s.group); disposeImpostor(s);
   for (const p of s.plumes) { const i = plumeList.indexOf(p); if (i >= 0) plumeList.splice(i, 1); }
   s.group.traverse(o => { if (o.geometry) o.geometry.dispose(); }); s.trail.geometry.dispose();
   const i = scouts.indexOf(s); if (i >= 0) scouts.splice(i, 1);
@@ -606,7 +606,7 @@ function createBirdFlock(cx, cz, count = 7, radius = 300) {
     const bird = new THREE.Group();
     const wingL = box(bird, [.8,.035,.18], feather, [-.38,0,0], [0,0,-.16]), wingR = box(bird, [.8,.035,.18], feather, [.38,0,0], [0,0,.16]);
     const body = new THREE.Mesh(new THREE.SphereGeometry(1,8,6), feather); body.scale.set(.12,.1,.34); body.userData.th = .68; bird.add(body);
-    bird.position.set((Math.random()-.5)*18, (Math.random()-.5)*5, (Math.random()-.5)*22); group.add(bird);
+    bird.position.set((Math.random()-.5)*44, (Math.random()-.5)*10, (Math.random()-.5)*52); group.add(bird);
     bird.userData.wings = [wingL, wingR]; bird.userData.phase = Math.random() * 6.28;
   }
   registerGroup(group, .5, true);
@@ -1877,7 +1877,7 @@ function impact(target, label) {
   explodeAt(state.pos.clone(), 1.8); explodeAt(target.pos.clone(), tScale);
   craft.visible = false; target.group.visible = false; if (target.trail) target.trail.visible = false;
   if (target.isAmbient) { const i = ambientActors.indexOf(target); if (i >= 0) ambientActors.splice(i, 1); target.removed = true; }
-  if (target.blob) target.blob.visible = false;
+  if (target.imp) target.imp.quad.visible = false;
   state.lastReplay = {frames: recBuf.slice(), impactPos: state.pos.clone(), target, tScale, label};
   $('replayBtn').disabled = false;
   state.vel.set(0, 0, 0); endPursuit();
@@ -1893,7 +1893,7 @@ function startReplay(rp, thenReset) {
   Object.assign(replay, {active:true, rp, thenReset, t:rp.frames[0].t, t0:rp.frames[0].t, tEnd:rp.frames[rp.frames.length - 1].t, boomed:false, hold:0, side:null, close:null,
     wasPaused:state.paused});
   state.paused = true;
-  for (const o of [...scouts, ...ambientActors, rp.target]) { if (o.blob) o.blob.visible = false; if (o.group) setContactOpacity(o, 1); }
+  for (const o of [...scouts, ...ambientActors, rp.target]) { if (o.imp) o.imp.quad.visible = false; if (o.group && o.group.parent !== scene) scene.add(o.group); }
   $('replayOverlay').classList.add('show'); document.body.classList.add('replaying'); if (mapOpen) closeMap();
 }
 function finishReplay() {
@@ -1901,7 +1901,7 @@ function finishReplay() {
   replay.active = false; $('replayOverlay').classList.remove('show'); document.body.classList.remove('replaying');
   for (const ex of state.explosions) scene.remove(ex.group); state.explosions = [];
   const rp = replay.rp;
-  if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); if (rp.target.blob) scene.remove(rp.target.blob); }
+  if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); disposeImpostor(rp.target); }
   for (const sc of scouts) sc.group.visible = !sc.destroyed;
   if (replay.thenReset) { state.paused = false; resetToPad('intercept'); }
   else { state.paused = replay.wasPaused; craft.visible = !state.crashed && !state.returning; }
@@ -2019,43 +2019,91 @@ function updateVisuals(alpha, rdt) {
     if (a.type === 'birds') for (const b of a.group.children) { const f = Math.sin(state.time * 11 + b.userData.phase) * .38; b.userData.wings[0].rotation.z = -.16 - f; b.userData.wings[1].rotation.z = .16 + f; }
   }
 }
-// ── Sensor resolution: far away every contact is just an unresolved blob ──
-// Beyond its "shape range" a contact is drawn as a small blurred speck (thermal: faint heat spot that fades with
-// distance and weather; camera: dark dot, near-invisible at night). Scouts, birds and airliners look alike that way —
-// only up close (≈150-250 m for scouts/birds, further for big airliners, less with a poor sensor) does the shape show.
-const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
-  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.35, 'rgba(255,255,255,.55)'); r.addColorStop(1, 'rgba(255,255,255,0)');
-  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
-const _bc = new THREE.Color();
-// Distance at which a contact's shape is clearly made out (doubled vs. the first version); the transition is gradual:
-// fully sharp within ½·R, pure unresolved blob beyond 1.5·R, and in between the model fades in while a soft haze
-// over it fades out and shrinks — the closer you get, the better you see.
-function shapeRange(c) { return classifyRange(c) * 1.6 * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
-function blobHeat(c) { return c.isScout ? .55 + .2 * c.sig : c.type === 'plane' ? .72 : .58; }
-function updateBlob(c, rdt) {
-  if (!c.blob) { c.blob = new THREE.Sprite(new THREE.SpriteMaterial({map:blobTex, transparent:true, depthWrite:false, toneMapped:false})); c.blob.renderOrder = 2; scene.add(c.blob); c.blobPh = Math.random() * 9; }
+// ── Sensor resolution: optical blur that grows continuously with distance ──
+// Each contact that isn't razor-sharp is rendered into its own small off-screen image (with mipmaps) and shown on a
+// camera-facing card. The card samples an ever blurrier mip level as distance grows (texture LOD bias), so the
+// object goes smoothly from sharp → soft → smeared → a round unresolved spot. A bird flock is one image, so its birds
+// merge into a single smudge far away and separate / sharpen as you close in.
+// shapeRange = distance where the shape is about half-resolved (doubled twice vs. the first version).
+function shapeRange(c) { return classifyRange(c) * 3.2 * clamp(.45 + sensorQuality(c) * .7, .45, 1.15); }
+function blurAmount(c, d) { return smoothstep(shapeRange(c) * .15, shapeRange(c) * 1.6, d); }   // 0 sharp … 1 unresolved
+const IMP_RES = 128;
+const impScene = new THREE.Scene();
+const impHemi = new THREE.HemisphereLight(), impSun = new THREE.DirectionalLight(), impFill = new THREE.DirectionalLight();
+impScene.add(impHemi, impSun, impFill);
+const impCam = new THREE.PerspectiveCamera(5, 1, .5, 8000);
+const IMP_VS = `varying vec2 vUv; varying float vDepth;
+  void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDepth = -mv.z; gl_Position = projectionMatrix * mv; }`;
+const IMP_FS = `uniform sampler2D map; uniform float bias, gain, roundness, fogNear, fogFar; uniform vec3 fogColor;
+  varying vec2 vUv; varying float vDepth;
+  void main(){
+    vec4 t = texture2D(map, vUv, bias);                       // premultiplied colour, blurred by mip level
+    float r = length(vUv - 0.5);
+    float mask = 1.0 - smoothstep(mix(0.5, 0.12, roundness), 0.5, r);   // blurry → round spot, not a square
+    t *= mask * gain;
+    float f = smoothstep(fogNear, fogFar, vDepth);
+    t.rgb = mix(t.rgb, fogColor * t.a, f);
+    gl_FragColor = t;
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }`;
+function contactRadius(c) {
+  if (!c.rad) { c.group.updateMatrixWorld(true); const bx = new THREE.Box3().setFromObject(c.group); const sp = bx.getBoundingSphere(new THREE.Sphere()); c.rad = Math.max(1, sp.radius); }
+  return c.rad;
+}
+function ensureImpostor(c) {
+  if (c.imp) return c.imp;
+  const rt = new THREE.WebGLRenderTarget(IMP_RES, IMP_RES, {generateMipmaps:true, minFilter:THREE.LinearMipmapLinearFilter, magFilter:THREE.LinearFilter});
+  const mat = new THREE.ShaderMaterial({vertexShader:IMP_VS, fragmentShader:IMP_FS, transparent:true, depthWrite:false,
+    blending:THREE.CustomBlending, blendSrc:THREE.OneFactor, blendDst:THREE.OneMinusSrcAlphaFactor,
+    uniforms:{map:{value:rt.texture}, bias:{value:0}, gain:{value:1}, roundness:{value:0}, fogNear:{value:400}, fogFar:{value:3000}, fogColor:{value:new THREE.Color()}}});
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat); quad.renderOrder = 2; quad.frustumCulled = false; scene.add(quad);
+  return (c.imp = {rt, quad, mat});
+}
+function disposeImpostor(c) { if (!c.imp) return; scene.remove(c.imp.quad); c.imp.rt.dispose(); c.imp.mat.dispose(); c.imp.quad.geometry.dispose(); c.imp = null; }
+function syncImpostorLights() {
+  impHemi.color.copy(hemi.color); impHemi.groundColor.copy(hemi.groundColor); impHemi.intensity = hemi.intensity;
+  impSun.color.copy(sun.color); impSun.intensity = sun.intensity; impSun.position.copy(sun.position);
+  impFill.color.copy(fill.color); impFill.intensity = fill.intensity; impFill.position.copy(fill.position);
+}
+const _ip = new THREE.Vector3();
+function updateContactView(c) {
   const g = c.group, alive = !(c.destroyed || c.tagged || c.removed);
-  const d = camera.position.distanceTo(g.position), R = shapeRange(c);
-  const t = alive ? smoothstep(R * .5, R * 1.5, d) : 0;    // 0 = sharp, 1 = completely unresolved
-  // Model: fades in gradually as the blur clears (eased so mid-range still looks soft).
-  const op = 1 - Math.pow(t, .8);
-  g.visible = alive && op > .02;
-  if (g.visible) setContactOpacity(c, op);
-  if (c.trail) c.trail.visible = thermalOn && alive && t < .45;
-  const b = c.blob; b.visible = alive && t > .03;
-  if (!b.visible) return;
-  const ws = state.weatherStrength || 0, daylight = clamp((Math.cos(state.dayClock || 0) + .28) / .75, 0, 1), flick = .85 + .15 * Math.sin(state.time * 13 + c.blobPh);
-  // Haze: big & soft far away; close in it shrinks towards the object's own size and thins out.
-  b.position.copy(g.position); b.scale.setScalar(lerp(c.size * 1.3, Math.max(c.size * .6, d * .0065), t));
-  const haze = Math.pow(t, .6);
-  if (thermalOn) {
-    const att = Math.exp(-d / lerp(2200, 700, ws));          // atmosphere absorbs the heat signature with distance
-    paletteRGB(.1 + (blobHeat(c) - .1) * att); b.material.color.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace);
-    b.material.blending = THREE.AdditiveBlending; b.material.opacity = haze * (.35 + .5 * att) * flick;
-  } else {
-    b.material.color.setHex(0x1c2128); b.material.blending = THREE.NormalBlending;
-    b.material.opacity = haze * (.15 + .65 * daylight) * (1 - .6 * ws) * flick;
+  if (!alive) { if (c.imp) c.imp.quad.visible = false; return; }
+  const d = camera.position.distanceTo(g.position), bt = blurAmount(c, d);
+  if (bt < .02) {                                             // sharp: draw the real model
+    if (g.parent !== scene) scene.add(g);
+    g.visible = true; if (c.trail) c.trail.visible = thermalOn; if (c.imp) c.imp.quad.visible = false; return;
   }
+  // Blurred: model leaves the main scene and is drawn via its impostor card instead.
+  if (g.parent === scene) scene.remove(g);
+  if (c.trail) c.trail.visible = thermalOn && bt < .3;
+  _ip.copy(g.position).project(camera);
+  const imp = ensureImpostor(c);
+  if (_ip.z > 1 || Math.abs(_ip.x) > 1.3 || Math.abs(_ip.y) > 1.3) { imp.quad.visible = false; return; }   // off screen
+  const r = contactRadius(c) * 1.25;
+  impCam.position.copy(camera.position); impCam.up.copy(camera.up); impCam.lookAt(g.position);
+  impCam.fov = THREE.MathUtils.radToDeg(2 * Math.atan(r / Math.max(d, r * 1.05))); impCam.near = Math.max(.3, d - r * 2); impCam.far = d + r * 2; impCam.updateProjectionMatrix();
+  g.visible = true; impScene.add(g);
+  renderer.setRenderTarget(imp.rt); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(impScene, impCam);
+  impScene.remove(g); renderer.setRenderTarget(null);
+  // Card: exactly covers the rendered frame; when the object is tiny on screen it is spread into a visible spot.
+  const ws = state.weatherStrength || 0, daylight = clamp((Math.cos(state.dayClock || 0) + .28) / .75, 0, 1);
+  const size = Math.max(2 * r, d * .006 * bt);
+  imp.quad.visible = true; imp.quad.position.copy(g.position); imp.quad.quaternion.copy(camera.quaternion); imp.quad.scale.setScalar(size);
+  const u = imp.mat.uniforms;
+  u.bias.value = bt * 6.5; u.roundness.value = smoothstep(.25, .8, bt);
+  // Spreading the light over a bigger spot keeps it visible; visibility itself depends on sensor conditions.
+  const vis = thermalOn ? lerp(1, Math.exp(-d / lerp(2600, 800, ws)) * 1.4, bt) : lerp(1, (.25 + .75 * daylight) * (1 - .6 * ws), bt);
+  u.gain.value = (1 + bt * 1.6) * vis;
+  const fg = scene.fog; u.fogNear.value = fg.near; u.fogFar.value = fg.far; u.fogColor.value.copy(fg.color);
+  if (imp.mat.toneMapped === thermalOn) { imp.mat.toneMapped = !thermalOn; imp.mat.needsUpdate = true; }
+}
+function updateContactViews() {
+  syncImpostorLights();
+  const cc = renderer.getClearColor(new THREE.Color()), ca = renderer.getClearAlpha();
+  for (const sc of scouts) updateContactView(sc); for (const a of ambientActors) updateContactView(a);
+  renderer.setClearColor(cc, ca);
 }
 const camLook = new THREE.Vector3();
 function updateCamera(rdt) {
@@ -2161,7 +2209,7 @@ function updateHud(rdt) {
   const ro = $('contactReadout');
   if (show) {
     const seen = show.identified, info = contactInfo(show), sq = Math.round(sensorQuality(show) * 100);
-    const close = showD < shapeRange(show);   // temperatures/shape detail only once it is resolved
+    const close = blurAmount(show, showD) < .35;   // temperatures/shape detail only once it is resolved
     const line = seen ? `RANGE ${showD.toFixed(0)} m` + (thermalOn ? (close ? ` · ${info.temp}` : ' · UNRESOLVED HEAT SPOT') : (close ? '' : ' · UNRESOLVED')) + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`
                       : `RANGE ${showD.toFixed(0)} m · ` + (show.conf ? `IDENTIFYING · best guess ${CLS_SHORT[show.guess]} ${confPct(show)}%` : 'SEARCH CONTACT') + ` · ${thermalOn ? 'THERMAL' : 'CAMERA'} ${sq}%`;
     ro.style.display = 'block'; ro.innerHTML = `<b>${seen ? info.name : 'UNKNOWN CONTACT'}</b><small>${line}</small>`; ro.classList.toggle('unknown', !seen);
@@ -2206,7 +2254,7 @@ function animate(now) {
   }
   if (replay.active) { updateEnvironment(0); stepReplay(rdt); renderer.render(scene, camera); return; }
   updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt);
-  for (const sc of scouts) updateBlob(sc, rdt); for (const a of ambientActors) updateBlob(a, rdt);
+  updateContactViews();
   renderer.render(scene, camera); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
 }
 requestAnimationFrame(animate);
