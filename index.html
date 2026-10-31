@@ -9,7 +9,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
 button,select,input{font:inherit;color:inherit;background:#172637;border:1px solid #30465d;border-radius:6px;padding:7px}
 button{cursor:pointer}button:hover{border-color:var(--blue)}button.active{background:#17416a;border-color:var(--blue)}input[type=range]{padding:0;width:100%;accent-color:var(--blue)}input[type=checkbox]{accent-color:var(--blue)}
-#app{height:100vh;display:grid;grid-template-rows:48px minmax(0,1fr) 104px}
+#app{height:100vh;display:grid;grid-template-rows:40px minmax(0,1fr)}
 header{display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--line);background:#0d1621;gap:12px}
 .brand{font-weight:800;letter-spacing:.08em;font-size:12px}.brand span{color:var(--blue)}.status{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:11px}.dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block}
 #main{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 260px}
@@ -26,8 +26,31 @@ h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#a9bfd3;ma
 #graph{width:100%;height:78px;display:block;background:#0a131d;border:1px solid var(--line);border-radius:6px}
 kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738;border-radius:4px;padding:2px 4px;color:#c9d8e6}.hint{font-size:10px;color:var(--muted);line-height:1.6}.field:has(#mass),.field:has(#power),.field:has(#wing),.field:has(#battery),.section:has(#wind),.field:has(#thrust){display:none}.danger{color:var(--red)}.good{color:var(--green)}.warn{color:var(--orange)}
 #toast{display:none!important}
+/* ── compact chrome ── */
+header{padding:0 10px!important;gap:10px!important}.brand{font-size:11px!important}.status{font-size:10.5px!important;gap:6px!important;overflow:hidden;white-space:nowrap}
+.tb{display:flex;gap:4px;flex:0 0 auto}.tb button{height:26px;padding:0 9px;font:600 11px system-ui,sans-serif;border-radius:5px;background:#132131;border:1px solid #2c4256}
+.tb button.active{background:#17416a;border-color:var(--blue)}.tb button:disabled{opacity:.35}
+#settingsDrawer{display:none;position:absolute;top:10px;right:10px;width:330px;max-height:calc(100% - 20px);overflow:auto;z-index:40;pointer-events:auto;background:#07131df5;border:1px solid #3c6174;border-radius:10px;box-shadow:0 10px 34px #000a;font:11px system-ui,sans-serif;color:#cfe6f5}
+#settingsDrawer.open{display:block}.sdHead{display:flex;align-items:center;gap:6px;padding:8px 8px 0;position:sticky;top:0;background:#07131df5}
+.sdTabs{display:flex;gap:3px;flex:1}.sdTabs button{flex:1;padding:5px 0;font:600 11px system-ui,sans-serif;border-radius:6px 6px 0 0;background:#0e1d2a;border:1px solid #2c4256;border-bottom:0;color:#9fb8cc}
+.sdTabs button.active{background:#17344d;color:#e8f6ff;border-color:#4b84a8}#sdClose{padding:3px 8px;font-size:10px}
+.sdTab{padding:10px 12px 12px;border-top:1px solid #2c4256}
+table.keys{width:100%;border-collapse:collapse}table.keys th{text-align:left;color:#7affca;font:700 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;padding:8px 0 3px}
+table.keys td{padding:3px 0;vertical-align:top;color:#cfe6f5}table.keys td:first-child{width:104px;padding-right:10px;color:#9fb8cc}
+.sdGroup{margin-bottom:10px}.sdGroup>label{display:block;color:#7affca;font:700 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.sdRow{display:flex;gap:5px;flex-wrap:wrap}.sdRow button,.sdRow select{flex:1;padding:6px 8px;font:600 11px system-ui,sans-serif}.sdTab .hint{margin-top:4px}
+#settingsDrawer #envPanel{display:block;position:static;transform:none;width:auto;padding:0;background:none;border:0;box-shadow:none}
+/* compact HUD */
+#overlay{padding:10px!important}.hudbox{padding:6px 9px!important;min-width:0!important}.hudlabel{font-size:8.5px!important}.hudvalue{font-size:14px!important}.speedbig{font-size:18px!important}.hudfoot{font-size:9.5px!important}
+#eventLog{width:min(270px,34vw)!important}.ev{font-size:9.5px!important;padding:3px 9px 3px 7px!important}
+.threatStats{font-size:9.5px!important}.threatStats b{font-size:11px!important}
+#radarPanel{width:170px!important;padding:7px!important;right:10px!important;bottom:10px!important}#radarCanvas{width:156px!important;height:156px!important}
+#openMapBtn{margin-top:6px;width:100%;font:600 10px system-ui,sans-serif;padding:5px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer}
+#zoomView{right:190px!important;bottom:10px!important;width:290px!important}#zvFrame{height:160px!important}
+#contactReadout{top:10px!important;bottom:auto!important;font-size:11px!important;padding:5px 12px!important}
+#abortBtn{top:58px!important;bottom:auto!important;padding:6px 18px 5px!important;font-size:12px!important}
 #zoomView{position:absolute;right:226px;bottom:14px;width:300px;z-index:9;pointer-events:auto;background:transparent;border:1px solid #3c6174;border-radius:8px;box-shadow:0 5px 22px #0006;overflow:hidden;font:10px ui-monospace,monospace;color:#cfe6f5}
-#zoomView.hidden{display:none}.zvHead{display:flex;gap:8px;align-items:center;padding:5px 8px;background:#07131dee;color:#7affca;letter-spacing:.12em}.zvHead span{margin-left:auto;color:#ffd27a}.zvHead button{padding:1px 6px;font-size:9px}
+#zoomView.hidden{display:none}.zvHead{display:flex;gap:8px;align-items:center;padding:5px 8px;white-space:nowrap;background:#07131dee;color:#7affca;letter-spacing:.12em}.zvHead span{margin-left:auto;color:#ffd27a}.zvHead button{padding:1px 6px;font-size:9px}
 #zvFrame{position:relative;height:170px;cursor:crosshair;touch-action:none;border-top:1px solid #2a4f62;border-bottom:1px solid #2a4f62;background:transparent}
 .zvRet{position:absolute;left:50%;top:50%;width:46px;height:46px;transform:translate(-50%,-50%);border:1px solid #7affca88;border-radius:2px}
 .zvRet::before,.zvRet::after{content:'';position:absolute;background:#7affca88}.zvRet::before{left:50%;top:-10px;width:1px;height:66px}.zvRet::after{top:50%;left:-10px;height:1px;width:66px}
@@ -102,7 +125,7 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 #left{display:none!important} #main{grid-template-columns:minmax(0,1fr)!important} #cameraMode{display:none!important} .experiment,#experimentSection,[data-section="experiment"]{display:none!important}
 /* Scene visibility fix: with the left panel removed, keep the viewport in the flexible main row. */
 html,body,#app{width:100%;height:100%;min-height:0}
-#app{height:100vh;grid-template-rows:48px minmax(0,1fr) 104px}
+#app{height:100vh;grid-template-rows:40px minmax(0,1fr)}
 #main{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;min-height:0;height:100%;overflow:hidden}
 #viewport{display:block!important;grid-column:1;grid-row:1;min-width:0;min-height:0;width:100%;height:100%;position:relative}
 #scene{position:absolute;inset:0;width:100%!important;height:100%!important;display:block}
@@ -125,9 +148,13 @@ html,body,#app{width:100%;height:100%;min-height:0}
 </script>
 <div id="app">
 <header>
-  <div class="brand"><span>VTOL</span> DRONE LAB <span style="color:#8199af;font-weight:500">/ AUTONOMOUS SIMULATOR</span></div>
-  <div class="status"><span class="dot"></span><span id="simStatus">SIM RUNNING</span><span class="wide">· Alpine terrain · high-speed mode</span><span id="thermalBadge">· THERMAL</span><span class="wide" id="weatherHud">DAY / CLEAR</span></div>
-  <div class="row" style="flex:0 0 auto"><button id="envBtn">☁ Environment</button><button id="resetBtn">Reset</button><button id="pauseBtn">Pause</button></div>
+  <div class="brand"><span>VTOL</span> DRONE LAB</div>
+  <div class="status"><span class="dot"></span><span id="simStatus">SIM RUNNING</span><span id="thermalBadge">· THERMAL</span><span class="wide" id="weatherHud">DAY / CLEAR</span></div>
+  <div class="tb">
+    <button id="cameraBtn" title="Cycle camera view (C)">Behind</button><button id="thermalBtn" title="Thermal sensor (T)">Thermal</button>
+    <button id="recordBtn" title="Record telemetry (CSV on stop)">● Rec</button><button id="replayBtn" disabled title="Replay last impact">⟲ Replay</button>
+    <button id="pauseBtn" title="Pause / resume (Space)">Pause</button><button id="settingsBtn" title="Settings & controls (H)">⚙</button>
+  </div>
 </header>
 <div id="main">
   <aside id="left" class="panel">
@@ -169,7 +196,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div><div class="hudfoot" id="sensorHud">SENSOR</div></div><div id="eventLog"></div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option><option value="cessna">Light aircraft (civil)</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>RADAR</span><span id="radarCount">0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="openMapBtn">⊕ Map <kbd>M</kbd></button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -189,14 +216,35 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div id="radioMeta"><span>LINK <b id="radioLink">SECURE</b></span><span id="signalBars">▂▄▆█</span><span>AI/TACTICAL</span></div>
     </div>
     <div id="toast"></div>
-    <div id="zoomView"><div class="zvHead"><b>GIMBAL CAM</b><span id="zvZoom">6×</span><button id="zvClose" title="Hide (Z)">✕</button></div>
-      <div id="zvFrame"><i class="zvRet"></i></div>
-      <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
-      <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1)">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2)">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button><span>Z hide</span></div></div>
-    <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
-    <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
+    <div id="settingsDrawer">
+      <div class="sdHead"><div class="sdTabs"><button data-tab="controls" class="active">Controls</button><button data-tab="env" id="envBtn">Environment</button><button data-tab="sim">Simulation</button></div><button id="sdClose" title="Close (Esc)">✕</button></div>
+      <div class="sdTab" data-tab="controls">
+        <table class="keys">
+          <tr><th colspan="2">Mission</th></tr>
+          <tr><td><kbd>M</kbd></td><td>Map — click empty spot = waypoint, click contact = pursue</td></tr>
+          <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
+          <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
+          <tr><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
+          <tr><th colspan="2">Gimbal camera</th></tr>
+          <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td>Aim (or drag inside the camera window)</td></tr>
+          <tr><td><kbd>+</kbd><kbd>−</kbd> / wheel</td><td>Zoom 1–30×</td></tr>
+          <tr><td><kbd>1</kbd> · <kbd>2</kbd></td><td>Flag contact in the square as threat · civil</td></tr>
+          <tr><td><kbd>V</kbd></td><td>Centre on the nose</td></tr>
+          <tr><td><kbd>Z</kbd></td><td>Show / hide gimbal window</td></tr>
+          <tr><th colspan="2">View &amp; sensors</th></tr>
+          <tr><td><kbd>C</kbd></td><td>Cycle view: behind · FPV · free orbit</td></tr>
+          <tr><td>mouse</td><td>Free orbit: drag rotate · wheel zoom · double-click reset</td></tr>
+          <tr><td><kbd>T</kbd></td><td>Thermal on / off</td></tr>
+          <tr><td><kbd>P</kbd></td><td>Thermal palette</td></tr>
+          <tr><th colspan="2">Flight nudges (while searching)</th></tr>
+          <tr><td><kbd>A</kbd> <kbd>D</kbd> · <kbd>R</kbd> <kbd>F</kbd></td><td>Steer left/right · higher/lower</td></tr>
+          <tr><th colspan="2">Panels</th></tr>
+          <tr><td><kbd>H</kbd> · <kbd>Esc</kbd></td><td>Open these settings · close</td></tr>
+        </table>
+      </div>
+      <div class="sdTab" data-tab="env" hidden>
     <div id="envPanel">
-      <div class="envHead"><b>ENVIRONMENT</b><button id="envClose">✕</button></div>
+      <button id="envClose" hidden></button>
       <label>Weather <select id="envWeather"><option value="AUTO">Auto (changes over time)</option><option>CLEAR</option><option>HIGH CLOUD</option><option>MIST</option><option>RAIN</option></select></label>
       <label class="chk"><input type="checkbox" id="envWindAuto" checked> Wind follows weather</label>
       <label>Wind speed <span id="envWindV">4 m/s</span><input type="range" id="envWind" min="0" max="15" step=".5" value="4"></label>
@@ -205,6 +253,22 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <label class="chk"><input type="checkbox" id="envTimeAuto" checked> Time of day runs</label>
       <label>Time of day <span id="envTimeV">12:00</span><input type="range" id="envTime" min="0" max="24" step=".25" value="12"></label>
     </div>
+      </div>
+      <div class="sdTab" data-tab="sim" hidden>
+        <div class="sdGroup"><label>Simulation</label><div class="sdRow"><button id="playBottom">Pause</button><button id="stepBtn">Single step</button><button id="slowBtn">Slow motion ×0.25</button></div><div class="hint" id="timeLabel">t = 0.00 s</div></div>
+        <div class="sdGroup"><label>Thermal palette</label><div class="sdRow"><button id="paletteBtn">Palette: IRON</button></div></div>
+        <div class="sdGroup"><label>Spawn traffic <kbd>N</kbd></label><div class="sdRow"><select id="quickScoutType"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option><option value="cessna">Light aircraft (civil)</option></select><button id="spawnScoutQuickBtn">+ Spawn</button></div></div>
+        <div class="sdGroup"><label>Aircraft</label><div class="sdRow"><button id="terminateTrackBtn">Terminate track</button><button id="resetBtn">Reset to pad</button></div></div>
+      </div>
+    </div>
+
+    <div id="zoomView"><div class="zvHead"><b>CAM</b><span id="zvZoom">6×</span><button id="zvClose" title="Hide (Z)">✕</button></div>
+      <div id="zvFrame"><i class="zvRet"></i></div>
+      <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
+      <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1)">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2)">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button></div></div>
+    <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
+    <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
+
   </section>
   <aside id="right" class="panel">
     <h2>Live telemetry</h2>
@@ -239,20 +303,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <p class="hint">Prototype objective: scan and tag scout drones to complete a virtual reconnaissance challenge. No real-world targeting functionality.</p>
     </div></aside>
 </div>
-<footer id="bottom">
-  <div class="controlGroup">
-    <div class="controlTitle">Simulation time</div>
-    <div class="controlLine"><button id="playBottom">Pause</button><button id="stepBtn">Single step</button><button id="slowBtn">Slow motion ×0.25</button><button id="recordBtn">● Record</button><button id="replayBtn" disabled>⟲ Replay last impact</button></div>
-    <div class="hint" id="timeLabel" style="margin-top:5px">t = 0.00 s · 120 Hz physics</div>
-  </div>
-  <div class="controlGroup">
-    <div class="controlTitle">Camera mode</div>
-    <div class="controlLine">
-      <button id="cameraBtn">Camera: Behind</button><button id="thermalBtn">Thermal: OFF</button><button id="paletteBtn">Palette: IRON</button>
-    </div>
-    <div class="hint" style="margin-top:5px"><kbd>T</kbd> thermal · <kbd>P</kbd> palette · <kbd>N</kbd> spawn selected scout · <kbd>C</kbd> camera · <kbd>Space</kbd> pause. Free orbit: drag to orbit, scroll to zoom, double-click to reset.</div>
-  </div>
-  </footer>
+
 </div>
 <!-- Internal compatibility controls retained for the simulation logic; intentionally not shown in the HUD. -->
 <div id="engineCompat" hidden aria-hidden="true">
@@ -853,7 +904,7 @@ function logEvent(msg, cls) {
   const t = state.time, mm = Math.floor(t / 60), ss = Math.floor(t % 60);
   el.innerHTML = `<small>${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}</small>`; el.append(msg.toUpperCase());
   box.append(el);
-  while (box.children.length > 6) box.firstChild.remove();
+  while (box.children.length > 4) box.firstChild.remove();
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 750); }, 5000);
 }
 function toast(s) { logEvent(s); }
@@ -878,7 +929,15 @@ function applyEnv() {
 }
 ['envWeather','envWindAuto','envWind','envDir','envGust','envTimeAuto'].forEach(id => $(id).addEventListener('input', applyEnv));
 $('envTime').addEventListener('input', () => { state.dayClock = ((+$('envTime').value - 12) / 24) * TAU; syncEnvPanel(); });
-$('envBtn').onclick = () => $('envPanel').classList.toggle('open'); $('envClose').onclick = () => $('envPanel').classList.remove('open');
+// Settings drawer with tabs (Controls / Environment / Simulation). The environment panel lives in its tab.
+function openSettings(tab) {
+  const d = $('settingsDrawer'); d.classList.add('open'); $('envPanel').classList.add('open');
+  if (tab) for (const el of d.querySelectorAll('[data-tab]')) { if (el.classList.contains('sdTab')) el.hidden = el.dataset.tab !== tab; else el.classList.toggle('active', el.dataset.tab === tab); }
+}
+function closeSettings() { $('settingsDrawer').classList.remove('open'); }
+for (const b of document.querySelectorAll('.sdTabs button')) b.onclick = () => openSettings(b.dataset.tab);
+$('settingsBtn').onclick = () => $('settingsDrawer').classList.contains('open') ? closeSettings() : openSettings();
+$('sdClose').onclick = closeSettings;
 const DEFAULT_BANNER = $('missionBanner').textContent; let bannerTimer = null;
 function radioMessage(message) {
   const el = $('radioLine'); if (el) el.textContent = message;
@@ -905,7 +964,7 @@ function setThermal(on) {
   ground.geometry.setAttribute('color', thermalOn ? thermalColorAttr : normalColorAttr);
   for (const p of plumeList) p.visible = thermalOn;
   $('normalCam').classList.toggle('active', !thermalOn); $('thermalCam').classList.toggle('active', thermalOn);
-  $('thermalBtn').classList.toggle('active', thermalOn); $('thermalBtn').textContent = 'Thermal: ' + (thermalOn ? 'ON' : 'OFF');
+  $('thermalBtn').classList.toggle('active', thermalOn); $('thermalBtn').textContent = 'Thermal';
 }
 function cyclePalette() { paletteIdx = (paletteIdx + 1) % PALETTES.length; refreshPalette(); toast('Thermal palette: ' + PALETTES[paletteIdx].name); }
 rebuildGroundThermal(); updateThermalLegend();
@@ -938,7 +997,7 @@ function updatePauseButtons() { $('pauseBtn').textContent = state.paused ? 'Resu
 function toggleCamera() { const modes = ['free','behind','fpv']; state.cameraMode = modes[(modes.indexOf(state.cameraMode || 'behind') + 1) % modes.length]; state.freeCam = state.cameraMode === 'free'; updateCameraButton(); }
 function updateCameraButton() {
   const mode = state.cameraMode || 'behind';
-  $('cameraBtn').textContent = 'Camera: ' + ({free:'Free', behind:'Behind', fpv:'FPV'}[mode]);
+  $('cameraBtn').textContent = ({free:'Free orbit', behind:'Behind', fpv:'FPV'}[mode]);
   $('cameraState').textContent = ({free:'FREE ORBIT', behind:'CHASE CAMERA', fpv:'FPV · CLEAR LENS'}[mode]);
 }
 function updateConfig() {
@@ -986,7 +1045,7 @@ function exportTelemetry(label) {
 }
 $('recordBtn').onclick = () => {
   state.recording = !state.recording;
-  $('recordBtn').textContent = state.recording ? '■ Stop recording' : '● Record';
+  $('recordBtn').textContent = state.recording ? '■ Stop' : '● Rec'; $('recordBtn').classList.toggle('active', state.recording);
   if (!state.recording && state.history.length) exportTelemetry('manual');
   else toast(state.recording ? 'Recording telemetry' : 'Recording stopped');
 };
@@ -1219,6 +1278,8 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'x' && state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR');
   if (e.key.toLowerCase() === 'z') { zv.open = !zv.open; $('zoomView').classList.toggle('hidden', !zv.open); }
   if (e.key.toLowerCase() === 'v') gimbalCentre();
+  if (e.key.toLowerCase() === 'h') { $('settingsDrawer').classList.contains('open') ? closeSettings() : openSettings('controls'); }
+  if (e.key === 'Escape' && $('settingsDrawer').classList.contains('open')) closeSettings();
   if (e.key === '1') markCur('threat'); if (e.key === '2') markCur('civil');   // flag what's in the scope
   if (e.key.startsWith('Arrow')) e.preventDefault();
   if (e.key === '+' || e.key === '=') setZoom(zv.zoom * 1.25);
@@ -1967,7 +2028,7 @@ function stepPowerLoss(h) {
     explodeAt(new THREE.Vector3(state.pos.x, gy + 1, state.pos.z), 2.0);
     craft.visible = false; state.vel.set(0,0,0);
     radioMessage('IMPACT · AIRCRAFT LOST · RESETTING');
-    if (state.recording && state.history.length) { exportTelemetry('crash'); state.recording = false; $('recordBtn').textContent = '● Record'; }
+    if (state.recording && state.history.length) { exportTelemetry('crash'); state.recording = false; $('recordBtn').textContent = '● Rec'; $('recordBtn').classList.remove('active'); }
     state.returning = true; state.returnTimer = 2.8; state.returnReason = 'battery';
   }
 }
@@ -2178,7 +2239,7 @@ function physicsStep(h) {
       const name = CLS_NAME[truthClass(tgt)];
       state.civilianIncidents = (state.civilianIncidents || 0) + 1;
       radioMessage('CIVILIAN INCIDENT · collided with ' + name + (tgt.guess !== truthClass(tgt) ? ' (was identified as ' + CLS_NAME[tgt.guess] + ' ' + confPct(tgt) + '%)' : ''));
-      if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
+      if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Rec'; $('recordBtn').classList.remove('active'); }
       impact(tgt, 'CIVILIAN INCIDENT · ' + name); return;
     }
   }
@@ -2192,7 +2253,7 @@ function physicsStep(h) {
       s.destroyed = true; s.tagged = true; s.removeAt = state.time + 1e9; state.tagCount++;   // removed after the replay
       $('missionState').textContent = 'THREAT NEUTRALISED'; radioMessage('THREAT NEUTRALISED · ' + s.spec.label + (s.guess && s.guess !== s.kind ? ' (was identified as ' + CLS_NAME[s.guess] + ')' : '') + ' · RETURNING TO PAD');
       actLog('Scout tagged: ' + s.spec.label + ' · total ' + state.tagCount + ' · returning to pad', 'ok');
-      if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Record'; }
+      if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Rec'; $('recordBtn').classList.remove('active'); }
       impact(s, 'THREAT NEUTRALISED · ' + s.spec.label);
       return;
     }
@@ -2533,7 +2594,7 @@ function renderZoomView(rdt) {
   const rel = Math.abs(wrapAngle(zv.yaw - state.rot.y));
   const sc = zv.scope;
   $('zvInfo').textContent = sc ? 'IN SCOPE · ' + (sc.userMark ? '★' + (sc.userMark === 'threat' ? 'THREAT · ' : 'CIVIL · ') : '') + (sc.identified && sc.guess ? CLS_SHORT[sc.guess] + ' ' + confPct(sc) + '%' : 'UNIDENTIFIED') + ' · ' + Math.round(zv.scopeD) + ' m' : 'SCOPE EMPTY';
-  $('zvStatus').textContent = (rel > GIMBAL_LIMIT - .02 ? 'GIMBAL LIMIT · ' : '') + (state.cloudHere > .2 ? 'IN CLOUD · ' : '') + 'eff. zoom ' + zv.zEff.toFixed(1) + '× · drag/arrows aim · wheel/+− zoom · V centre';
+  $('zvStatus').textContent = (rel > GIMBAL_LIMIT - .02 ? 'GIMBAL LIMIT · ' : '') + (state.cloudHere > .2 ? 'IN CLOUD · ' : '') + 'effective zoom ' + zv.zEff.toFixed(1) + '×';
 }
 function setZoom(z) { zv.zoom = clamp(z, 1, 30); }
 const camLook = new THREE.Vector3();
@@ -2666,7 +2727,7 @@ function drawRadar() {
   };
   for (const o of [...scouts, ...ambientActors]) { if (o.destroyed || !o.detected || !o.trk) continue; trackPos(o, _est);
     const px = cx + (_est.x - state.pos.x) * scale, py = cy + (_est.z - state.pos.z) * scale; if (Math.hypot(px - cx, py - cy) < 85) drawContact(o, px, py); }
-  $('radarCount').textContent = 'CONTACTS ' + count + ' · ' + (radarRange() / 1000).toFixed(1) + ' KM';
+  $('radarCount').textContent = count + ' CONTACTS · ' + (radarRange() / 1000).toFixed(1) + ' KM';
 }
 function resize() {
   const w = $('viewport').clientWidth, h = $('viewport').clientHeight; vpW = w; vpH = h;

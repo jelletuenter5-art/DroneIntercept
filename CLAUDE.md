@@ -23,6 +23,7 @@ A single-file Three.js drone simulator game.
 - `radarScan(h)` — every 0.35 s: radar detection (`c.detected`), track update (`c.trk`), classification readings
 
 ## Map / HUD
+- **Layout (compact, on request):** slim 40 px header = brand · status (time/weather/wind) · toolbar (`cameraBtn` view, `thermalBtn`, `recordBtn` ● Rec, `replayBtn`, `pauseBtn`, `settingsBtn` ⚙). No bottom bar. **Settings drawer** (`#settingsDrawer`, ⚙ or H, Esc closes) with tabs: Controls (all hotkeys in one table — keep it updated when adding keys), Environment (`#envPanel` lives here), Simulation (step, slow motion, palette, spawn `quickScoutType`/`spawnScoutQuickBtn`, terminate, reset). Contact readout + TERMINATE button at top centre; event log max 4 lines; radar panel = radar + Map button; gimbal window left of the radar.
 - Map overlay: `position:fixed; z-index:999`
 - `#trackConfirm` popup: `position:fixed` — uses screen coordinates from getBoundingClientRect
 - Thermal imaging: IRON / WHITE-HOT / BLACK-HOT palettes
