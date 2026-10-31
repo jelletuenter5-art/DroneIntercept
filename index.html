@@ -26,6 +26,32 @@ h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#a9bfd3;ma
 #graph{width:100%;height:78px;display:block;background:#0a131d;border:1px solid var(--line);border-radius:6px}
 kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738;border-radius:4px;padding:2px 4px;color:#c9d8e6}.hint{font-size:10px;color:var(--muted);line-height:1.6}.field:has(#mass),.field:has(#power),.field:has(#wing),.field:has(#battery),.section:has(#wind),.field:has(#thrust){display:none}.danger{color:var(--red)}.good{color:var(--green)}.warn{color:var(--orange)}
 #toast{display:none!important}
+#debrief{display:none;position:absolute;inset:0;z-index:50;pointer-events:auto;background:radial-gradient(ellipse at center,#0a1622e6,#03080ef2);align-items:center;justify-content:center;font:12px system-ui,sans-serif;color:#d6e8f5}
+#debrief.show{display:flex}
+.dbCard{width:min(880px,94%);max-height:94%;overflow:auto;background:linear-gradient(160deg,#0f1f2d,#08131d);border:1px solid #3d6680;border-radius:14px;box-shadow:0 30px 80px #000c,inset 0 1px 0 #ffffff14;padding:18px 20px}
+.dbHead{display:flex;align-items:center;gap:16px;padding-bottom:12px;border-bottom:1px solid #2a4458}.dbHead small{color:#7affca;font:700 10px ui-monospace,monospace;letter-spacing:.2em}
+.dbHead h2{margin:2px 0 0;font:800 24px system-ui;letter-spacing:.06em;color:#fff}.badge{padding:5px 10px;border-radius:6px;font:800 11px ui-monospace,monospace;letter-spacing:.12em}
+.badge.ok{background:#0f3a2b;color:#7affca;border:1px solid #2f9c76}.badge.bad{background:#3a1012;color:#ff8a8a;border:1px solid #a83a3a}
+.dbStats{margin-left:auto;display:flex;gap:18px}.dbStats div{text-align:right}.dbStats span{display:block;color:#7f9bb0;font:700 9px ui-monospace,monospace;letter-spacing:.14em}.dbStats b{font:800 18px system-ui;color:#fff}
+.dbGrid{display:grid;grid-template-columns:340px 1fr;gap:14px;margin-top:14px}.dbCol{display:flex;flex-direction:column;gap:12px;min-width:0}
+.dbSec{background:#0a1824;border:1px solid #23394a;border-radius:10px;padding:10px 12px}.dbSec h4{margin:0 0 8px;color:#7affca;font:800 10.5px ui-monospace,monospace;letter-spacing:.18em}.dbSec h4 small{color:#7f9bb0;letter-spacing:.06em;margin-left:6px}
+#dbMap{display:block;width:100%;border-radius:6px}.dbLegend{margin-top:6px;color:#8fa8ba;font-size:10px;display:flex;flex-wrap:wrap;gap:4px 10px}.dbLegend i{font-style:normal;font-weight:800}
+.lp{display:inline-block;width:16px;height:3px;background:#5ee0ff;vertical-align:middle}.lb{color:#7affca}.lok{color:#7affca}.lx{color:#ff6b6b}.lt{color:#ff9a6b}.lh{color:#ffd27a}
+.dbSec table{width:100%;border-collapse:collapse;font-size:11.5px}.dbSec th{text-align:left;color:#6f8ea4;font:700 9px ui-monospace,monospace;letter-spacing:.12em;padding:0 0 4px}
+.dbSec td{padding:4px 0;border-top:1px solid #1b2e3d}.dbSec td small{color:#7f9bb0}.dbSec td:last-child{text-align:right}
+b.ok{color:#7affca}b.bad{color:#ff6b6b}b.mid{color:#ffd27a}b.thr{color:#ff9a6b}b.civ{color:#9ec4d8}.dbSec p.none{margin:0;color:#7f9bb0;font-style:italic}
+.dbFoot{display:flex;align-items:center;gap:14px;margin-top:14px;padding-top:12px;border-top:1px solid #2a4458}.dbFoot small{color:#7f9bb0;font-size:10px;line-height:1.5}
+#dbContinue{margin-left:auto;padding:9px 22px;font:800 12px system-ui;letter-spacing:.08em;background:#0f3a2b;border:1px solid #2f9c76;color:#b9ffe3;border-radius:8px}
+.slap{animation:slap .42s cubic-bezier(.2,1.5,.45,1) both;animation-delay:var(--d,0s)}
+@keyframes slap{0%{opacity:0;transform:scale(1.22) rotate(-1.6deg) translateY(-10px)}55%{opacity:1;transform:scale(.985) rotate(.35deg)}100%{opacity:1;transform:none}}
+#glare,#zvGlare{position:absolute;inset:0;pointer-events:none;opacity:0;mix-blend-mode:screen}#glare{z-index:5}
+#battNeed{position:absolute;top:-2px;bottom:-2px;width:2px;background:#ffd27a;box-shadow:0 0 4px #ffd27a;left:-10%}
+#rtbCard{display:none;position:absolute;left:50%;top:104px;transform:translateX(-50%);z-index:14;pointer-events:auto;min-width:330px;padding:10px 14px;text-align:center;
+  background:#1d1606f2;border:1.5px solid #ffca77;border-radius:9px;box-shadow:0 8px 30px #000b;font:700 12px ui-monospace,monospace;color:#ffe2ad;letter-spacing:.06em}
+#rtbCard.show{display:block}#rtbCard small{display:block;margin:4px 0 8px;font-weight:500;font-size:10px;color:#e8d2a8;letter-spacing:.02em}
+#rtbCard div{display:flex;gap:6px;justify-content:center}#rtbCard button{padding:5px 12px;font:700 10px ui-monospace,monospace}#rtbGo{background:#123d2c;border-color:#7affca;color:#b9ffe3}
+#rtbCard.lvl2,#rtbCard.lvl3{background:#2a0a0cf2;border-color:#ff6b6b;color:#ffd0d0;animation:rtbPulse 1s ease-in-out infinite}
+@keyframes rtbPulse{50%{box-shadow:0 0 22px #ff4b4baa}}
 /* ── compact chrome ── */
 header{padding:0 10px!important;gap:10px!important}.brand{font-size:11px!important}.status{font-size:10.5px!important;gap:6px!important;overflow:hidden;white-space:nowrap}
 .tb{display:flex;gap:4px;flex:0 0 auto}.tb button{height:26px;padding:0 9px;font:600 11px system-ui,sans-serif;border-radius:5px;background:#132131;border:1px solid #2c4256}
@@ -39,6 +65,8 @@ table.keys{width:100%;border-collapse:collapse}table.keys th{text-align:left;col
 table.keys td{padding:3px 0;vertical-align:top;color:#cfe6f5}table.keys td:first-child{width:104px;padding-right:10px;color:#9fb8cc}
 .sdGroup{margin-bottom:10px}.sdGroup>label{display:block;color:#7affca;font:700 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
 .sdRow{display:flex;gap:5px;flex-wrap:wrap}.sdRow button,.sdRow select{flex:1;padding:6px 8px;font:600 11px system-ui,sans-serif}.sdTab .hint{margin-top:4px}
+.vol{margin:6px 0}.vol span{display:block;color:#9fb8cc;font-size:10.5px;margin-bottom:2px}.vol input{width:100%}
+#settingsDrawer label.chk{display:flex;gap:6px;align-items:center;margin-top:6px;color:#cfe6f5;font-size:11px}
 #settingsDrawer #envPanel{display:block;position:static;transform:none;width:auto;padding:0;background:none;border:0;box-shadow:none}
 /* compact HUD */
 #overlay{padding:10px!important}.hudbox{padding:6px 9px!important;min-width:0!important}.hudlabel{font-size:8.5px!important}.hudvalue{font-size:14px!important}.speedbig{font-size:18px!important}.hudfoot{font-size:9.5px!important}
@@ -101,7 +129,7 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 #mapCloseBtn{padding:5px 16px;background:#0d2332;border:1px solid #3e778e;border-radius:5px;color:#9dc7db;font:700 10px ui-monospace,monospace;cursor:pointer;pointer-events:auto;white-space:nowrap}
 #mapCloseBtn:hover{background:#163344;color:#cce8f5}#trackConfirm{display:none;position:fixed;z-index:1001;background:#06111be8;border:1.5px solid #3a778e;border-radius:9px;padding:14px 18px;color:#dff9ff;font:700 11px ui-monospace,monospace;box-shadow:0 6px 28px #000d;text-align:center;transform:translateX(-50%);pointer-events:auto;min-width:190px}#trackConfirm.show{display:block}#trackConfirm .tc-name{color:#7affca;font-size:13px;margin:4px 0 4px}#trackConfirm .tc-note{color:#8fa8ba;font-weight:400;font-size:9px;margin-bottom:9px}#trackConfirm.unknown-type .tc-name{color:#aaddff}#trackConfirm .tc-btns{display:flex;gap:8px;justify-content:center}#trackConfirm .tc-btns button{padding:6px 18px;border-radius:5px;font:700 10px ui-monospace,monospace;cursor:pointer;border:1.5px solid}#tc-auth{background:#0e3828;border-color:#7affca;color:#7affca}#tc-auth:hover{background:#174d38}#tc-cancel{background:#1a0808;border-color:#e06060;color:#e09090}#tc-cancel:hover{background:#280e0e}
 
-.speedbig{font-size:22px!important}#battBar{width:92px;height:6px;background:#07182299;border-radius:3px;border:1px solid #1a3e5a;overflow:hidden;margin-top:3px}#battFill{height:100%;border-radius:2px;transition:width .9s,background 1.2s;background:#7affca}
+.speedbig{font-size:22px!important}#battBar{position:relative;width:92px;height:6px;background:#07182299;border-radius:3px;border:1px solid #1a3e5a;overflow:hidden;margin-top:3px}#battFill{height:100%;border-radius:2px;transition:width .9s,background 1.2s;background:#7affca}
 #targetLock.unknown span{border-color:#a8782f;color:#ffe2ad;background:#1d1405f2}#targetLock.unknown{border-color:#ffca77;filter:drop-shadow(0 0 7px #ffb347)}
 #thermalScale{display:none;position:absolute;left:14px;top:50%;transform:translateY(-50%);z-index:7;flex-direction:column;align-items:center;gap:4px;font:700 9px ui-monospace,monospace;color:#d8e6f0;pointer-events:none;text-shadow:0 1px 2px #000}
 .thermal #thermalScale{display:flex}#thermalScale i{display:block;width:10px;height:150px;border:1px solid #9fb4c4;border-radius:2px}
@@ -206,7 +234,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
 </div>
 <div id="thermalScale"><span>HOT</span><i id="thermalScaleBar"></i><span>COLD</span></div>
       <div class="hudrow" style="align-items:flex-end">
-        <div class="hudbox"><div style="display:flex;gap:20px"><div><div class="hudlabel">Airspeed</div><div class="hudvalue speedbig" id="speedBig">0 km/h</div><div class="hudfoot" id="speedHud">0.0 m/s</div></div><div><div class="hudlabel">Altitude AGL</div><div class="hudvalue speedbig" id="altHud">8.0 m</div><div class="hudfoot" id="aslHud">ASL 8 m</div></div><div class="battCol"><div class="hudlabel">Battery</div><div class="hudvalue speedbig" id="batteryHud">100%</div><div id="battBar"><div id="battFill" style="width:100%"></div></div><div class="hudfoot" id="powerHud">0 W</div></div></div></div>
+        <div class="hudbox"><div style="display:flex;gap:20px"><div><div class="hudlabel">Airspeed</div><div class="hudvalue speedbig" id="speedBig">0 km/h</div><div class="hudfoot" id="speedHud">0.0 m/s</div></div><div><div class="hudlabel">Altitude AGL</div><div class="hudvalue speedbig" id="altHud">8.0 m</div><div class="hudfoot" id="aslHud">ASL 8 m</div></div><div class="battCol"><div class="hudlabel">Battery</div><div class="hudvalue speedbig" id="batteryHud">100%</div><div id="battBar"><div id="battFill" style="width:100%"></div><i id="battNeed" title="Battery needed to return and land"></i></div><div class="hudfoot" id="powerHud">0 W</div></div></div></div>
       </div>
     </div>
     <div id="missionBanner">AUTONOMOUS INTERCEPT · AI pilots the aircraft. Radio chatter reports search, pursuit, and impact events. Thermal view highlights engines and recent flight trails.</div>
@@ -216,8 +244,11 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div id="radioMeta"><span>LINK <b id="radioLink">SECURE</b></span><span id="signalBars">▂▄▆█</span><span>AI/TACTICAL</span></div>
     </div>
     <div id="toast"></div>
+    <div id="debrief"></div>
+    <div id="glare"></div>
+    <div id="rtbCard"><b id="rtbTitle">RETURN TO BASE ADVISED</b><small id="rtbInfo"></small><div><button id="rtbGo">⌂ Return to base</button><button id="rtbDismiss">Dismiss</button></div></div>
     <div id="settingsDrawer">
-      <div class="sdHead"><div class="sdTabs"><button data-tab="controls" class="active">Controls</button><button data-tab="env" id="envBtn">Environment</button><button data-tab="sim">Simulation</button></div><button id="sdClose" title="Close (Esc)">✕</button></div>
+      <div class="sdHead"><div class="sdTabs"><button data-tab="controls" class="active">Controls</button><button data-tab="env" id="envBtn">Environment</button><button data-tab="sim">Simulation</button><button data-tab="audio">Audio</button></div><button id="sdClose" title="Close (Esc)">✕</button></div>
       <div class="sdTab" data-tab="controls">
         <table class="keys">
           <tr><th colspan="2">Mission</th></tr>
@@ -225,6 +256,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
           <tr><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
+          <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (abort mission)</td></tr>
           <tr><th colspan="2">Gimbal camera</th></tr>
           <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td>Aim (or drag inside the camera window)</td></tr>
           <tr><td><kbd>+</kbd><kbd>−</kbd> / wheel</td><td>Zoom 1–30×</td></tr>
@@ -240,6 +272,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>A</kbd> <kbd>D</kbd> · <kbd>R</kbd> <kbd>F</kbd></td><td>Steer left/right · higher/lower</td></tr>
           <tr><th colspan="2">Panels</th></tr>
           <tr><td><kbd>H</kbd> · <kbd>Esc</kbd></td><td>Open these settings · close</td></tr>
+          <tr><td><kbd>U</kbd></td><td>Mute / unmute sound (volumes in the Audio tab)</td></tr>
         </table>
       </div>
       <div class="sdTab" data-tab="env" hidden>
@@ -254,6 +287,15 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <label>Time of day <span id="envTimeV">12:00</span><input type="range" id="envTime" min="0" max="24" step=".25" value="12"></label>
     </div>
       </div>
+      <div class="sdTab" data-tab="audio" hidden>
+        <div class="sdGroup"><label>Volume <span class="hint">· U mutes</span></label>
+          <div class="vol"><span>Master</span><input type="range" id="volMaster" min="0" max="1" step=".01"></div>
+          <div class="vol"><span>Flight (engine, rotors, wind)</span><input type="range" id="volFlight" min="0" max="1" step=".01"></div>
+          <div class="vol"><span>Effects (radar, lock, explosions, flares)</span><input type="range" id="volFx" min="0" max="1" step=".01"></div>
+          <div class="vol"><span>Alerts (battery, stall)</span><input type="range" id="volAlerts" min="0" max="1" step=".01"></div>
+          <label class="chk"><input type="checkbox" id="volMute"> Mute all</label>
+          <div class="sdRow" style="margin-top:6px"><button id="volTest">▶ Test sound</button></div></div>
+      </div>
       <div class="sdTab" data-tab="sim" hidden>
         <div class="sdGroup"><label>Simulation</label><div class="sdRow"><button id="playBottom">Pause</button><button id="stepBtn">Single step</button><button id="slowBtn">Slow motion ×0.25</button></div><div class="hint" id="timeLabel">t = 0.00 s</div></div>
         <div class="sdGroup"><label>Thermal palette</label><div class="sdRow"><button id="paletteBtn">Palette: IRON</button></div></div>
@@ -263,7 +305,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
     </div>
 
     <div id="zoomView"><div class="zvHead"><b>CAM</b><span id="zvZoom">6×</span><button id="zvClose" title="Hide (Z)">✕</button></div>
-      <div id="zvFrame"><i class="zvRet"></i></div>
+      <div id="zvFrame"><div id="zvGlare"></div><i class="zvRet"></i></div>
       <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
       <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1)">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2)">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button></div></div>
     <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
@@ -938,6 +980,7 @@ function closeSettings() { $('settingsDrawer').classList.remove('open'); }
 for (const b of document.querySelectorAll('.sdTabs button')) b.onclick = () => openSettings(b.dataset.tab);
 $('settingsBtn').onclick = () => $('settingsDrawer').classList.contains('open') ? closeSettings() : openSettings();
 $('sdClose').onclick = closeSettings;
+
 const DEFAULT_BANNER = $('missionBanner').textContent; let bannerTimer = null;
 function radioMessage(message) {
   const el = $('radioLine'); if (el) el.textContent = message;
@@ -974,6 +1017,7 @@ window.addEventListener('keydown', e => {
   if ([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k)) e.preventDefault();
   if (e.repeat) return;
   if (replay.active) { if (k === ' ' || k === 'escape') { e.preventDefault(); finishReplay(); } return; }
+  if ($('debrief').classList.contains('show')) { if (k === ' ' || k === 'escape' || k === 'enter') { e.preventDefault(); closeDebrief(); } return; }
   if (k === ' ') togglePause(); if (k === 'c') toggleCamera(); if (k === 't') setThermal(!thermalOn); if (k === 'p') cyclePalette(); if (k === 'n') spawnSelected();
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -1010,6 +1054,7 @@ $('hoverMode').onclick = () => { state.hover = true; state.altCmd = state.pos.y;
 $('cruiseMode').onclick = () => { state.hover = false; state.altCmd = Math.max(state.altCmd, state.pos.y); $('cruiseMode').classList.add('active'); $('hoverMode').classList.remove('active'); };
 $('pauseBtn').onclick = togglePause; $('playBottom').onclick = togglePause;
 $('skipReplayBtn').onclick = () => finishReplay();
+$('rtbGo').onclick = acceptRtb; $('rtbDismiss').onclick = () => { $('rtbCard').className = ''; logEvent('Return-to-base advisory dismissed', 'warn'); };
 $('zvClose').onclick = () => { zv.open = false; $('zoomView').classList.add('hidden'); };
 $('zoomView').addEventListener('wheel', e => { e.preventDefault(); setZoom(zv.zoom * Math.exp(-e.deltaY * .0015)); }, {passive:false});
 // Drag inside the picture to aim: the image follows the mouse at any zoom.
@@ -1025,7 +1070,7 @@ const markCur = m => {
   const t = zv.scope; if (!t) { toast('Scope empty · put the contact inside the square'); return; }
   if (!hasTrack(t)) { t.trk = {x:t.pos.x, y:t.pos.y, z:t.pos.z, vx:t.vel.x, vy:t.vel.y, vz:t.vel.z, w:0, seen:state.time, lost:false, covered:0, noise:20}; logEvent('Visual sighting added to map'); }
   t.identified = true;
-  t.userMark = t.userMark === m ? null : m;
+  t.userMark = t.userMark === m ? null : m; missionLog('flag', t);
   logEvent(t.userMark ? 'Operator flagged contact as ' + (m === 'threat' ? 'THREAT' : 'CIVILIAN') : 'Operator flag removed', t.userMark === 'threat' ? 'warn' : 'ok');
 };
 $('zvMarkT').onclick = () => markCur('threat'); $('zvMarkC').onclick = () => markCur('civil');
@@ -1219,7 +1264,7 @@ $('tc-auth').onclick = () => {
   const c = _pendingContact; _pendingContact = null; $('trackConfirm').classList.remove('show');
   state.aiTarget = c; state.pursuitMode = true; state.attack = {phase:'intercept', side:0}; state.manualWaypointActive = false; mapWaypoint = null; state.searchWp = null; hudAcc = 1;
   $('cancelTrackBtn').style.display = 'inline-block'; $('cancelWpBtn').style.display = 'none';
-  radioMessage('PURSUING: ' + CLS_NAME[c.guess] + ' (' + confPct(c) + '%)');
+  radioMessage('PURSUING: ' + CLS_NAME[c.guess] + ' (' + confPct(c) + '%)'); missionLog('pursue', c);
 };
 $('tc-cancel').onclick = () => { _pendingContact = null; $('trackConfirm').classList.remove('show'); };
 
@@ -1278,6 +1323,8 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'x' && state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR');
   if (e.key.toLowerCase() === 'z') { zv.open = !zv.open; $('zoomView').classList.toggle('hidden', !zv.open); }
   if (e.key.toLowerCase() === 'v') gimbalCentre();
+  if (e.key.toLowerCase() === 'b' && state.launchStage === 'active' && !state.rtb) acceptRtb();
+  if (e.key.toLowerCase() === 'u') { audio.vol.muted = !audio.vol.muted; $('volMute').checked = audio.vol.muted; applyAudioVolumes(); logEvent(audio.vol.muted ? 'Sound muted' : 'Sound on'); }
   if (e.key.toLowerCase() === 'h') { $('settingsDrawer').classList.contains('open') ? closeSettings() : openSettings('controls'); }
   if (e.key === 'Escape' && $('settingsDrawer').classList.contains('open')) closeSettings();
   if (e.key === '1') markCur('threat'); if (e.key === '2') markCur('civil');   // flag what's in the scope
@@ -1347,7 +1394,7 @@ $('terminateTrackBtn').addEventListener('click', () => {
 });
 $('launchBtn').addEventListener('click', () => {
   if (state.launchStage !== 'parked') return;
-  state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = terrainHeight(0, 0) + 2.6; state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
+  missionLog('start'); state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = terrainHeight(0, 0) + 2.6; state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
   $('launchBtn').disabled = true; $('launchOverlay').style.display = 'none';
   $('flightState').textContent = 'VERTICAL TAKEOFF'; toast('Launch · vertical climb');
 });
@@ -1369,6 +1416,7 @@ function getInput() {
 // (partly in the wreck's own colour) that keeps some of the aircraft's momentum, trails smoke while falling, kicks up
 // dust where it lands and then lies on the ground for a while. Debris glows in thermal; smoke is invisible there.
 function explodeAt(position, scale = 1, vel = null, tint = 0x3a3f46) {
+  playSfx('boom', position);
   const g = new THREE.Group(); scene.add(g);
   const ex = {group:g, age:0, scale, fire:[], smoke:[], debris:[], trails:[], life:13};
   const V0 = vel ? vel.clone().multiplyScalar(.35) : new THREE.Vector3();
@@ -1470,6 +1518,7 @@ function identifyContact(c) {
   if (state.aiTarget === c && !state.pursuitMode) state.aiTarget = null;
 }
 function endPursuit(msg) {
+  if (state.pursuitMode) missionLog('endPursuit', null, msg && /LOST|LEFT/.test(msg) ? 'TRACK LOST' : msg && /TERMINATED|cancelled/i.test(msg) ? 'TERMINATED' : msg ? 'ENDED' : 'IN PROGRESS');
   // Whatever we were chasing is done with: don't go back to investigate it (e.g. operator saw it's only birds).
   if (state.pursuitMode && state.aiTarget) state.ignoredTargets.add(state.aiTarget);
   state.pursuitMode = false; state.aiTarget = null; state.aiThink = 0; state.attack = {phase:'intercept', side:0};
@@ -1477,6 +1526,7 @@ function endPursuit(msg) {
   if (msg) toast(msg);
 }
 function aiThink() {
+  if (state.rtb) return;                                    // returning to base: no new investigations
   // User-confirmed pursuit: stay locked on that contact until collision, cancel, or it disappears.
   if (state.pursuitMode) {
     const t = state.aiTarget;
@@ -1650,6 +1700,7 @@ function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
   for (const a of ambientActors) { a.prev.copy(a.pos); if (a.type === 'birds') stepBird(a, h); else stepPlane(a, h); }
   for (const a of ambientActors.filter(x => x.gone)) removeAmbient(a);
+  updateFlares(h);
   // Random traffic: every 15-45 s something new appears 1.6-2.6 km from the drone (usually outside radar range).
   // No announcement — the radar has to find it.
   state.replenishTimer -= h;
@@ -1666,6 +1717,42 @@ function removeAmbient(a) {
   const i = ambientActors.indexOf(a); if (i >= 0) ambientActors.splice(i, 1);
   scene.remove(a.group); unregisterGroup(a.group); disposeImpostor(a); if (a.lights) for (const l of a.lights) scene.remove(l.spr);
 }
+// ── Flares ──
+// A scout being chased fires flare salvos once the drone gets within ~700 m behind it (3 salvos, 7-12 s apart).
+// Flares burn ~3 s, falling away behind it. They blind thermal: thermal identification near them is degraded and a
+// thermal seeker is briefly pulled towards them (drone veers ~2 s). The normal camera is not fooled.
+const flares = [];
+function fireFlares(s) {
+  s.flaresLeft = (s.flaresLeft === undefined ? 3 : s.flaresLeft) - 1; s.flareCd = 7 + Math.random() * 5;
+  for (let i = 0; i < 5; i++) {
+    const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color:0xfff1c8, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false}));
+    spr.renderOrder = 5; scene.add(spr);
+    const v = s.vel.clone().multiplyScalar(.35).add(new THREE.Vector3((Math.random() - .5) * 30, 4 + Math.random() * 8, (Math.random() - .5) * 30));
+    flares.push({pos:s.pos.clone(), vel:v, age:-i * .12, life:2.6 + Math.random() * 1, spr, owner:s});
+  }
+  if (state.aiTarget === s && state.pursuitMode) { state.decoyUntil = state.time + 2.2; radioMessage('FLARES · TARGET DEPLOYED COUNTERMEASURES'); }
+  playSfx('flare', s.pos);
+}
+function updateFlares(h) {
+  for (const s of scouts) {
+    if (s.destroyed || !(state.pursuitMode && state.aiTarget === s)) continue;
+    s.flareCd = (s.flareCd || 0) - h;
+    const r = state.pos.distanceTo(s.pos), rx = state.pos.x - s.pos.x, rz = state.pos.z - s.pos.z;
+    const behind = -(s.vel.x * rx + s.vel.z * rz) / (Math.hypot(s.vel.x, s.vel.z) * Math.hypot(rx, rz) + 1e-6);   // drone in its rear half
+    if (r < 700 && r > 60 && behind > .2 && s.flareCd <= 0 && (s.flaresLeft === undefined || s.flaresLeft > 0)) fireFlares(s);
+  }
+  for (const f of flares) {
+    f.age += h; if (f.age < 0) { f.spr.visible = false; continue; }
+    f.vel.y -= 4 * h; f.vel.multiplyScalar(Math.exp(-.8 * h)); f.pos.addScaledVector(f.vel, h);
+    const t = f.age / f.life; f.spr.visible = t < 1; f.spr.position.copy(f.pos);
+    const d = camera.position.distanceTo(f.pos);
+    f.spr.scale.setScalar(Math.max(3.5, d * .007) * (thermalOn ? 1.8 : 1) * (1 - .4 * t));
+    f.spr.material.opacity = (1 - t * t) * (.75 + .25 * Math.sin(f.age * 40));
+  }
+  for (let i = flares.length - 1; i >= 0; i--) if (flares[i].age > flares[i].life) { scene.remove(flares[i].spr); flares[i].spr.material.dispose(); flares.splice(i, 1); }
+}
+// 0..1: how strongly burning flares near point p blind a thermal sensor.
+function flareGlare(p) { let g = 0; for (const f of flares) if (f.age > 0 && f.age < f.life) g += Math.max(0, 1 - f.pos.distanceTo(p) / 220) * .35; return Math.min(1, g); }
 function spawnRandomTraffic() {
   const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length, nC = ambientActors.filter(x => x.type === 'cessna').length;
   const opts = []; if (nS < 6) opts.push('scout', 'scout'); if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane'); if (nC < 4) opts.push('cessna');
@@ -1761,7 +1848,9 @@ function classifyTick(c, d) {
   if (c.identified && !active && !closeLook) return;
   // Reading quality follows what the sensor actually resolves: the sharper the image, the better the reading.
   // Cloud in the way: the camera can't see through it; thermal partly can.
-  const cb = cloudBetween(state.pos, c.pos), q = sensorQuality(c) * (1 - blur) * Math.exp(-(thermalOn ? 1.4 : 5) * cb);
+  const cb = cloudBetween(state.pos, c.pos), fl = thermalOn ? flareGlare(c.pos) : 0;   // flares blind thermal
+  const q = sensorQuality(c) * (1 - blur) * Math.exp(-(thermalOn ? 1.4 : 5) * cb) * (1 - .8 * fl)
+    * (1 - .45 * sunGlareAt(_zq.subVectors(c.pos, state.pos).normalize()));   // looking into the sun (camera only)
   if (q < .05) return;
   // While tracked or seen up close, older readings fade so the current view drives the confidence
   // (~20 s normally, a few seconds when it's right in front of the sensor).
@@ -1774,6 +1863,7 @@ function classifyTick(c, d) {
   const prevGuess = c.guess;
   c.guess = best; c.conf = c.votes[best] / total * (1 - Math.exp(-total / 1.5));
   if (!c.identified && c.conf >= .6) {
+    missionLog('identified', c);
     c.identified = true;
     radioMessage('IDENTIFIED: ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '% · SELECT ON MAP TO TRACK');
   } else if (c.identified && prevGuess && prevGuess !== c.guess) radioMessage('RE-IDENTIFIED: ' + CLS_NAME[prevGuess] + ' → ' + CLS_NAME[c.guess] + ' · ' + confPct(c) + '%');
@@ -1798,7 +1888,7 @@ function radarScan(h) {
     const det = on && los && d < radarDetectRange(c);
     c.detected = det;
     if (det) {
-      if (!c.trk || c.trk.lost) { c.trk = {}; if (c.identified) radioMessage('TRACK REACQUIRED · ' + CLS_SHORT[c.guess]); }
+      if (!c.trk || c.trk.lost) { c.trk = {}; if (c.identified) radioMessage('TRACK REACQUIRED · ' + CLS_SHORT[c.guess]); if (state.time - (audio.pingT || -9) > .6) { playSfx('ping'); audio.pingT = state.time; } }
       // A radar plot: noisy position (≈6 m + 1.5 % of range), rough velocity, turn rate from successive plots.
       const n = 6 + d * .015, vn = 1 + .04 * Math.hypot(c.vel.x, c.vel.z);
       Object.assign(c.trk, {x:c.pos.x + gauss() * n, y:c.pos.y + gauss() * n * .5, z:c.pos.z + gauss() * n,
@@ -2002,6 +2092,199 @@ function drainBattery(h, watts) {
   if (before > .1 && state.battery <= .1) { radioMessage('BATTERY CRITICAL · 10%'); }
   if (before > 0 && state.battery <= 0) startBatteryFailure();
 }
+// ───────────────────────── Sound (synthesised with WebAudio — no files) ─────────────────────────
+// Groups: flight (engine/prop hum, hover rotor buzz, wind), fx (radar ping, lock tone, explosions, flares), alerts
+// (RTB chime/alarm, stall horn). Volumes in Settings → Audio, saved in localStorage; U mutes. Starts on first click/key
+// (browsers only allow audio after a user gesture).
+const audio = {ctx:null, vol:Object.assign({master:.7, flight:.6, fx:.8, alerts:.8, muted:false}, JSON.parse(localStorage.getItem('dl_audio') || '{}'))};
+function initAudio() {
+  if (audio.ctx) { if (audio.ctx.state === 'suspended') audio.ctx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  const ctx = audio.ctx = new AC(), mk = () => ctx.createGain();
+  audio.master = mk(); audio.master.connect(ctx.destination);
+  for (const g of ['flight', 'fx', 'alerts']) { audio[g] = mk(); audio[g].connect(audio.master); }
+  // noise buffer (shared)
+  const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  audio.noise = nb;
+  // engine / prop hum: two detuned saws through a low-pass
+  const eg = mk(); eg.gain.value = 0; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700; lp.connect(eg); eg.connect(audio.flight);
+  audio.eng = [ctx.createOscillator(), ctx.createOscillator()]; audio.eng.forEach((o, i) => { o.type = 'sawtooth'; o.frequency.value = 80 + i * 1.5; o.connect(lp); o.start(); });
+  audio.engGain = eg; audio.engLp = lp;
+  // hover rotor buzz
+  const rg = mk(); rg.gain.value = 0; rg.connect(audio.flight); const ro = ctx.createOscillator(); ro.type = 'square'; ro.frequency.value = 140; const rlp = ctx.createBiquadFilter(); rlp.type = 'lowpass'; rlp.frequency.value = 900; ro.connect(rlp); rlp.connect(rg); ro.start();
+  audio.rotGain = rg; audio.rotOsc = ro;
+  // wind: looping noise through a band-pass
+  const ws = ctx.createBufferSource(); ws.buffer = nb; ws.loop = true; const wf = ctx.createBiquadFilter(); wf.type = 'bandpass'; wf.frequency.value = 500; wf.Q.value = .6;
+  const wg = mk(); wg.gain.value = 0; ws.connect(wf); wf.connect(wg); wg.connect(audio.flight); ws.start();
+  audio.windGain = wg; audio.windF = wf;
+  // stall horn
+  const sg = mk(); sg.gain.value = 0; const so = ctx.createOscillator(); so.type = 'square'; so.frequency.value = 410; so.connect(sg); sg.connect(audio.alerts); so.start(); audio.stallGain = sg;
+  applyAudioVolumes();
+}
+function applyAudioVolumes() {
+  localStorage.setItem('dl_audio', JSON.stringify(audio.vol));
+  if (!audio.ctx) return; const t = audio.ctx.currentTime, v = audio.vol;
+  audio.master.gain.setTargetAtTime(v.muted ? 0 : v.master, t, .05);
+  for (const g of ['flight', 'fx', 'alerts']) audio[g].gain.setTargetAtTime(v[g], t, .05);
+}
+for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, initAudio, {passive:true});
+// Audio settings
+const VOL_IDS = {volMaster:'master', volFlight:'flight', volFx:'fx', volAlerts:'alerts'};
+for (const [id, k] of Object.entries(VOL_IDS)) { $(id).value = audio.vol[k]; $(id).addEventListener('input', () => { audio.vol[k] = +$(id).value; applyAudioVolumes(); }); }
+$('volMute').checked = audio.vol.muted; $('volMute').addEventListener('input', () => { audio.vol.muted = $('volMute').checked; applyAudioVolumes(); });
+$('volTest').onclick = () => { initAudio(); playSfx('chime'); setTimeout(() => playSfx('ping'), 600); };
+function tone(group, f0, f1, dur, type = 'sine', vol = .3, delay = 0) {
+  const c = audio.ctx; if (!c) return; const t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(audio[group]); o.start(t); o.stop(t + dur + .05);
+}
+function noiseBurst(group, dur, f0, f1, vol, delay = 0) {
+  const c = audio.ctx; if (!c) return; const t = c.currentTime + delay, src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+  src.buffer = audio.noise; f.type = 'lowpass'; f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  src.connect(f); f.connect(g); g.connect(audio[group]); src.start(t); src.stop(t + dur + .05);
+}
+function playSfx(name, pos) {
+  if (!audio.ctx || replay.active && name !== 'boom') return;
+  const near = pos ? 1 / (1 + camera.position.distanceTo(pos) / 350) : 1;
+  if (name === 'ping') { tone('fx', 1250, 1150, .35, 'sine', .12); }
+  else if (name === 'lock') { tone('fx', 1320, 1320, .06, 'square', .06); }
+  else if (name === 'boom') { noiseBurst('fx', 2.2, 1800, 60, .9 * near); tone('fx', 70, 30, 1.2, 'sine', .7 * near); }
+  else if (name === 'flare') { for (let i = 0; i < 5; i++) noiseBurst('fx', .18, 4000, 900, .25 * near, i * .12); }
+  else if (name === 'slap') { noiseBurst('fx', .12, 900, 120, .35); tone('fx', 110, 60, .12, 'sine', .3); }
+  else if (name === 'chime') { tone('alerts', 660, 660, .25, 'sine', .25); tone('alerts', 880, 880, .35, 'sine', .25, .22); }
+  else if (name === 'alarm') { for (let i = 0; i < 3; i++) { tone('alerts', 1000, 1000, .14, 'square', .14, i * .3); tone('alerts', 760, 760, .14, 'square', .14, i * .3 + .15); } }
+}
+// Continuous sounds follow the flight state every frame.
+function updateAudio(rdt) {
+  if (!audio.ctx) return; const t = audio.ctx.currentTime;
+  const flying = (state.launchStage !== 'parked') && !state.batteryDead && !state.crashed && !state.returning && !replay.active;
+  const air = state.cruiseSpeed || 0, mb = state.modeBlend || 0, ws = Math.hypot(state.vel.x, state.vel.y, state.vel.z);
+  const thr = flying ? clamp((state.lastWatts || 0) / 1600, .15, 1) : 0;
+  audio.eng.forEach((o, i) => o.frequency.setTargetAtTime(60 + air * 1.1 + thr * 30 + i * 1.7, t, .1));
+  audio.engLp.frequency.setTargetAtTime(400 + thr * 1400, t, .1);
+  audio.engGain.gain.setTargetAtTime(flying ? .07 + .1 * thr : 0, t, .15);
+  audio.rotGain.gain.setTargetAtTime(flying ? .06 * mb : 0, t, .15); audio.rotOsc.frequency.setTargetAtTime(120 + 60 * mb, t, .2);
+  audio.windGain.gain.setTargetAtTime(state.launchStage === 'parked' || replay.active ? 0 : Math.min(.5, ws / 140) * (state.batteryDead ? 1.4 : 1), t, .2);
+  audio.windF.frequency.setTargetAtTime(300 + ws * 9, t, .2);
+  audio.stallGain.gain.setTargetAtTime(state.stalled && flying ? .05 * (Math.sin(state.time * 12) > 0 ? 1 : 0) : 0, t, .02);
+  // lock tone: beeps faster as a pursued target gets closer (closing-in phase)
+  if (state.pursuitMode && state.aiTarget && (state.attack.phase === 'terminal' || state.attack.phase === 'join')) {
+    const r = state.pos.distanceTo(state.aiTarget.pos); audio.lockT = (audio.lockT || 0) - rdt;
+    if (audio.lockT <= 0) { playSfx('lock'); audio.lockT = clamp(r / 300, .08, .9); }
+  }
+}
+// ───────────────────────── Mission log & debrief ─────────────────────────
+// Each sortie (launch → pad) records the flight path, identifications, operator calls (★ flags), engagements and
+// incidents. On landing / after an intercept / after losing the aircraft a debrief card shows it all, ground truth
+// included, with a score. Sections "slap" onto the card one after another (entrance only, nothing else animates).
+state.sortie = 0;
+function missionLog(ev, c, extra) {
+  if (ev === 'start') { state.sortie++; state.mission = {n:state.sortie, t0:state.time, path:[[state.pos.x, state.pos.z]], ids:[], calls:new Map(), eng:[], incidents:0, hits:0, crashes:0, dist:0, last:state.pos.clone(), pathT:0, rtb:false}; return; }
+  const m = state.mission; if (!m) return;
+  if (ev === 'identified') m.ids.push({c, x:c.pos.x, z:c.pos.z, t:state.time});
+  else if (ev === 'flag') { if (c.userMark) m.calls.set(c, {c, x:c.pos.x, z:c.pos.z, t:state.time}); else m.calls.delete(c); }
+  else if (ev === 'pursue') m.eng.push({c, guess:c.guess, conf:confPct(c), result:'IN PROGRESS', x:c.pos.x, z:c.pos.z});
+  else if (ev === 'endPursuit') { const e = m.eng[m.eng.length - 1]; if (e && e.result === 'IN PROGRESS') { e.result = extra || 'TERMINATED'; e.x = state.pos.x; e.z = state.pos.z; } }
+  else if (ev === 'hit') { const e = m.eng[m.eng.length - 1], civ = !c.isScout; if (e && e.result === 'IN PROGRESS') { e.result = civ ? 'CIVILIAN INCIDENT' : 'HIT'; e.x = c.pos.x; e.z = c.pos.z; } if (civ) m.incidents++; else m.hits++; }
+  else if (ev === 'rtb') m.rtb = true;
+  else if (ev === 'crash') m.crashes++;
+}
+function missionSample(h) {
+  const m = state.mission; if (!m || state.launchStage === 'parked') return;
+  m.dist += Math.hypot(state.pos.x - m.last.x, state.pos.z - m.last.z); m.last.copy(state.pos);
+  m.pathT -= h; if (m.pathT <= 0) { m.pathT = 1.5; m.path.push([state.pos.x, state.pos.z]); }
+}
+const esc = t => String(t).replace(/[&<>]/g, ch => ({'&':'&amp;', '<':'&lt;', '>':'&gt;'}[ch]));
+function showDebrief(reason) {
+  const m = state.mission; if (!m) return;
+  m.path.push([state.pos.x, state.pos.z]); state.mission = null;
+  const dur = state.time - m.t0, mm = Math.floor(dur / 60), ss = Math.floor(dur % 60);
+  const ids = [...new Map(m.ids.map(i => [i.c, i])).values()];
+  const idRows = ids.map(i => { const c = i.c, tr = truthClass(c), ok = c.guess === tr; return {c, ok, tr}; });
+  const calls = [...m.calls.values()].map(k => { const tr = truthClass(k.c), ok = (k.c.userMark === 'threat') === isThreatClass(tr); return {...k, tr, ok, mark:k.c.userMark}; });
+  const idOk = idRows.filter(r => r.ok).length, callOk = calls.filter(r => r.ok).length, callBad = calls.length - callOk;
+  const lost = reason === 'battery';
+  const score = m.hits * 100 + idOk * 10 + callOk * 25 - callBad * 40 - m.incidents * 250 + (reason === 'landed' ? 50 : 0) - (lost ? 150 : 0) - m.crashes * 75;
+  const badge = reason === 'landed' ? ['LANDED SAFELY', 'ok'] : reason === 'intercept' ? (m.incidents ? ['CIVILIAN INCIDENT', 'bad'] : ['TARGET NEUTRALISED', 'ok']) : ['AIRCRAFT LOST', 'bad'];
+  const row = (cells, cls = '') => `<tr class="${cls}">${cells.map(x => `<td>${x}</td>`).join('')}</tr>`;
+  const mark = ok => ok ? '<b class="ok">✓</b>' : '<b class="bad">✗</b>';
+  const idTable = idRows.length ? `<table><tr><th>Identified as</th><th>Actual</th><th></th></tr>${idRows.slice(0, 14).map(r => row([`${esc(CLS_SHORT[r.c.guess])} <small>${confPct(r.c)}%</small>`, esc(CLS_SHORT[r.tr]), mark(r.ok)])).join('')}</table>${idRows.length > 14 ? `<small>+ ${idRows.length - 14} more</small>` : ''}` : '<p class="none">No identifications this sortie.</p>';
+  const callTable = calls.length ? `<table><tr><th>Your call</th><th>Actual</th><th></th></tr>${calls.map(r => row([r.mark === 'threat' ? '<b class="thr">★ THREAT</b>' : '<b class="civ">★ CIVIL</b>', esc(CLS_SHORT[r.tr]), mark(r.ok)])).join('')}</table>` : '<p class="none">No calls made — flag contacts in the gimbal scope with 1 / 2.</p>';
+  const engTable = m.eng.length ? `<table><tr><th>Target</th><th>Actual</th><th>Result</th></tr>${m.eng.map(e => row([`${esc(CLS_SHORT[e.guess])} <small>${e.conf}%</small>`, esc(CLS_SHORT[truthClass(e.c)]), `<b class="${e.result === 'HIT' ? 'ok' : e.result === 'CIVILIAN INCIDENT' ? 'bad' : 'mid'}">${esc(e.result)}</b>`])).join('')}</table>` : '<p class="none">No engagements.</p>';
+  const stat = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
+  $('debrief').innerHTML = `<div class="dbCard">
+    <div class="dbHead slap" style="--d:0s"><div><small>MISSION DEBRIEF</small><h2>SORTIE ${String(m.n).padStart(2, '0')}</h2></div><span class="badge ${badge[1]}">${badge[0]}</span>
+      <div class="dbStats">${stat('DURATION', mm + ':' + String(ss).padStart(2, '0'))}${stat('DISTANCE', (m.dist / 1000).toFixed(1) + ' km')}${stat('HITS', m.hits)}${stat('SCORE', score)}</div></div>
+    <div class="dbGrid">
+      <div class="dbSec slap" style="--d:.35s"><h4>FLIGHT PATH</h4><canvas id="dbMap" width="320" height="320"></canvas>
+        <div class="dbLegend"><i class="lp"></i>path <i class="lb">⌂</i>base <i class="lok">●</i>correct ID <i class="lx">●</i>wrong ID <i class="lt">★</i>call <i class="lh">✕</i>engagement</div></div>
+      <div class="dbCol">
+        <div class="dbSec slap" style="--d:.7s"><h4>IDENTIFICATIONS <small>${idOk}/${idRows.length} correct</small></h4>${idTable}</div>
+        <div class="dbSec slap" style="--d:1.05s"><h4>CALLS YOU MADE <small>${callOk}/${calls.length} correct</small></h4>${callTable}</div>
+        <div class="dbSec slap" style="--d:1.4s"><h4>ENGAGEMENTS</h4>${engTable}</div>
+      </div>
+    </div>
+    <div class="dbFoot slap" style="--d:1.75s"><small>Score: hits ×100 · correct IDs ×10 · correct calls ×25 · wrong calls −40 · civilian incidents −250 · safe landing +50 · aircraft lost −150</small><button id="dbContinue">Continue ▸</button></div>
+  </div>`;
+  $('debrief').classList.add('show');
+  for (const [i, d] of [0, .35, .7, 1.05, 1.4, 1.75].entries()) setTimeout(() => playSfx('slap'), d * 1000 + 120);
+  $('dbContinue').onclick = closeDebrief;
+  drawDebriefMap(m, idRows, calls);
+}
+function closeDebrief() { $('debrief').classList.remove('show'); }
+function drawDebriefMap(m, idRows, calls) {
+  const cv = $('dbMap'), x = cv.getContext('2d'), W = cv.width;
+  if (!mapTerrainCache) buildTerrainCache();
+  const [a0] = worldToMap(-ARENA, -ARENA), [a1] = worldToMap(ARENA, ARENA);
+  x.drawImage(mapTerrainCache, a0, a0, a1 - a0, a1 - a0, 0, 0, W, W);
+  x.fillStyle = 'rgba(4,12,20,.35)'; x.fillRect(0, 0, W, W);
+  const P = (wx, wz) => [(wx / (2 * ARENA) + .5) * W, (wz / (2 * ARENA) + .5) * W];
+  x.lineWidth = 2.2; x.strokeStyle = '#5ee0ff'; x.shadowColor = '#5ee0ff'; x.shadowBlur = 6; x.beginPath();
+  m.path.forEach(([px, pz], i) => { const [u, v] = P(px, pz); i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.stroke(); x.shadowBlur = 0;
+  const [bx, bz] = P(PAD.x, PAD.z); x.fillStyle = '#7affca'; x.font = 'bold 15px system-ui'; x.textAlign = 'center'; x.fillText('⌂', bx, bz + 5);
+  for (const r of idRows) { const [u, v] = P(r.c.pos.x, r.c.pos.z); const k = m.ids.find(i => i.c === r.c); const [iu, iv] = k ? P(k.x, k.z) : [u, v];
+    x.fillStyle = r.ok ? '#7affca' : '#ff6b6b'; x.beginPath(); x.arc(iu, iv, 3.5, 0, TAU); x.fill(); }
+  x.font = 'bold 12px system-ui';
+  for (const c of calls) { const [u, v] = P(c.x, c.z); x.fillStyle = c.mark === 'threat' ? '#ff9a6b' : '#9ec4d8'; x.fillText('★', u, v + 4); }
+  for (const e of m.eng) { const [u, v] = P(e.x, e.z); x.strokeStyle = e.result === 'HIT' ? '#ffd27a' : e.result === 'CIVILIAN INCIDENT' ? '#ff6b6b' : '#9fb8cc'; x.lineWidth = 2;
+    x.beginPath(); x.moveTo(u - 5, v - 5); x.lineTo(u + 5, v + 5); x.moveTo(u + 5, v - 5); x.lineTo(u - 5, v + 5); x.stroke(); }
+  const [ex, ez] = P(m.path[m.path.length - 1][0], m.path[m.path.length - 1][1]); x.strokeStyle = '#fff'; x.lineWidth = 1.5; x.beginPath(); x.arc(ex, ez, 5, 0, TAU); x.stroke();
+  x.strokeStyle = 'rgba(255,120,100,.6)'; x.setLineDash([5, 4]); x.strokeRect(1, 1, W - 2, W - 2); x.setLineDash([]);
+}
+// ── Return to base ──
+// Battery needed to get home and land: fly home at efficient cruise (ground speed into the current wind), then ~30 s of
+// approach, transition to hover and vertical descent at hover power, plus a 15 % safety margin. Recomputed every second.
+const PAD = {x:0, z:0}, LAND_POWER = 950, LAND_TIME = 40, RTB_MARGIN = 1.15;
+function rtbRequired() {
+  const dx = PAD.x - state.pos.x, dz = PAD.z - state.pos.z, d = Math.hypot(dx, dz);
+  const head = d > 1 ? -(wind.x * dx + wind.z * dz) / d : 0, gs = Math.max(20, V_CRUISE - head);
+  const wh = (flightPower(V_CRUISE, 0, 0) * d / gs + LAND_POWER * LAND_TIME) / 3600 * RTB_MARGIN;
+  return clamp(wh / BATTERY_WH, 0, 1);
+}
+function updateRtbWarnings(h) {
+  state.rtbCalcT = (state.rtbCalcT || 0) - h; if (state.rtbCalcT > 0) return; state.rtbCalcT = 1;
+  if (state.launchStage !== 'active' || state.batteryDead || state.crashed || state.returning) { state.rtbNeed = 0; return; }
+  state.rtbNeed = rtbRequired();
+  if (state.rtb) return;
+  const m = state.battery - state.rtbNeed, lvl = m <= 0 ? 3 : m <= .05 ? 2 : m <= .10 ? 1 : 0;
+  if (lvl > (state.rtbWarn || 0)) { state.rtbWarn = lvl; showRtbCard(lvl); }
+}
+function showRtbCard(lvl) {
+  const c = $('rtbCard'); c.className = 'show lvl' + lvl;
+  $('rtbTitle').textContent = lvl === 1 ? 'RETURN TO BASE ADVISED' : lvl === 2 ? 'RETURN TO BASE NOW' : 'BINGO · BELOW RETURN RESERVE';
+  radioMessage(lvl === 1 ? 'BATTERY · RETURN TO BASE ADVISED' : lvl === 2 ? 'BATTERY · RETURN TO BASE NOW' : 'BINGO BATTERY · MAY NOT MAKE IT HOME');
+  playSfx(lvl >= 2 ? 'alarm' : 'chime');
+}
+function acceptRtb() {
+  $('rtbCard').className = '';
+  if (state.launchStage !== 'active' || state.batteryDead) return;
+  if (state.pursuitMode) endPursuit('MISSION ABORTED');
+  state.aiTarget = null; mapWaypoint = null; state.manualWaypointActive = false; $('cancelWpBtn').style.display = 'none';
+  state.rtb = 'enroute'; radioMessage('MISSION ABORTED · RETURNING TO BASE');
+  missionLog('rtb');
+}
 function startBatteryFailure() {
   state.batteryDead = true; state.lastWatts = 0; state.lastCurrent = 0;
   endPursuit(); mapWaypoint = null; state.manualWaypointActive = false; $('cancelWpBtn').style.display = 'none';
@@ -2040,21 +2323,23 @@ function resetToPad(reason) {
   $('cancelTrackBtn').style.display = 'none'; $('cancelWpBtn').style.display = 'none';
   state.launchStage = 'parked'; state.aiActivated = false; state.aiActivationTime = 0; state.hover = true; state.modeBlend = 1; state.takeoffT = 0;
   state.gamma = 0; state.bank = 0; state.searchAltFor = null; state.attack = {phase:'intercept', side:0}; state.stalled = false;
+  state.rtb = false; state.rtbWarn = 0; state.rtbNeed = 0; $('rtbCard').className = '';
   state.battery = 1;   // recharged on the pad
   for (const sc of scouts) if (sc.destroyed) sc.removeAt = Math.min(sc.removeAt, state.time + .1);
   if (reason === 'battery') for (const c of [...scouts, ...ambientActors]) { c.identified = false; c.guess = null; c.conf = 0; c.votes = null; c.trk = null; }
   state.rot.set(0,0,0); snapPrev(); craft.visible = true;
   $('launchOverlay').style.display = 'flex'; $('launchBtn').disabled = false;
-  $('launchTitle').textContent = reason === 'battery' ? 'BATTERY REPLACED · ON PAD' : 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
+  $('launchTitle').textContent = reason === 'battery' ? 'BATTERY REPLACED · ON PAD' : reason === 'landed' ? 'LANDED · BATTERY RECHARGED' : 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
   $('launchHint').textContent = reason === 'battery' ? 'Aircraft lost after power loss. Fresh battery fitted — launch when ready.' : 'Targets intercepted: ' + state.tagCount + '. Launch for next sortie.';
   $('launchSequence').textContent = 'PAD STANDBY · AWAITING LAUNCH'; $('flightState').textContent = 'ON PAD';
   updatePauseButtons();
+  if (reason === 'landed' || reason === 'intercept' || reason === 'battery') showDebrief(reason); else state.mission = null;
 }
 // ───────────────────────── Flight physics ─────────────────────────
 const aim = new THREE.Vector3();
 function physicsStep(h) {
   state.prevPos.copy(state.pos); state.prevYaw = state.rot.y; state.prevPitch = state.rot.x; state.prevRoll = state.rot.z;
-  state.time += h; updateWind(h); updateWorld(h); updateExplosions(h); radarScan(h); recordFrame(h);
+  state.time += h; updateWind(h); updateRtbWarnings(h); missionSample(h); updateWorld(h); updateExplosions(h); radarScan(h); recordFrame(h);
   if (state.returning) {
     state.returnTimer -= h;
     if (state.returnTimer <= 0) resetToPad(state.returnReason);
@@ -2099,6 +2384,29 @@ function physicsStep(h) {
   }
 
 
+  // ── Vertical landing on the pad: slow down while the nose comes up into hover, hold over the pad, descend ──
+  if (state.rtb === 'landing') {
+    const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + 2.6;
+    const dx = PAD.x - state.pos.x, dz = PAD.z - state.pos.z, dH = Math.hypot(dx, dz);
+    state.cruiseSpeed = Math.max(0, state.cruiseSpeed - 7 * h);
+    // In hover the lift rotors can still translate the drone (up to ~8 m/s) so it always reaches the pad.
+    const vh = Math.min(Math.max(state.cruiseSpeed, 8), dH * .5), ux = dH > .01 ? dx / dH : 0, uz = dH > .01 ? dz / dH : 0;
+    state.vel.x = damp(state.vel.x, ux * vh, 3, h); state.vel.z = damp(state.vel.z, uz * vh, 3, h);
+    const hs = Math.hypot(state.vel.x, state.vel.z), agl = state.pos.y - padY;
+    // Descend once close: fast high up, gently in the last metres (≈5 m/s → 0.8 m/s).
+    const descend = dH < 40 ? clamp(agl * .25, .8, 5) * (1 - smoothstep(10, 40, dH) * .7) : 0;
+    state.vel.y = damp(state.vel.y, -descend, 2, h);
+    state.pos.addScaledVector(state.vel, h);
+    state.modeBlend = damp(state.modeBlend, 1 - smoothstep(4, 40, hs), 1.5, h);
+    state.gamma = 0; state.bank = damp(state.bank, 0, 3, h); state.rot.x = damp(state.rot.x, 0, 2, h); state.rot.z = state.bank;
+    drainBattery(h, LAND_POWER);
+    $('flightState').textContent = 'LANDING · ' + Math.max(0, state.pos.y - padY).toFixed(0) + ' m';
+    if (state.pos.y <= padY + .3 && dH < 8) {
+      state.rtb = false; radioMessage('TOUCHDOWN · LANDED SAFELY · RECHARGING');
+      missionLog('landed'); resetToPad('landed');
+    }
+    return;
+  }
   // ── AI brain (5 Hz) and terrain lookahead (10 Hz); guidance + flight dynamics run every step ──
   const inp = getInput();
   state.aiThink -= h; if (state.aiThink <= 0) { state.aiThink = .2; aiThink(); }
@@ -2108,13 +2416,29 @@ function physicsStep(h) {
   let range = Infinity;
   // Guidance output: aim point, arrival altitude, desired airspeed, bank limit, terminal tracking flag
   const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null;
-  if (tgt) {
+  if (state.rtb === 'enroute') {
+    // Home: cruise at a safe height, then a stabilised approach that arrives ~50 m over the pad at ~40 m/s.
+    const dH = Math.hypot(PAD.x - px, PAD.z - pz), padY = terrainHeight(PAD.x, PAD.z);
+    G_.aim.set(PAD.x, 0, PAD.z); G_.clear = 60;
+    // Glide path: 60 m over the pad at 150 m out, rising ~8 % with distance (≈5°), never below the route's terrain.
+    G_.alt = Math.max(padY + 60 + Math.max(0, dH - 150) * .08, dH > 1500 ? state.routeFloorY + 100 : 0);
+    G_.speed = lerp(40, V_CRUISE, smoothstep(250, 1500, dH));
+    if (dH < 1500) { G_.track = true; G_.vy = 0; G_.ff = 0; G_.tau = 3; G_.clear = 35; G_.look = 400; }   // fly the glide path tightly
+    if (dH < 150 && state.pos.y - padY < 130) { state.rtb = 'landing'; state.landT = 0; radioMessage('ON FINAL · TRANSITION TO HOVER · LANDING'); }
+  } else if (tgt) {
     range = state.pos.distanceTo(tgt.pos);
     if (state.pursuitMode && !tgt.detected) {
       // Off radar: fly to the dead-reckoned estimate (fast, efficient-ish) until the radar picks it up again.
       trackPos(tgt, _est); G_.aim.set(_est.x, 0, _est.z); G_.alt = _est.y; G_.speed = V_DASH * .85; G_.clear = 80;
       state.attack.phase = 'search';
-    } else if (state.pursuitMode) attackGuidance(tgt, G_);
+    } else if (state.pursuitMode) {
+      attackGuidance(tgt, G_);
+      // Thermal seeker decoyed by fresh flares: steer towards the flare cloud for a moment.
+      if (thermalOn && state.decoyUntil > state.time && flares.length) {
+        const c = new THREE.Vector3(); let n = 0; for (const f of flares) if (f.owner === tgt && f.age > 0) { c.add(f.pos); n++; }
+        if (n) { c.multiplyScalar(1 / n); G_.aim.lerp(c, .8); G_.alt = lerp(G_.alt, c.y, .8); G_.rateCmd = null; state.attack.phase = 'decoyed'; }
+      }
+    }
     else {
       // Investigate: fly a lead course towards the unknown contact, arriving at its altitude.
       const tg = Math.min(30, range / Math.max(30, state.cruiseSpeed));
@@ -2220,7 +2544,7 @@ function physicsStep(h) {
   if (state.pos.y < groundY + 3) {
     explodeAt(new THREE.Vector3(state.pos.x, groundY + 1, state.pos.z), 2.0);
     state.crashed = true; state.crashTimer = 1.45; state.vel.set(0,0,0); craft.visible = false; endPursuit();
-    radioMessage('WARNING · TERRAIN IMPACT · RECOVERY SEQUENCE'); return;
+    radioMessage('WARNING · TERRAIN IMPACT · RECOVERY SEQUENCE'); missionLog('crash'); return;
   }
   const speed = state.vel.length();
   // Attitude follows the aerodynamics: nose on the flight path (+ small angle of attack), roll = bank.
@@ -2240,7 +2564,7 @@ function physicsStep(h) {
       state.civilianIncidents = (state.civilianIncidents || 0) + 1;
       radioMessage('CIVILIAN INCIDENT · collided with ' + name + (tgt.guess !== truthClass(tgt) ? ' (was identified as ' + CLS_NAME[tgt.guess] + ' ' + confPct(tgt) + '%)' : ''));
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Rec'; $('recordBtn').classList.remove('active'); }
-      impact(tgt, 'CIVILIAN INCIDENT · ' + name); return;
+      missionLog('hit', tgt); impact(tgt, 'CIVILIAN INCIDENT · ' + name); return;
     }
   }
   // Intercept test against each scout's oriented bounding volume
@@ -2254,6 +2578,7 @@ function physicsStep(h) {
       $('missionState').textContent = 'THREAT NEUTRALISED'; radioMessage('THREAT NEUTRALISED · ' + s.spec.label + (s.guess && s.guess !== s.kind ? ' (was identified as ' + CLS_NAME[s.guess] + ')' : '') + ' · RETURNING TO PAD');
       actLog('Scout tagged: ' + s.spec.label + ' · total ' + state.tagCount + ' · returning to pad', 'ok');
       if (state.recording && state.history.length) { exportTelemetry('intercept'); state.recording = false; $('recordBtn').textContent = '● Rec'; $('recordBtn').classList.remove('active'); }
+      if (state.aiTarget === s && state.pursuitMode) missionLog('hit', s); else if (state.mission) state.mission.hits++;
       impact(s, 'THREAT NEUTRALISED · ' + s.spec.label);
       return;
     }
@@ -2373,6 +2698,24 @@ function stepReplay(rdt) {
   updateExplosions(rdt * speed);
 }
 
+// ── Sun glare (normal camera only, deliberately mild) ──
+// Looking towards the sun washes the picture out a little (soft overlay in the main view and the gimbal window) and
+// makes things near the sun's direction somewhat harder to identify. Thermal is not affected.
+const sunW = new THREE.Vector3(0, 1, 0);
+function sunGlareAt(dir) {                                  // dir: unit view direction → 0..1 glare
+  if (thermalOn || sunW.y < -.02) return 0;
+  const a = dir.dot(sunW), ws = state.weatherStrength || 0;
+  return smoothstep(.86, .995, a) * smoothstep(-.02, .15, sunW.y) * (1 - .8 * ws);
+}
+const _gv = new THREE.Vector3();
+function drawGlare(el, cam, rect) {
+  _gv.set(0, 0, -1).applyQuaternion(cam.quaternion); const g = sunGlareAt(_gv);
+  if (g < .01) { el.style.opacity = 0; return; }
+  _gv.copy(cam.position).addScaledVector(sunW, 1000).project(cam);
+  const x = (_gv.x * .5 + .5) * 100, y = (-_gv.y * .5 + .5) * 100;
+  el.style.background = `radial-gradient(circle at ${x}% ${y}%, rgba(255,250,232,.95) 0%, rgba(255,240,200,.55) 10%, rgba(255,230,190,.18) 35%, rgba(255,230,190,0) 65%)`;
+  el.style.opacity = (g * .55).toFixed(3);                   // mild
+}
 // ───────────────────────── Environment ─────────────────────────
 const cTopN = new THREE.Color(0x03060d), cTopD = new THREE.Color(0x3f7fc4), cHorN = new THREE.Color(0x101a2b), cHorD = new THREE.Color(0xa7c4d8), cWx = new THREE.Color(0x8d9ba5), cTwi = new THREE.Color(0xf0a070);
 const cSunLow = new THREE.Color(0xffa860), cSunHi = new THREE.Color(0xffffff), tmpC = new THREE.Color(), tmpC2 = new THREE.Color();
@@ -2387,7 +2730,7 @@ function updateEnvironment(rdt) {
   }
   state.weatherStrength += (state.weatherTarget - state.weatherStrength) * (1 - Math.exp(-.35 * edt));      // weather eases in instead of popping
   const ws = state.weatherStrength, daylight = clamp((cosC + .28) / .75, 0, 1), twi = Math.max(0, 1 - Math.abs(cosC) / .3) * (1 - ws * .5);
-  const sunDir = skyU.uSunDir.value.set(Math.sin(state.dayClock) * .7, cosC, -.45).normalize();
+  const sunDir = skyU.uSunDir.value.set(Math.sin(state.dayClock) * .7, cosC, -.45).normalize(); sunW.copy(sunDir);
   sun.position.copy(sunDir).multiplyScalar(200); sun.color.lerpColors(cSunLow, cSunHi, smoothstep(0, .5, sunDir.y));
   skyU.uTop.value.copy(cTopN).lerp(cTopD, daylight).lerp(cWx, ws * .5);
   skyU.uHorizon.value.copy(cHorN).lerp(cHorD, daylight).lerp(cWx, ws * .6).lerp(cTwi, twi * .5);
@@ -2664,6 +3007,8 @@ function updateHud(rdt) {
   $('speedBig').textContent = (air * 3.6).toFixed(0) + ' km/h'; $('speedHud').textContent = 'GS ' + (Math.hypot(state.vel.x, state.vel.z) * 3.6).toFixed(0) + ' km/h'; $('altHud').textContent = Math.max(0, alt - terrainHeight(state.pos.x, state.pos.z)).toFixed(0) + ' m'; $('aslHud').textContent = 'ASL ' + alt.toFixed(0) + ' m'; const _bp = state.battery * 100;
   $('batteryHud').textContent = _bp.toFixed(0) + '%';
   $('battFill').style.width = _bp.toFixed(1) + '%';
+  $('battNeed').style.left = (state.rtbNeed ? Math.min(100, state.rtbNeed * 100) : -10) + '%';
+  if ($('rtbCard').classList.contains('show')) $('rtbInfo').textContent = 'Battery ' + Math.round(state.battery * 100) + '% · needed to fly home and land ' + Math.round(state.rtbNeed * 100) + '% · ' + (Math.hypot(state.pos.x, state.pos.z) / 1000).toFixed(1) + ' km to base';
   $('battFill').style.background = _bp > 55 ? '#7affca' : _bp > 25 ? '#ffe47d' : '#ff5555'; { const w = Math.max(150, state.lastWatts || 0), secLeft = state.battery * BATTERY_WH * 3600 / w;
     $('powerHud').textContent = state.batteryDead ? 'MOTORS OFF' : state.launchStage === 'parked' ? 'CHARGED' : '~' + Math.floor(secLeft / 60) + ':' + String(Math.floor(secLeft % 60)).padStart(2,'0') + ' left · ' + Math.round(w) + ' W'; }
   $('speedM').textContent = spdTxt; $('altM').textContent = alt.toFixed(1) + ' m'; $('battM').textContent = (state.battery * 100).toFixed(0) + '%'; $('voltM').textContent = (state.lastVoltage || 22.2).toFixed(1) + ' V'; $('currM').textContent = (state.lastCurrent || 0).toFixed(1) + ' A'; $('wattM').textContent = Math.round(state.lastWatts || 0) + ' W';
@@ -2678,7 +3023,8 @@ function updateHud(rdt) {
     (inc ? `<span style="color:#ff8a7a">CIVILIAN INCIDENTS</span><b class="hot">${inc}</b>` : '');
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
     if (state.stalled) { $('flightState').innerHTML = '<span style="color:#ff6b6b">⚠ STALL · RECOVERING</span>'; } else
-    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
+    if (state.rtb === 'enroute') { $('flightState').textContent = 'RETURNING TO BASE · ' + (Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000).toFixed(1) + ' km'; } else
+    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS', decoyed:'DECOYED BY FLARES'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
       const conf = known ? Math.round(clamp(70 + (1 - dist / 800) * 28, 70, 98)) : Math.round(progress * 60);
@@ -2748,7 +3094,7 @@ function animate(now) {
   if (replay.active) { updateEnvironment(0); stepReplay(rdt); updateAircraftLights(); renderer.render(scene, camera); return; }
   updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt);
   updateContactViews(); updateAircraftLights();
-  renderer.render(scene, camera); renderZoomView(rdt); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
+  updateAudio(rdt); renderer.render(scene, camera); drawGlare($('glare'), camera); renderZoomView(rdt); if (zv.open) drawGlare($('zvGlare'), zoomCam); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
 }
 requestAnimationFrame(animate);
 
