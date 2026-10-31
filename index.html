@@ -2031,13 +2031,12 @@ function frameAt(t) {
 }
 function stepReplay(rdt) {
   const rp = replay.rp, toImpact = replay.tEnd - replay.t;
-  // Real time while chasing, slow motion as it closes, extra-slow for the final second (≈17 s total).
-  const speed = replay.boomed ? .45 : toImpact < 1 ? .15 : toImpact < 3 ? .4 : 1;
+  const speed = 1;   // plain real-time replay (no slow motion)
   const {a, b, k} = frameAt(replay.t);
   const L = (i) => lerp(a.d[i], b.d[i], k);
   _rq.set(L(0), L(1), L(2)); const ry = a.d[4] + wrapAngle(b.d[4] - a.d[4]) * k, mb = L(6);
   // Moving parts keep moving in the replay (scaled by the replay speed, so slow motion looks slow).
-  { const sp = rdt * (replay.boomed ? .45 : (toImpact < 1 ? .15 : toImpact < 3 ? .4 : 1));
+  { const sp = rdt * speed;
     for (let i = 0; i < liftRotors.length; i++) liftRotors[i].rotation.z += 38 * (i % 2 ? -1 : 1) * sp;
     for (const o of a.objs) { const ob = o[0]; if (ob.propeller) ob.propeller.rotation.z += 70 * sp;
       if (ob.type === 'birds') for (const bd of ob.group.children) { const f = Math.sin((replay.t) * 11 + bd.userData.phase) * .38; bd.userData.wings[0].rotation.z = -.16 - f; bd.userData.wings[1].rotation.z = .16 + f; } } }
@@ -2074,7 +2073,7 @@ function stepReplay(rdt) {
     const on = !replay.boomed && tmpP.z > -1 && tmpP.z < 1 && Math.abs(tmpP.x) < 1 && Math.abs(tmpP.y) < 1;
     tag.style.display = on ? 'block' : 'none';
     if (on) { tag.style.left = ((tmpP.x * .5 + .5) * vpW) + 'px'; tag.style.top = ((-tmpP.y * .5 + .5) * vpH) + 'px'; tag.querySelector('span').textContent = 'TARGET · ' + (rp.target.guess ? CLS_SHORT[rp.target.guess] : '') + ' · ' + Math.round(sep) + ' m'; } }
-  $('replayInfo').textContent = '▶ REPLAY · ' + (rp.label || 'IMPACT') + ' · ' + cut + (speed < 1 ? ' · SLOW MOTION ×' + speed : '');
+  $('replayInfo').textContent = '▶ REPLAY · ' + (rp.label || 'IMPACT') + ' · ' + cut;
   if (!replay.boomed) {
     replay.t += rdt * speed;
     if (replay.t >= replay.tEnd) {
