@@ -1600,7 +1600,7 @@ function aiThink() {
     if (chosen && chosen.c !== cur && chosen.sc > curScore + .22) cur = chosen.c;
   } else if (chosen) cur = chosen.c;
   if (cur !== state.aiTarget) {
-    state.aiTarget = cur; hudAcc = 1; if (cur) { cur.inspectStart = state.time; state.nudging = false; state.altBias = 0; }
+    state.aiTarget = cur; hudAcc = 1; if (cur) { cur.inspectStart = state.time; state.nudging = false; state.userAlt = null; state.altNudge = false; }
     if (cur) radioMessage('UNKNOWN CONTACT · ' + Math.round(state.pos.distanceTo(cur.pos)) + ' m · INVESTIGATING');
   }
 }
@@ -2395,7 +2395,7 @@ function resetToPad(reason) {
   if (state.mission && !state.mission.end) state.mission.end = [state.pos.x, state.pos.z];   // where the sortie ended (before moving to the pad)
   state.returning = false; state.crashed = false; state.batteryDead = false;
   if (reason === 'landed') state.pos.y = terrainHeight(0, 0) + 2.6; else state.pos.set(0, terrainHeight(0,0) + 2.6, 0);   // landed: stays where it touched down
-  state.vel.set(0,0,0); state.altCmd = state.pos.y; state.tiltX = state.tiltZ = 0; state.rtbAlt = null; state.landAim = null;
+  state.vel.set(0,0,0); state.altCmd = state.pos.y; state.tiltX = state.tiltZ = 0; state.rtbAlt = null; state.landAim = null; state.userAlt = null; state.nudging = false; state.altNudge = false;
   state.cruiseSpeed = 0; state.turnCmd = 0; state.searchWp = null; state.ignoredTargets.clear();
   state.aiTarget = null; state.pursuitMode = false; state.manualWaypointActive = false; mapWaypoint = null;
   $('cancelTrackBtn').style.display = 'none'; $('cancelWpBtn').style.display = 'none';
@@ -2526,7 +2526,7 @@ function physicsStep(h) {
   const px = state.pos.x, pz = state.pos.z;
   let range = Infinity;
   // Guidance output: aim point, arrival altitude, desired airspeed, bank limit, terminal tracking flag
-  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null; G_.tGo = 0; G_.nudgeRate = null;
+  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null; G_.tGo = 0; G_.nudgeRate = null; G_.vsCmd = null;
   if (state.rtb === 'enroute') {
     // Home: one smooth altitude profile — clear the highest terrain on the remaining route (re-planned 1×/s, the goal
     // eased so it never steps) and the approach glide path near the pad; climbs/descents follow a fixed time
@@ -2585,7 +2585,10 @@ function physicsStep(h) {
     // A/D turn while held; on release the search continues straight ahead from the new heading (no swinging back).
     // W/S raise/lower the search altitude and it stays there (never below the terrain-clearance floor).
     { const free = !state.manualWaypointActive && !mapWaypoint, nr = free ? inp.r : 0, nz = free ? inp.z : 0;
-      if (nz && !(nz < 0 && state.searchAlt + (state.altBias || 0) <= state.routeFloorY + 125)) state.altBias = clamp((state.altBias || 0) + nz * 14 * h, -400, 600);
+      // W/S: direct climb ~10 m/s / descent ~12 m/s while held; on release that altitude becomes the search altitude.
+      if (nz) { const agl = state.pos.y - terrainHeight(px, pz);
+        G_.vsCmd = nz > 0 ? (agl < 1200 ? 10 : 0) : (state.pos.y > state.routeFloorY + 125 ? -12 : 0); state.altNudge = true; }
+      else if (state.altNudge) { state.altNudge = false; state.userAlt = state.pos.y; }   // kept for every search leg until the AI takes over
       if (nr) { G_.nudgeRate = nr * .3; state.nudging = true; state.nudgeT = state.time; }
       else if (state.nudging && state.time - state.nudgeT > .15) {
         state.nudging = false;
@@ -2593,7 +2596,7 @@ function physicsStep(h) {
         state.searchWp = new THREE.Vector3(x, 0, z); state.searchTimer = 30; state.searchAltFor = state.searchWp;   // keep the current altitude
       }
       if (nz) state.nudgeT = state.time; }
-    G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.searchAlt + (state.altBias || 0); G_.clear = 120;
+    G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.userAlt ?? state.searchAlt; G_.clear = 120;
     { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
       G_.speed = V_CRUISE + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind
   }
@@ -2647,7 +2650,8 @@ function physicsStep(h) {
   const distH = Math.hypot(G_.aim.x - px, G_.aim.z - pz);
   const goalY = Math.max(G_.alt, state.routeFloorY + G_.clear);
   let vs;
-  if (G_.track) vs = G_.vy * G_.ff + (goalY - state.pos.y) / G_.tau;   // pursuit: copy target's climb + trim error
+  if (G_.vsCmd !== null) vs = G_.vsCmd;                                  // operator W/S nudge: direct climb/descent
+  else if (G_.track) vs = G_.vy * G_.ff + (goalY - state.pos.y) / G_.tau;   // pursuit: copy target's climb + trim error
   else {
     const tGo = G_.tGo || Math.max(6, distH / V);
     vs = (goalY - state.pos.y) / tGo;
