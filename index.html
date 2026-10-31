@@ -269,8 +269,9 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td>mouse</td><td>Free orbit: drag rotate · wheel zoom · double-click reset</td></tr>
           <tr><td><kbd>T</kbd></td><td>Thermal on / off</td></tr>
           <tr><td><kbd>P</kbd></td><td>Thermal palette</td></tr>
-          <tr><th colspan="2">Flight nudges (while searching)</th></tr>
-          <tr><td><kbd>A</kbd> <kbd>D</kbd> · <kbd>R</kbd> <kbd>F</kbd></td><td>Steer left/right · higher/lower</td></tr>
+          <tr><th colspan="2">Flight nudges (only while the AI is searching with nothing to investigate)</th></tr>
+          <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>Turn left / right while held — search continues in the new direction</td></tr>
+          <tr><td><kbd>W</kbd> <kbd>S</kbd></td><td>Climb / descend while held — new search altitude is kept</td></tr>
           <tr><th colspan="2">Panels</th></tr>
           <tr><td><kbd>H</kbd> · <kbd>Esc</kbd></td><td>Open these settings · close</td></tr>
           <tr><td><kbd>U</kbd></td><td>Mute / unmute sound (volumes in the Audio tab)</td></tr>
@@ -1026,6 +1027,7 @@ window.addEventListener('keydown', e => {
   if (k === ' ') togglePause(); if (k === 'c') toggleCamera(); if (k === 't') setThermal(!thermalOn); if (k === 'p') cyclePalette(); if (k === 'n') spawnSelected();
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur', () => keys.clear());   // no stuck nudge keys after alt-tab
 // Free orbit camera input: drag to orbit (with inertia), wheel to zoom (exponential), double-click to reset behind.
 // Targets set here; updateCamera() eases the actual camera towards them every frame.
 let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .3, orbitDist = 34, orbitVX = 0, orbitVY = 0;
@@ -1077,6 +1079,8 @@ const markCur = m => {
   if (!hasTrack(t)) { t.trk = {x:t.pos.x, y:t.pos.y, z:t.pos.z, vx:t.vel.x, vy:t.vel.y, vz:t.vel.z, w:0, seen:state.time, lost:false, covered:0, noise:20}; logEvent('Visual sighting added to map'); }
   t.identified = true;
   t.userMark = t.userMark === m ? null : m; missionLog('flag', t);
+  // A flagged contact is settled: the AI stops inspecting it now and never comes back to it.
+  if (t.userMark) { state.ignoredTargets.add(t); if (state.aiTarget === t && !state.pursuitMode) { state.aiTarget = null; state.aiThink = 0; hudAcc = 1; } }
   logEvent(t.userMark ? 'Operator flagged contact as ' + (m === 'threat' ? 'THREAT' : 'CIVILIAN') : 'Operator flag removed', t.userMark === 'threat' ? 'warn' : 'ok');
 };
 $('zvMarkT').onclick = () => markCur('threat'); $('zvMarkC').onclick = () => markCur('civil');
@@ -1258,7 +1262,7 @@ function drawMap() {
   }
 
   // 7b. Compass rose (north = map up) with the drone's heading on the ring
-  { const R = 30, cx = MAP_SIZE - R - 22, cy = R + 24, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
+  { const R = 30, [bx, by] = worldToMap(ARENA, -ARENA), cx = bx - R - 20, cy = by + R + 22, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
     ctx.save(); ctx.translate(cx, cy);
     ctx.fillStyle = 'rgba(8,18,28,.72)'; ctx.strokeStyle = 'rgba(122,255,202,.35)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill(); ctx.stroke();
@@ -1439,7 +1443,7 @@ $('resetBtn').onclick = () => {
 };
 function getInput() {
   let p = 0, r = 0, y = 0, z = 0, boost = keys.has('shift') ? 1.35 : 1;
-  if (keys.has('w')) p += 1; if (keys.has('s')) p -= 1; if (keys.has('a')) r += 1; if (keys.has('d')) r -= 1; if (keys.has('q')) y += 1; if (keys.has('e')) y -= 1; if (keys.has('r')) z += 1; if (keys.has('f')) z -= 1;
+  if (keys.has('a')) r += 1; if (keys.has('d')) r -= 1; if (keys.has('w')) z += 1; if (keys.has('s')) z -= 1;   // nudges: A/D turn, W/S higher/lower
   const pads = navigator.getGamepads?.() || [];
   for (const pad of pads) { if (pad) { if (Math.abs(pad.axes[0] || 0) > .12) r = -pad.axes[0]; if (Math.abs(pad.axes[1] || 0) > .12) p = -pad.axes[1]; if (pad.buttons[7]?.pressed) z = 1; if (pad.buttons[6]?.pressed) z = -1; break; } }
   return {p, r, y, z, boost};
@@ -1570,7 +1574,7 @@ function aiThink() {
   const mode = $('aiMode').value, fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);
   let cur = state.aiTarget;
   if (cur) {
-    if (!contactAlive(cur) || state.ignoredTargets.has(cur) || !cur.detected) cur = null;
+    if (!contactAlive(cur) || state.ignoredTargets.has(cur) || !cur.detected || cur.userMark) cur = null;
     else {
       // Done with it once the classification is confident, or we've had a good close look.
       // …or after ~45 s of trying (poor sensor conditions): keep the best guess so far and move on.
@@ -1585,7 +1589,7 @@ function aiThink() {
   // Candidates: radar contacts not yet confidently classified.
   const list = [];
   for (const c of [...scouts, ...ambientActors]) {
-    if (!c.detected || (c.conf || 0) >= .85 || !contactAlive(c) || state.ignoredTargets.has(c)) continue;
+    if (!c.detected || c.userMark || (c.conf || 0) >= .85 || !contactAlive(c) || state.ignoredTargets.has(c)) continue;   // operator-flagged = settled, never inspected
     const sc = scoreContact(c, fx, fz, mode); if (sc >= 0) list.push({c, sc});
   }
   list.sort((a, b) => b.sc - a.sc);
@@ -1596,7 +1600,7 @@ function aiThink() {
     if (chosen && chosen.c !== cur && chosen.sc > curScore + .22) cur = chosen.c;
   } else if (chosen) cur = chosen.c;
   if (cur !== state.aiTarget) {
-    state.aiTarget = cur; hudAcc = 1; if (cur) cur.inspectStart = state.time;
+    state.aiTarget = cur; hudAcc = 1; if (cur) { cur.inspectStart = state.time; state.nudging = false; state.altBias = 0; }
     if (cur) radioMessage('UNKNOWN CONTACT · ' + Math.round(state.pos.distanceTo(cur.pos)) + ' m · INVESTIGATING');
   }
 }
@@ -2517,10 +2521,12 @@ function physicsStep(h) {
   state.aiThink -= h; if (state.aiThink <= 0) { state.aiThink = .2; aiThink(); }
   state.routeTimer -= h; if (state.routeTimer <= 0) { state.routeTimer = .1; updateRoutePeak(); }
   const tgt = state.aiTarget, ground = terrainHeight(state.pos.x, state.pos.z);
+  if ((inp.r || inp.z) && (tgt || state.rtb || state.manualWaypointActive) && state.time - (state.nudgeWarnT ?? -9) > 4) {
+    state.nudgeWarnT = state.time; logEvent('Nudges only while searching · AI is ' + (state.rtb ? 'returning to base' : state.pursuitMode ? 'pursuing' : tgt ? 'investigating a contact' : 'flying to your waypoint'), 'warn'); }
   const px = state.pos.x, pz = state.pos.z;
   let range = Infinity;
   // Guidance output: aim point, arrival altitude, desired airspeed, bank limit, terminal tracking flag
-  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null; G_.tGo = 0;
+  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null; G_.tGo = 0; G_.nudgeRate = null;
   if (state.rtb === 'enroute') {
     // Home: one smooth altitude profile — clear the highest terrain on the remaining route (re-planned 1×/s, the goal
     // eased so it never steps) and the approach glide path near the pad; climbs/descents follow a fixed time
@@ -2575,7 +2581,19 @@ function physicsStep(h) {
       state.searchAltFor = state.searchWp;
       state.searchAlt = Math.max(routeFloor(px, pz, state.searchWp.x, state.searchWp.z) + 150, terrainHeight(state.searchWp.x, state.searchWp.z) + 200);
     }
-    G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.searchAlt + inp.z * 60; G_.clear = 120;
+    // Operator nudges (only while the AI is just searching — not investigating, chasing, on a waypoint or going home).
+    // A/D turn while held; on release the search continues straight ahead from the new heading (no swinging back).
+    // W/S raise/lower the search altitude and it stays there (never below the terrain-clearance floor).
+    { const free = !state.manualWaypointActive && !mapWaypoint, nr = free ? inp.r : 0, nz = free ? inp.z : 0;
+      if (nz && !(nz < 0 && state.searchAlt + (state.altBias || 0) <= state.routeFloorY + 125)) state.altBias = clamp((state.altBias || 0) + nz * 14 * h, -400, 600);
+      if (nr) { G_.nudgeRate = nr * .3; state.nudging = true; state.nudgeT = state.time; }
+      else if (state.nudging && state.time - state.nudgeT > .15) {
+        state.nudging = false;
+        const d = 1500, x = clamp(px - Math.sin(state.rot.y) * d, -(ARENA - 500), ARENA - 500), z = clamp(pz - Math.cos(state.rot.y) * d, -(ARENA - 500), ARENA - 500);
+        state.searchWp = new THREE.Vector3(x, 0, z); state.searchTimer = 30; state.searchAltFor = state.searchWp;   // keep the current altitude
+      }
+      if (nz) state.nudgeT = state.time; }
+    G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.searchAlt + (state.altBias || 0); G_.clear = 120;
     { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
       G_.speed = V_CRUISE + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind
   }
@@ -2599,7 +2617,7 @@ function physicsStep(h) {
   const V = Math.max(V_MIN, state.cruiseSpeed);
   const desiredYaw = crabHeading(Math.atan2(-(G_.aim.x - px), -(G_.aim.z - pz)), Math.max(V_MIN, state.cruiseSpeed));
   const hErr = wrapAngle(desiredYaw - state.rot.y);
-  const wantRate = clamp((G_.rateCmd !== null ? G_.rateCmd : hErr * 1.1) + inp.r * .3, -1.2, 1.2);
+  const wantRate = clamp(G_.nudgeRate !== null ? G_.nudgeRate : G_.rateCmd !== null ? G_.rateCmd : hErr * 1.1, -1.2, 1.2);
   // Energy-aware bank limit: keep the turn's stall speed (V_STALL·√n) at least 30 % below the current airspeed.
   const nMaxE = (V / (1.3 * V_STALL)) ** 2, bankMaxE = nMaxE > 1.05 ? Math.acos(1 / nMaxE) : .3;
   const bankLim = state.stalled ? 0 : Math.min(G_.bank, bankMaxE);   // stalled: roll authority gone, wings level
@@ -3140,7 +3158,7 @@ function updateHud(rdt) {
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
     if (state.stalled) { $('flightState').innerHTML = '<span style="color:#ff6b6b">⚠ STALL · RECOVERING</span>'; } else
     if (state.rtb === 'landing') { /* text set by the landing controller */ } else if (state.rtb === 'enroute') { $('flightState').textContent = 'RETURNING TO BASE · ' + (Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000).toFixed(1) + ' km'; } else
-    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS', decoyed:'DECOYED BY FLARES'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
+    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS', decoyed:'DECOYED BY FLARES'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : state.nudging ? 'SEARCH · MANUAL NUDGE' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
       const conf = known ? Math.round(clamp(70 + (1 - dist / 800) * 28, 70, 98)) : Math.round(progress * 60);
