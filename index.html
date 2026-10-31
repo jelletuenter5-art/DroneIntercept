@@ -25,7 +25,9 @@ h2{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#a9bfd3;ma
 #bottom{background:#0d1621;border-top:1px solid var(--line);padding:10px 14px;display:grid;grid-template-columns:1.2fr 1fr 1.2fr;gap:14px;align-items:center}.controlGroup{min-width:0}.controlTitle{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}.controlLine{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.controlLine button{padding:7px 9px}.telemetry{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.metric{background:#121f2d;border:1px solid #24374a;border-radius:5px;padding:5px 7px}.metric .k{font-size:9px;color:var(--muted)}.metric .v{font-weight:700;font-variant-numeric:tabular-nums}
 #graph{width:100%;height:78px;display:block;background:#0a131d;border:1px solid var(--line);border-radius:6px}
 kbd{font:10px ui-monospace,monospace;border:1px solid #40536a;background:#182738;border-radius:4px;padding:2px 4px;color:#c9d8e6}.hint{font-size:10px;color:var(--muted);line-height:1.6}.field:has(#mass),.field:has(#power),.field:has(#wing),.field:has(#battery),.section:has(#wind),.field:has(#thrust){display:none}.danger{color:var(--red)}.good{color:var(--green)}.warn{color:var(--orange)}
-#toast{display:none!important}#missionBanner{display:none!important}
+#toast{display:none!important}
+.threatStats{margin-top:6px;display:grid;grid-template-columns:auto auto;gap:2px 14px;justify-content:end;font:600 10.5px ui-monospace,monospace;letter-spacing:.05em;color:#9fb8cc}
+.threatStats b{color:#e8f6ff;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}.threatStats b.hot{color:#ff8a7a}#missionBanner{display:none!important}
 .leftcol{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
 #eventLog{display:flex;flex-direction:column;gap:3px;width:min(300px,38vw)}
 .ev{font:600 10.5px/1.35 ui-monospace,monospace;letter-spacing:.03em;color:#dcecf6;background:linear-gradient(90deg,#07121ce8 60%,#07121c00);border-left:2px solid #5fb3d9;padding:4px 10px 4px 8px;border-radius:0 4px 4px 0;animation:evIn .28s ease-out both;transition:opacity .7s ease,transform .7s ease}
@@ -144,7 +146,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
     <div id="overlay">
       <div class="hudrow">
         <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div></div><div id="eventLog"></div></div>
-        <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div class="hudfoot" id="targetStatus">SCANNING · 7 contacts</div><div class="hudfoot" id="lockState">LOCK STATUS: SEARCHING</div></div>
+        <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
       <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>TACTICAL RADAR</span><span id="radarCount">CONTACTS 0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="terminateTrackBtn">Terminate current track</button><select id="quickScoutType" style="width:100%;margin-top:4px;background:#0b202a;color:#dff9ff;border:1px solid #3c8b91;border-radius:5px;padding:6px;font:10px ui-monospace,monospace"><option value="light">Prop scout</option><option value="heavy" selected>Heavy scout</option><option value="fast">Jet scout</option><option value="airliner">Airliner</option></select><button id="spawnScoutQuickBtn" style="margin-top:6px;width:100%;font-size:10px;padding:6px;background:#102c35;border:1px solid #3c8b91;color:#b9fff1;border-radius:5px">+ Spawn selected</button><button id="openMapBtn" style="margin-top:5px;width:100%;font-size:10px;padding:6px;background:#0d1e2b;border:1px solid #3a778e;color:#9dc7db;border-radius:5px;cursor:pointer">⊕ Open map  (M)</button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
@@ -211,7 +213,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
     <div class="controlLine">
       <button id="cameraBtn">Camera: Behind</button><button id="thermalBtn">Thermal: OFF</button><button id="paletteBtn">Palette: IRON</button>
     </div>
-    <div class="hint" style="margin-top:5px"><kbd>T</kbd> thermal · <kbd>P</kbd> palette · <kbd>N</kbd> spawn selected scout · <kbd>C</kbd> camera · <kbd>Space</kbd> pause. Free orbit: drag + scroll.</div>
+    <div class="hint" style="margin-top:5px"><kbd>T</kbd> thermal · <kbd>P</kbd> palette · <kbd>N</kbd> spawn selected scout · <kbd>C</kbd> camera · <kbd>Space</kbd> pause. Free orbit: drag to orbit, scroll to zoom, double-click to reset.</div>
   </div>
   </footer>
 </div>
@@ -669,7 +671,7 @@ const state = {pos:new THREE.Vector3(0, PAD_H + 2.6, 0), prevPos:new THREE.Vecto
   launchStage:'parked', aiActivated:false, aiActivationTime:0, ignoredTargets:new Set(), turnCmd:0, aiThink:0, routePeak:0, routeTimer:0, searchWp:null, searchTimer:0, replenishTimer:20, manualWaypointActive:false, pursuitMode:false, passiveScanT:0, gamma:0, bank:0, attack:{phase:'intercept', side:0}, searchAlt:300, searchAltFor:null, routeFloorY:0, floorTimer:0};
 const dt = 1/120; let accumulator = 0, last = performance.now(), toastTimer = 0;
 const renderPos = new THREE.Vector3(); let renderYaw = 0;
-let camInit = false, camYaw = 0, lastCamMode = 'behind', vpW = 1, vpH = 1;
+let camInit = false, camYaw = 0, lastCamMode = 'behind', vpW = 1, vpH = 1; const freeCam = {yaw:0, pitch:.3, dist:34};
 function snapPrev() { state.prevPos.copy(state.pos); state.prevYaw = state.rot.y; state.prevPitch = state.rot.x; state.prevRoll = state.rot.z; camInit = false; }
 
 // ───────────────────────── UI, thermal toggle, helpers ─────────────────────────
@@ -726,11 +728,21 @@ window.addEventListener('keydown', e => {
   if (k === ' ') togglePause(); if (k === 'c') toggleCamera(); if (k === 't') setThermal(!thermalOn); if (k === 'p') cyclePalette(); if (k === 'n') spawnSelected();
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
-let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .28, orbitDist = 34;
-canvas.addEventListener('pointerdown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; canvas.setPointerCapture(e.pointerId); });
+// Free orbit camera input: drag to orbit (with inertia), wheel to zoom (exponential), double-click to reset behind.
+// Targets set here; updateCamera() eases the actual camera towards them every frame.
+let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .3, orbitDist = 34, orbitVX = 0, orbitVY = 0;
+const ORBIT_MIN_P = -.2, ORBIT_MAX_P = 1.45;
+canvas.addEventListener('pointerdown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; orbitVX = orbitVY = 0; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointerup', () => drag = false);
-canvas.addEventListener('pointermove', e => { if (!drag) return; orbitYaw -= (e.clientX - lastX) * .006; orbitPitch = clamp(orbitPitch + (e.clientY - lastY) * .004, -.1, 1.15); lastX = e.clientX; lastY = e.clientY; if (state.cameraMode === 'free') { state.freeCam = true; updateCameraButton(); } });
-canvas.addEventListener('wheel', e => { orbitDist = clamp(orbitDist + e.deltaY * .025, 7, 55); }, {passive:true});
+canvas.addEventListener('pointercancel', () => drag = false);
+canvas.addEventListener('pointermove', e => {
+  if (!drag || state.cameraMode !== 'free') return;
+  const dx = e.clientX - lastX, dy = e.clientY - lastY; lastX = e.clientX; lastY = e.clientY;
+  orbitYaw -= dx * .0055; orbitPitch = clamp(orbitPitch + dy * .0045, ORBIT_MIN_P, ORBIT_MAX_P);
+  orbitVX = lerp(orbitVX, -dx * .0055 * 60, .5); orbitVY = lerp(orbitVY, dy * .0045 * 60, .5);   // rad/s for coasting
+});
+canvas.addEventListener('wheel', e => { if (state.cameraMode !== 'free') return; e.preventDefault(); orbitDist = clamp(orbitDist * Math.exp(e.deltaY * .0012), 6, 260); }, {passive:false});
+canvas.addEventListener('dblclick', () => { if (state.cameraMode === 'free') { orbitYaw = 0; orbitPitch = .3; orbitDist = 34; orbitVX = orbitVY = 0; } });
 function togglePause() { state.paused = !state.paused; updatePauseButtons(); }
 function updatePauseButtons() { $('pauseBtn').textContent = state.paused ? 'Resume' : 'Pause'; $('playBottom').textContent = state.paused ? 'Resume' : 'Pause'; $('simStatus').textContent = state.paused ? 'SIM PAUSED' : 'SIM RUNNING'; }
 function toggleCamera() { const modes = ['free','behind','fpv']; state.cameraMode = modes[(modes.indexOf(state.cameraMode || 'behind') + 1) % modes.length]; state.freeCam = state.cameraMode === 'free'; updateCameraButton(); }
@@ -1161,7 +1173,7 @@ function chooseScoutWaypoint(s) {
   // Target absolute altitude 200-600m, vary by scout kind
   const [minAlt, maxAlt] = s.kind === 'fast' ? [350, 600] : s.kind === 'heavy' ? [220, 500] : [200, 420];
   for (let tries = 0; tries < 28; tries++) {
-    const x = clamp(from.x + (Math.random() - .5) * 2400, -2500, 2500), z = clamp(from.z + (Math.random() - .5) * 2400, -2500, 2500);
+    const x = clamp(from.x + (Math.random() - .5) * 2400, -2200, 2200), z = clamp(from.z + (Math.random() - .5) * 2400, -2200, 2200);
     if (Math.hypot(x - from.x, z - from.z) < 400) continue;
     let peak = 0; for (let k = 1; k <= 16; k++) { const t = k / 16; peak = Math.max(peak, terrainHeight(from.x+(x-from.x)*t, from.z+(z-from.z)*t)); }
     // pick a random altitude in the band, but clear any terrain
@@ -1174,6 +1186,11 @@ function chooseScoutWaypoint(s) {
 function stepScout(s, h) {
   s.prev.copy(s.pos); s.waypointTimer -= h; s.routeTimer -= h;
   if (!s.waypoint || s.waypointTimer <= 0 || s.pos.distanceToSquared(s.waypoint) < 110 * 110) chooseScoutWaypoint(s);
+  else if (s.hdg !== undefined) {
+    // Waypoint inside our turn circle and off to the side → can't reach it without orbiting: count it as passed.
+    const r = s.spd * s.spd / (9.81 * Math.tan(.52)), wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z;
+    if (Math.hypot(wx, wz) < r * 1.6 && Math.abs(wrapAngle(Math.atan2(-wx, -wz) - s.hdg)) > 1.2) chooseScoutWaypoint(s);
+  }
   if (s.routeTimer <= 0) {
     s.routeTimer = .3; const wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z, look = Math.min(1, 900 / Math.max(1, Math.hypot(wx, wz)));
     let peak = -5; for (let k = 0; k <= 12; k++) { const t = k / 12 * look; peak = Math.max(peak, terrainHeight(s.pos.x + wx*t, s.pos.z + wz*t)); }
@@ -1182,18 +1199,21 @@ function stepScout(s, h) {
   const ms = s.speed;   // fly at the class's listed speed (light 151, heavy 194, jet 245 km/h)
   const hx = s.waypoint.x - s.pos.x, hz = s.waypoint.z - s.pos.z, hl = Math.hypot(hx, hz) || 1;
   const altWave = Math.sin(state.time * .18 + s.curiosity * 6.28) * 18; // gentle altitude breathing
-  const vy = clamp((s.routeY + altWave - s.pos.y) * .25, -14, 16), k = 1 - Math.exp(-.34 * h);
-  // Fixed-wing kinematics: constant airspeed, heading changes through a bank-limited turn (max 45° bank).
+  // Fixed-wing kinematics: constant airspeed, heading changes only through a coordinated turn.
+  // Max 30° bank (standard for small fixed-wing UAVs), roll rate ~20°/s, climb/descent ≤ ~8°.
   if (s.hdg === undefined) s.hdg = Math.atan2(-s.vel.x, -s.vel.z);
-  s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -3 * h, 3 * h);
-  const maxRate = 9.81 * Math.tan(.78) / Math.max(20, s.spd), hdgErr = wrapAngle(Math.atan2(-hx, -hz) - s.hdg);
-  s.turnRate = moveToward(s.turnRate || 0, clamp(hdgErr * .8, -maxRate, maxRate), maxRate * .8 * h);   // roll in/out smoothly
+  s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -2 * h, 2 * h);
+  const maxBank = .52, hdgErr = wrapAngle(Math.atan2(-hx, -hz) - s.hdg);
+  const bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
+  s.bank = moveToward(s.bank || 0, bankCmd, .35 * h);
+  s.turnRate = 9.81 * Math.tan(s.bank) / Math.max(20, s.spd);
   s.hdg += s.turnRate * h;
-  s.vel.x = -Math.sin(s.hdg) * s.spd; s.vel.z = -Math.cos(s.hdg) * s.spd; s.vel.y += (vy - s.vel.y) * k;
+  const vyMax = s.spd * .14, vy = clamp((s.routeY + altWave - s.pos.y) * .12, -vyMax, vyMax);
+  s.vel.x = -Math.sin(s.hdg) * s.spd; s.vel.z = -Math.cos(s.hdg) * s.spd; s.vel.y = moveToward(s.vel.y, vy, 2 * h);
   s.pos.addScaledVector(s.vel, h);
-  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 75) s.pos.y = lerp(s.pos.y, gh + 75, .1); if (s.pos.y > 650) s.pos.y = lerp(s.pos.y, 620, .05);
-  s.yaw = s.hdg; s.roll = Math.atan(s.turnRate * s.spd / 9.81);   // bank angle that produces this turn
-  s.pitch = damp(s.pitch, clamp(s.vel.y / ms * .8, -.15, .15), 1.5, h);
+  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 60) { s.pos.y = lerp(s.pos.y, gh + 60, .05); s.vel.y = Math.max(s.vel.y, 4); } if (s.pos.y > 650) s.pos.y = lerp(s.pos.y, 620, .05);
+  s.yaw = s.hdg; s.roll = s.bank;
+  s.pitch = damp(s.pitch, Math.asin(clamp(s.vel.y / Math.max(1, s.spd), -.3, .3)), 3, h);   // nose on the flight path
   s.trailTimer -= h;
   if (s.trailTimer <= 0) {
     s.trailTimer = .1; const n = TRAIL_PTS[s.kind]; s.trailPts.push(s.pos.x, s.pos.y, s.pos.z); if (s.trailPts.length > n * 3) s.trailPts.splice(0, 3);
@@ -1235,12 +1255,12 @@ function runPassiveScan(h) {
   }
 }
 // ───────────────────────── Flight envelope & guidance ─────────────────────────
-const V_CRUISE = 69, V_DASH = 84, V_MIN = 30;            // m/s: ~250 km/h cruise, ~300 km/h dash
-const ACCEL = 6, DECEL = 9;                              // m/s² available from thrust / drag
+const V_CRUISE = 69, V_DASH = 111, V_MIN = 30;           // m/s: ~250 km/h efficient cruise, 400 km/h pursuit dash
+const ACCEL = 8, DECEL = 10;                             // m/s² available from thrust / drag + airbrake
 const BANK_CRUISE = 1.13, BANK_COMBAT = 1.27, BANK_RATE = 1.7;   // 65° / 73° bank limit, roll rate rad/s
 const GAMMA_UP = .38, GAMMA_DN = -.45, GAMMA_RATE = .35;          // climb/dive angle limits (22° / 26°), rad/s
 const moveToward = (a, b, step) => a + clamp(b - a, -step, step);
-const guide = {aim:new THREE.Vector3(), alt:0, speed:V_CRUISE, bank:BANK_CRUISE, terminal:false, vy:0, clear:90};
+const guide = {aim:new THREE.Vector3(), alt:0, speed:V_CRUISE, bank:BANK_CRUISE, terminal:false, vy:0, clear:90, track:false, tau:3, ff:0, look:Infinity};
 // Highest terrain on the straight line between two points.
 function routeFloor(x0, z0, x1, z1) {
   const d = Math.hypot(x1 - x0, z1 - z0), n = clamp(Math.ceil(d / 60), 2, 60);
@@ -1255,56 +1275,104 @@ function interceptTime(rx, ry, rz, tv, Vs) {
   const r1 = (-b - Math.sqrt(d)) / (2*a), r2 = (-b + Math.sqrt(d)) / (2*a), t = Math.min(r1 > 0 ? r1 : Infinity, r2 > 0 ? r2 : Infinity);
   return isFinite(t) ? t : Math.sqrt(c) / Vs;
 }
-// Pursuit to collision. Phases: INTERCEPT (long range, lead course to a point behind the target) → JOIN (get onto its tail,
-// match speed, settle above or below) → TERMINAL (close slowly from behind with a shallow dive or climb into it).
-// A HEAD-ON run is taken only when the geometry happens to line up for a near-certain collision course.
+// Where will contact t be in tg seconds? Scouts are propagated along their current coordinated turn
+// (constant speed + turn rate), everything else in a straight line. Writes position into out, returns heading.
+function predictContact(t, tg, out) {
+  const V = Math.hypot(t.vel.x, t.vel.z), w = t.turnRate || 0, h0 = t.hdg !== undefined ? t.hdg : Math.atan2(-t.vel.x, -t.vel.z);
+  tg = Math.min(tg, 25);
+  if (Math.abs(w) < 1e-3 || !t.isScout) out.set(t.pos.x + t.vel.x * tg, t.pos.y + t.vel.y * tg, t.pos.z + t.vel.z * tg);
+  else { const h1 = h0 + w * tg; out.set(t.pos.x + V / w * (Math.cos(h1) - Math.cos(h0)), t.pos.y + t.vel.y * tg, t.pos.z - V / w * (Math.sin(h1) - Math.sin(h0))); return h1; }
+  return h0;
+}
+// Time-to-go to a point that rides along with the (possibly turning) target at offset (back, side), flown at speed Vs.
+const _pp = new THREE.Vector3();
+function solveRendezvous(t, back, side, Vs, out) {
+  let tg = state.pos.distanceTo(t.pos) / Math.max(10, Vs), hd = 0;
+  for (let i = 0; i < 8; i++) {
+    hd = predictContact(t, tg, _pp);
+    const hx = -Math.sin(hd), hz = -Math.cos(hd);
+    out.set(_pp.x - hx * back + (-hz) * side, _pp.y, _pp.z - hz * back + hx * side);
+    const ntg = Math.hypot(out.x - state.pos.x, out.z - state.pos.z) / Math.max(10, Vs);
+    if (Math.abs(ntg - tg) < .02) { tg = ntg; break; } tg = lerp(tg, ntg, .7);
+  }
+  return Math.min(tg, 60);
+}
+// Pursuit to collision — the same ideas real interceptors use:
+//  • Rear-slot steering: while not behind the target, aim for a moving point behind/beside it (solved as a collision
+//    course with interceptTime) so the drone swings round onto its tail fast instead of meeting it nose-to-nose.
+//  • Braking-limited closure: once behind, closing speed = what can still be braked away before contact → no overshoot.
+//  • Altitude tracking with feed-forward: drone copies the target's climb/descent rate and trims the height error,
+//    approaching slightly above (or below) and converging in a shallow dive (or climb) at the end.
+//  • A head-on collision run only when the geometry happens to line up.
+const _n = new THREE.Vector3();
 function attackGuidance(t, G) {
   const a = state.attack, p = state.pos, tv = t.vel, Vt = Math.hypot(tv.x, tv.z);
-  let hx = 0, hz = -1; if (Vt > 1) { hx = tv.x / Vt; hz = tv.z / Vt; }
+  let hx = -Math.sin(t.yaw || 0), hz = -Math.cos(t.yaw || 0); if (Vt > 1) { hx = tv.x / Vt; hz = tv.z / Vt; }
   const rx = t.pos.x - p.x, ry = t.pos.y - p.y, rz = t.pos.z - p.z, R = Math.max(1, Math.hypot(rx, rz)), R3 = Math.hypot(R, ry);
   const behind = (hx * rx + hz * rz) / R;               // +1: drone sits right on the target's tail, -1: in front of it
   const fwdx = -Math.sin(state.rot.y), fwdz = -Math.cos(state.rot.y), facing = (fwdx * rx + fwdz * rz) / R;
-  const align = Vt > 1 ? (fwdx * tv.x + fwdz * tv.z) / Vt : 0;   // +1: flying the same direction as the target
-  if (!a.side) {                                         // pick the vertical side once per engagement
+  if (!a.side) {                                         // vertical side once per engagement: mostly from above
     const tAgl = t.pos.y - terrainHeight(t.pos.x, t.pos.z);
-    a.side = tAgl < 120 ? 1 : (p.y < t.pos.y - 150 ? -1 : (Math.random() < .7 ? 1 : -1));   // mostly from above; from below when far beneath it
+    a.side = tAgl < 120 ? 1 : (p.y < t.pos.y - 150 ? -1 : (Math.random() < .7 ? 1 : -1));
   }
-  // Closest point of approach with current velocities → head-on opportunity check
+  // Head-on opportunity: closest point of approach with current velocities
   const vx = tv.x - state.vel.x, vy = tv.y - state.vel.y, vz = tv.z - state.vel.z, vv = vx*vx + vy*vy + vz*vz;
   const tc = vv > 1 ? -(rx*vx + ry*vy + rz*vz) / vv : -1;
   const miss = tc > 0 ? Math.hypot(rx + vx*tc, ry + vy*tc, rz + vz*tc) : R3;
-  const headOnOk = behind < -.85 && facing > .9 && tc > 0 && tc < 20 && miss < 45 && R > 150 && R < 1500;
-  if (a.phase === 'headon') { if (!(behind < -.6 && facing > .6 && tc > 0 && miss < 110)) a.phase = 'join'; }
-  else if (headOnOk) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
-  else if (a.phase === 'terminal') { if (R3 > 70 && (behind < .35 || R > 420)) a.phase = 'join'; }   // inside 70 m: stay on the collision course
-  else if ((behind > .7 && R < 260) || (R3 < 70 && align > .5)) { a.phase = 'terminal'; radioMessage('ON TARGET’S TAIL · CLOSING IN'); }
-  else a.phase = R > 1000 ? 'intercept' : 'join';
-  G.bank = BANK_COMBAT; G.clear = 45; G.vy = tv.y;
+  if (a.phase === 'headon') { if (!(behind < -.6 && facing > .6 && tc > 0 && miss < 90)) a.phase = ''; }
+  else if (behind < -.9 && facing > .95 && tc > 0 && tc < 15 && miss < 30 && R > 200 && R < 1400) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
+  G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   if (a.phase === 'headon') {
-    const tg = R3 / Math.max(20, state.cruiseSpeed + Vt);
-    G.aim.set(t.pos.x + tv.x * tg, t.pos.y + tv.y * tg, t.pos.z + tv.z * tg); G.alt = G.aim.y; G.speed = V_DASH; G.terminal = R3 < 250;
-  } else if (a.phase === 'intercept') {
-    const tg = Math.min(40, R / V_DASH);
-    G.aim.set(t.pos.x + tv.x * tg - hx * 250, 0, t.pos.z + tv.z * tg - hz * 250); G.alt = t.pos.y + a.side * 40; G.speed = V_DASH; G.bank = BANK_CRUISE;
-  } else if (a.phase === 'join') {
-    const trail = clamp(R * .45, 70, 260);
-    G.aim.set(t.pos.x + tv.x * 1.5 - hx * trail, 0, t.pos.z + tv.z * 1.5 - hz * trail);
-    G.alt = t.pos.y + a.side * clamp(R * .12, 18, 45);
-    // On its tail: match speed plus a gentle closure. Ahead/abeam: slow down, turn tight and let it pass.
-    G.speed = behind > .3 ? Vt + clamp((R - 60) * .06, 6, 25) : clamp(Vt * .8, V_MIN + 8, 55);
-  } else {                                               // terminal: collision course from behind, closure shrinks as it gets close
-    const close = clamp(R3 * .06, 7, 18), vs = Math.min(V_DASH, Vt + close);
-    const tg = Math.min(8, interceptTime(rx, ry, rz, tv, Math.max(vs, state.cruiseSpeed)));
-    const off = a.side * Math.min(22, R3 * .15);         // offset above/below collapses to zero → shallow dive / climb in
-    G.aim.set(t.pos.x + tv.x * tg, 0, t.pos.z + tv.z * tg); G.alt = t.pos.y + tv.y * Math.min(tg, 1) + off;
-    G.speed = vs; G.terminal = R3 < 120; G.clear = 25;
+    const tg = interceptTime(rx, ry, rz, tv, Math.max(V_CRUISE, state.cruiseSpeed));
+    G.aim.set(t.pos.x + tv.x * tg, 0, t.pos.z + tv.z * tg); G.alt = t.pos.y + tv.y * tg;
+    G.speed = Math.max(V_CRUISE, state.cruiseSpeed); G.tau = 1.2; G.ff = 1; G.terminal = R3 < 250;
+    return;
   }
+  // Rear slot: weight wL = 1 while in front/abeam, fading to 0 once established behind — i.e. behind it AND
+  // flying the same way (after an overshoot the drone is "behind" but pointing away, and must turn back first).
+  const align = Vt > 1 ? fwdx * hx + fwdz * hz : 1;
+  const est = Math.min(behind, align);
+  // Far out we want to be on its tail and heading its way before committing; inside ~450 m, being anywhere in its
+  // rear half is enough → commit to the collision course (rear-quarter hit) instead of looping round again.
+  const commit = R < 450 ? Math.max(est, behind * 1.4) : est;
+  const wL = 1 - smoothstep(.15, .7, commit);
+  const L = clamp(R * .55, 120, 550) * wL;
+  // While well in front, also offset sideways (on the side we already are) so we pass it, turn in, and end up behind.
+  const nx = -hz, nz = hx, sideSign = Math.sign(nx * -rx + nz * -rz) || 1;
+  const lat = sideSign * clamp(R * .35, 60, 300) * (1 - smoothstep(-.7, .1, behind));
+  const V = Math.max(V_MIN, state.cruiseSpeed);
+  // Speed. Behind: closing speed limited by braking distance (planned 4 m/s²) → eases in, no overshoot.
+  // Not yet behind: fastest speed whose turn radius (V²/(g·tan73°)) still fits in ~45 % of the range, applied only
+  // as far as the drone still has to turn to match the target's heading (little turn left → keep dashing).
+  const closure = Math.min(V_DASH - Vt, Math.sqrt(2 * 4 * Math.max(0, R3 - 22)) + 6);
+  const vTurn = Math.max(Vt + 12, 58), vFit = clamp(Math.sqrt(.45 * R * 9.81 * Math.tan(BANK_COMBAT)), vTurn, V_DASH);
+  const turnLeft = smoothstep(.15, .6, (1 - align) / 2);
+  const vBehind = Vt + closure, vAround = lerp(V_DASH, vFit, turnLeft);
+  G.speed = lerp(vBehind, vAround, wL);
+  // Plan the collision course with the mean speed actually flown (it slows down while closing), not current speed.
+  const vPlan = clamp(.7 * V + .3 * G.speed, Vt + 4, V_DASH);
+  let tg = solveRendezvous(t, L, lat, vPlan, G.aim);     // aim point rides on its predicted turn arc
+  // Very close in, keep the aim at least ~1 s ahead along its path so metre-level offsets don't whip the heading.
+  if (tg < 1 && wL < .5) { predictContact(t, 1, G.aim); tg = Math.max(tg, .3); }
+  // Altitude: target height (+ its climb) with a side offset that collapses to 0 inside ~40 m → shallow dive/climb in.
+  const off = a.side * clamp((R3 - 40) * .06, 0, 25);
+  // Collision-course vertical law: copy its climb rate (feed-forward) and null the height error by arrival.
+  G.alt = t.pos.y + off;
+  G.tau = clamp(Math.min(tg, R3 / Math.max(5, V - Vt)) * .6, .9, 14);
+  G.ff = 1 - smoothstep(500, 1200, R);                  // copy the target's vertical rate when it matters
+  G.terminal = R3 < 140 && commit > .3;
+  a.phase = commit > .55 ? (R3 < 260 ? 'terminal' : 'join') : 'intercept';
 }
 // ───────────────────────── Battery ─────────────────────────
-// Usable pack energy, tuned so a full charge gives roughly 10 minutes of normal search flight (~700 W at 250 km/h).
-const BATTERY_WH = 140;
-function drainBattery(h, speed, thrustPercent) {
-  const current = 4 + thrustPercent * 26 + speed * .13, voltage = 22.2 * (.82 + .18 * state.battery), watts = voltage * current;
+// Usable pack energy: ~10 min of autonomous search at 250 km/h (~600-700 W). The 400 km/h dash draws ~1.6 kW (≈4 min).
+const BATTERY_WH = 114;
+// Electrical power for level flight at airspeed V with bank φ, plus climb power.
+function flightPower(V, bank, vs) {
+  const load = 1 / Math.max(.3, Math.cos(bank));        // load factor in a turn raises induced drag
+  return 120 + 480 * Math.pow(V / V_CRUISE, 2.3) * Math.pow(load, .4) + Math.max(0, vs) * 22;
+}
+function drainBattery(h, watts) {
+  const voltage = 22.2 * (.82 + .18 * state.battery), current = watts / voltage;
   const before = state.battery;
   state.battery = Math.max(0, state.battery - (watts / 3600 / BATTERY_WH) * h); state.lastCurrent = current; state.lastVoltage = voltage; state.lastWatts = watts;
   if (before > .2 && state.battery <= .2) { radioMessage('BATTERY LOW · 20%'); }
@@ -1395,7 +1463,7 @@ function physicsStep(h) {
     state.pos.addScaledVector(state.vel, h);
     const gnd = terrainHeight(state.pos.x, state.pos.z);
     if (state.pos.y < gnd + 2.6) { state.pos.y = gnd + 2.6; state.vel.y = Math.max(0, state.vel.y); }
-    drainBattery(h, state.vel.length(), .9);
+    drainBattery(h, 700 + state.vel.y * 45);   // hover lift is expensive
     if (t >= 8) {
       state.launchStage = 'active'; state.aiActivated = true;
       state.aiActivationTime = state.time - 4;   // speed ramp continues smoothly from takeoff speed
@@ -1415,7 +1483,7 @@ function physicsStep(h) {
   const px = state.pos.x, pz = state.pos.z;
   let range = Infinity;
   // Guidance output: aim point, arrival altitude, desired airspeed, bank limit, terminal tracking flag
-  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90;
+  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity;
   if (tgt) {
     range = state.pos.distanceTo(tgt.pos);
     if (!state.pursuitMode && tgt.identified) state.aiTarget = null;   // classify loop: identified → move on
@@ -1442,10 +1510,15 @@ function physicsStep(h) {
     G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.searchAlt + inp.z * 60; G_.clear = 120;
   }
   // Keep inside the play area.
-  if (Math.max(Math.abs(px), Math.abs(pz)) > 2550) { G_.aim.set(0, G_.alt, 0); G_.speed = Math.min(G_.speed, V_CRUISE); }
+  // Keep inside the play area (mountain wall beyond ~2.6 km). A chase may run closer to the wall.
+  if (Math.max(Math.abs(px), Math.abs(pz)) > (state.pursuitMode ? 2750 : 2550)) { G_.aim.set(0, G_.alt, 0); if (!state.pursuitMode) G_.speed = Math.min(G_.speed, V_CRUISE); }
   // Terrain floor along the remaining straight route to the aim point (refreshed 4×/s).
   state.floorTimer = (state.floorTimer || 0) - h;
-  if (state.floorTimer <= 0) { state.floorTimer = .25; state.routeFloorY = routeFloor(px, pz, G_.aim.x, G_.aim.z); }
+  if (state.floorTimer <= 0) {
+    state.floorTimer = .25;
+    const dX = G_.aim.x - px, dZ = G_.aim.z - pz, dL = Math.hypot(dX, dZ) || 1, k = Math.min(1, G_.look / dL);
+    state.routeFloorY = routeFloor(px, pz, px + dX * k, pz + dZ * k);
+  }
 
   // ── Lateral: coordinated turn. Bank towards the heading error; yaw rate = g·tan(bank)/V ──
   const V = Math.max(V_MIN, state.cruiseSpeed);
@@ -1456,19 +1529,21 @@ function physicsStep(h) {
   state.bank = moveToward(damp(state.bank || 0, bankCmd, 5, h), bankCmd, BANK_RATE * h);
   state.rot.y += 9.81 * Math.tan(state.bank) / V * h;
   // Tight manoeuvre needed close in: bleed speed so the turn radius shrinks (r = V²/(g·tan φ)).
-  const overshot = state.pursuitMode && state.attack.phase === 'join' && G_.speed < V_DASH * .7;
-  if (Math.abs(hErr) > 1.0 && (overshot || (!state.pursuitMode && tgt && range < 600))) G_.speed = Math.min(G_.speed, 45);
+  if (Math.abs(hErr) > 1.0 && !state.pursuitMode && tgt && range < 600) G_.speed = Math.min(G_.speed, 45);
+  // Pursuit close in with a big heading error: bleed speed so the drone out-turns the target (r = V²/(g·tan φ)).
+  if (state.pursuitMode && tgt && range < 800 && Math.abs(hErr) > .6 && state.attack.phase === 'intercept')
+    G_.speed = Math.min(G_.speed, lerp(V_DASH, Math.max(Math.hypot(tgt.vel.x, tgt.vel.z) + 10, 58), smoothstep(.6, 1.2, Math.abs(hErr))));
 
   // ── Speed: thrust/drag limited acceleration; climbing trades a little speed ──
   const vTarget = clamp(G_.speed, V_MIN, V_DASH);
   state.cruiseSpeed = moveToward(state.cruiseSpeed, vTarget, (vTarget > state.cruiseSpeed ? ACCEL : DECEL) * h) - 9.81 * Math.sin(state.gamma || 0) * .25 * h;
-  state.cruiseSpeed = clamp(state.cruiseSpeed, V_MIN, V_DASH + 8);
+  state.cruiseSpeed = clamp(state.cruiseSpeed, V_MIN, V_DASH + 5);
 
   // ── Vertical: constant-slope path that arrives at the planned altitude, never below the route's terrain floor ──
   const distH = Math.hypot(G_.aim.x - px, G_.aim.z - pz);
   const goalY = Math.max(G_.alt, state.routeFloorY + G_.clear);
   let vs;
-  if (G_.terminal) vs = (goalY - state.pos.y) * 1.4 + G_.vy;
+  if (G_.track) vs = G_.vy * G_.ff + (goalY - state.pos.y) / G_.tau;   // pursuit: copy target's climb + trim error
   else {
     const tGo = Math.max(6, distH / V);
     vs = (goalY - state.pos.y) / tGo;
@@ -1476,9 +1551,9 @@ function physicsStep(h) {
   }
   const minY = state.routePeak + 45;                       // short-range terrain safety (lookahead along heading)
   if (state.pos.y < minY) vs = Math.max(vs, (minY + 20 - state.pos.y) * .8);
-  const gLim = G_.terminal ? .6 : 1;
+  const gLim = G_.track ? .7 : 1;                        // pursuit allows ~31°/37° climb/dive and quicker pitch
   const gammaCmd = clamp(Math.asin(clamp(vs / V, -1, 1)), GAMMA_DN / gLim, GAMMA_UP / gLim);
-  state.gamma = moveToward(damp(state.gamma || 0, gammaCmd, 3, h), gammaCmd, GAMMA_RATE * (G_.terminal ? 2 : 1) * h);
+  state.gamma = moveToward(damp(state.gamma || 0, gammaCmd, G_.track ? 4 : 3, h), gammaCmd, GAMMA_RATE * (G_.track ? 1.8 : 1) * h);
 
   // ── Integrate: velocity is always along the flight path ──
   const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y), cg = Math.cos(state.gamma), sg = Math.sin(state.gamma);
@@ -1498,8 +1573,7 @@ function physicsStep(h) {
   state.ang.set(0, 9.81 * Math.tan(state.bank) / V, 0);
   state.modeBlend = damp(state.modeBlend, Math.max(0, 1 - speed / 42), 1.8, h);
   // Power: grows with speed², bank (load factor) and climb.
-  const thrustPercent = clamp(.25 + .75 * (state.cruiseSpeed / V_DASH) ** 2 * (1 / Math.max(.3, Math.cos(state.bank))) ** .5 + Math.max(0, sg) * 1.2, .25, 1.4);
-  drainBattery(h, speed, thrustPercent);
+  drainBattery(h, flightPower(state.cruiseSpeed, state.bank, state.vel.y));
   if (state.recording && Math.floor(state.time * 20) !== Math.floor((state.time - h) * 20)) state.history.push({t:+state.time.toFixed(3), x:+state.pos.x.toFixed(2), y:+state.pos.y.toFixed(2), z:+state.pos.z.toFixed(2), speed:+speed.toFixed(2), battery:+state.battery.toFixed(4)});
   // Confirmed pursuit of a bird flock or airliner ends in a collision too.
   if (state.pursuitMode && tgt && tgt.isAmbient) {
@@ -1586,8 +1660,18 @@ function updateCamera(rdt) {
   const mode = state.cameraMode || 'behind'; if (mode !== lastCamMode) { camInit = false; lastCamMode = mode; }
   const p = renderPos, speed = state.vel.length();
   if (mode === 'free') {
-    camLook.copy(p).add(new THREE.Vector3(0, 1, 0));
-    camera.position.set(camLook.x + Math.sin(orbitYaw) * orbitDist, camLook.y + Math.sin(orbitPitch) * orbitDist * .75, camLook.z + Math.cos(orbitYaw) * orbitDist); camera.lookAt(camLook);
+    // Orbit is relative to a slowly smoothed heading, so a side view stays a side view as the drone turns.
+    if (!camInit) { camYaw = renderYaw; freeCam.yaw = orbitYaw; freeCam.pitch = orbitPitch; freeCam.dist = orbitDist; camInit = true; }
+    if (!drag) {                                         // inertia after releasing the mouse
+      orbitYaw += orbitVX * rdt; orbitPitch = clamp(orbitPitch + orbitVY * rdt, ORBIT_MIN_P, ORBIT_MAX_P);
+      const f = Math.exp(-4 * rdt); orbitVX *= f; orbitVY *= f;
+    }
+    camYaw = dampAngle(camYaw, renderYaw, 1.2, rdt);
+    freeCam.yaw = dampAngle(freeCam.yaw, orbitYaw, 10, rdt); freeCam.pitch = damp(freeCam.pitch, orbitPitch, 10, rdt); freeCam.dist = damp(freeCam.dist, orbitDist, 6, rdt);
+    const a = camYaw + freeCam.yaw, hr = Math.cos(freeCam.pitch) * freeCam.dist;
+    camLook.copy(p); camLook.y += .8;
+    camera.position.set(p.x + Math.sin(a) * hr, p.y + Math.sin(freeCam.pitch) * freeCam.dist, p.z + Math.cos(a) * hr);
+    camera.up.set(0, 1, 0); camera.lookAt(camLook);
   } else if (mode === 'fpv') {
     // True nose-mounted FPV using craft's full orientation (yaw+pitch+roll)
     const fpvQ = new THREE.Quaternion().setFromEuler(craft.rotation);
@@ -1604,7 +1688,7 @@ function updateCamera(rdt) {
     if (!camInit) { camYaw = renderYaw; camInit = true; }
     camYaw = dampAngle(camYaw, renderYaw, 5, rdt);                         // chase camera swings gently into turns
     const cx = -Math.sin(camYaw), cz = -Math.cos(camYaw), dist = Math.min(38, 17 + speed * .07);
-    camera.position.set(p.x - cx * dist, p.y + Math.min(10, 4 + speed * .035), p.z - cz * dist); camera.lookAt(p.x + cx * 14, p.y + 1.2, p.z + cz * 14);
+    camera.position.set(p.x - cx * dist, p.y + Math.min(10, 4 + speed * .035), p.z - cz * dist); camera.up.set(0, 1, 0); camera.lookAt(p.x + cx * 14, p.y + 1.2, p.z + cz * 14);
   }
   const gy = terrainHeight(camera.position.x, camera.position.z) + 2; if (camera.position.y < gy) camera.position.y = gy;
   const fov = mode === 'fpv' ? 86 : 76 + Math.min(10, speed * .05);
@@ -1637,8 +1721,11 @@ function updateHud(rdt) {
   $('speedM').textContent = spdTxt; $('altM').textContent = alt.toFixed(1) + ' m'; $('battM').textContent = (state.battery * 100).toFixed(0) + '%'; $('voltM').textContent = (state.lastVoltage || 22.2).toFixed(1) + ' V'; $('currM').textContent = (state.lastCurrent || 0).toFixed(1) + ' A'; $('wattM').textContent = Math.round(state.lastWatts || 0) + ' W';
   $('pitchM').textContent = THREE.MathUtils.radToDeg(state.rot.x).toFixed(1) + '°'; $('rollM').textContent = THREE.MathUtils.radToDeg(state.rot.z).toFixed(1) + '°'; $('windM').textContent = '0 m/s';
   $('timeLabel').textContent = `t = ${state.time.toFixed(2)} s · 120 Hz physics · ${state.history.length} samples`;
-  const alive = scouts.filter(s => !s.destroyed).length;
-  $('targetStatus').textContent = `${alive} scouts active · ${state.tagCount} disabled · ${ambientActors.length} civil contacts`;
+  // Threats = scouts still flying; identified threats = those of them the drone has classified;
+  // total identified = every classified object (scouts + birds + airliners).
+  const threats = scouts.filter(s => !s.destroyed && !s.tagged), idThreats = threats.filter(s => s.identified).length;
+  const totalId = idThreats + ambientActors.filter(a => a.identified).length;
+  $('targetStatus').innerHTML = `<span>THREATS LEFT</span><b class="${threats.length ? 'hot' : ''}">${threats.length}</b><span>IDENTIFIED THREATS</span><b>${idThreats}</b><span>TOTAL IDENTIFIED</span><b>${totalId}</b>`;
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
     $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
