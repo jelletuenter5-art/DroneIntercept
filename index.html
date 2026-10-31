@@ -192,7 +192,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
     <div id="zoomView"><div class="zvHead"><b>GIMBAL CAM</b><span id="zvZoom">6×</span><button id="zvClose" title="Hide (Z)">✕</button></div>
       <div id="zvFrame"><i class="zvRet"></i></div>
       <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
-      <div class="zvBtns"><button id="zvMarkT">★ Flag threat</button><button id="zvMarkC">★ Flag civil</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button><span>Z hide</span></div></div>
+      <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1)">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2)">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button><span>Z hide</span></div></div>
     <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
     <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
     <div id="envPanel">
@@ -1219,6 +1219,7 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'x' && state.pursuitMode) endPursuit('PURSUIT TERMINATED BY OPERATOR');
   if (e.key.toLowerCase() === 'z') { zv.open = !zv.open; $('zoomView').classList.toggle('hidden', !zv.open); }
   if (e.key.toLowerCase() === 'v') gimbalCentre();
+  if (e.key === '1') markCur('threat'); if (e.key === '2') markCur('civil');   // flag what's in the scope
   if (e.key.startsWith('Arrow')) e.preventDefault();
   if (e.key === '+' || e.key === '=') setZoom(zv.zoom * 1.25);
   if (e.key === '-' || e.key === '_') setZoom(zv.zoom / 1.25);
