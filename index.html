@@ -1169,7 +1169,10 @@ function refreshPalette() {
   if (thermalOn) for (const [mesh, e] of thermalReg) mesh.material = matFor(e);
   updateThermalLegend();
 }
-function setThermal(on) {
+function setThermal(on, force) {
+  // The impact replay is always shown in the normal (daylight) camera; a thermal toggle during it only changes what
+  // is restored when the replay ends.
+  if (replay.active && !force) { replay.wasThermal = !!on; return; }
   thermalOn = !!on; state.thermal = thermalOn; document.body.classList.toggle('thermal', thermalOn);
   for (const [mesh, e] of thermalReg) mesh.material = matFor(e);
   for (const c of [...scouts, ...ambientActors]) { const o = c._op; c._op = undefined; if (o !== undefined) setContactOpacity(c, o); }
@@ -2947,14 +2950,16 @@ function startReplay(rp, thenReset) {
   // Clear live explosions so they don't hang frozen in the scene during playback.
   for (const ex of state.explosions) disposeExplosion(ex); state.explosions = [];
   Object.assign(replay, {active:true, rp, thenReset, t:rp.frames[0].t, t0:rp.frames[0].t, tEnd:rp.frames[rp.frames.length - 1].t, boomed:false, hold:0, side:null, close:null,
-    wasPaused:state.paused});
+    wasPaused:state.paused, wasThermal:thermalOn});
   state.paused = true;
+  if (thermalOn) setThermal(false, true);   // replay always in the normal camera
   for (const o of [...scouts, ...ambientActors, rp.target]) { if (o.imp) o.imp.quad.visible = false; if (o.group && o.group.parent !== scene) scene.add(o.group); }
   $('replayOverlay').classList.add('show'); document.body.classList.add('replaying'); if (mapOpen) closeMap();
 }
 function finishReplay() {
   if (!replay.active) return;
   replay.active = false; $('replayOverlay').classList.remove('show'); document.body.classList.remove('replaying');
+  if (replay.wasThermal !== thermalOn) setThermal(replay.wasThermal, true);   // back to the operator's own sensor choice
   for (const ex of state.explosions) disposeExplosion(ex); state.explosions = [];
   const rp = replay.rp;
   if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); disposeImpostor(rp.target); }
