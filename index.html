@@ -643,16 +643,20 @@ function updateCloudBanks(edt, daylight) {
 // ───────────────────────── Launch pad & player aircraft ─────────────────────────
 const launchPadY = terrainHeight(0, 0);
 const launchPad = new THREE.Group(); scene.add(launchPad);
-// Pad sized for the 2.6 m drone: 11 m base, 10 m landing surface (PAD_HALF = 5 m) with a touchdown ring, an H and
+// Pad sized for the 1.2 m drone: 7 m base, 6.5 m landing surface (PAD_HALF = 3.25 m) with a touchdown ring, an H and
 // corner markers at the edges.
-const PAD_HALF = 5;
-th(box(launchPad, [11,.65,11], mat(0x263542,.7,.35), [0, launchPadY+.1, 0]), .4);
-th(box(launchPad, [10,.08,10], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), .4);
-for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.14,.1,1.1], mat(0x7dffcb,.4,.5), [sx*4.55, launchPadY+.55, sz*4.55], [0, Math.PI/4, 0]), .5);
-{ const ring = new THREE.Mesh(new THREE.RingGeometry(3.05, 3.35, 48).rotateX(-Math.PI / 2), mat(0xe9eef2, .6, .1)); ring.position.y = launchPadY + .54; launchPad.add(ring); th(ring, .35);
-  const hm = mat(0xe9eef2, .6, .1); th(box(launchPad, [.38,.06,2.35], hm, [-.88, launchPadY+.54, 0]), .35); th(box(launchPad, [.38,.06,2.35], hm, [.88, launchPadY+.54, 0]), .35); th(box(launchPad, [1.4,.06,.38], hm, [0, launchPadY+.54, 0]), .35); }
+const PAD_HALF = 3.25;
+th(box(launchPad, [7,.65,7], mat(0x263542,.7,.35), [0, launchPadY+.1, 0]), .4);
+th(box(launchPad, [6.5,.08,6.5], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), .4);
+for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.1,.1,.75], mat(0x7dffcb,.4,.5), [sx*2.95, launchPadY+.55, sz*2.95], [0, Math.PI/4, 0]), .5);
+{ const ring = new THREE.Mesh(new THREE.RingGeometry(1.98, 2.18, 48).rotateX(-Math.PI / 2), mat(0xe9eef2, .6, .1)); ring.position.y = launchPadY + .54; launchPad.add(ring); th(ring, .35);
+  const hm = mat(0xe9eef2, .6, .1); th(box(launchPad, [.25,.06,1.53], hm, [-.57, launchPadY+.54, 0]), .35); th(box(launchPad, [.25,.06,1.53], hm, [.57, launchPadY+.54, 0]), .35); th(box(launchPad, [.9,.06,.25], hm, [0, launchPadY+.54, 0]), .35); }
 const craft = new THREE.Group(); scene.add(craft);
 // Bullet-shaped tail-sitter: ogive fuselage, four swept arms with nose-facing motors, four tail fins.
+// Modelled in design units and scaled by DRONE_SCALE to its real size — a ~3.8 kg, 6S / 57 Wh interceptor (what the
+// flight model, power and battery numbers describe): 1.21 m long, Ø0.17 m body, 0.25 m rotors, 0.87 m across the rotor
+// tips, 0.55 m across the tail fins. DRONE_REST_H = height of its origin above the ground when parked nose-up on the pad.
+const DRONE_SCALE = .26, DRONE_REST_H = .52 + 2.05 * DRONE_SCALE;
 const bodyMat = mat(0x16191d,.6,.22), motorMat = mat(0x1d2024,.45,.5), accentMat = mat(0xb08a3a,.35,.8);
 function bulletGeo(tail, nose, r, noseStart, rTail) {
   const pts = [new THREE.Vector2(0, tail)];
@@ -661,9 +665,9 @@ function bulletGeo(tail, nose, r, noseStart, rTail) {
   return new THREE.LatheGeometry(pts, 32).rotateX(-Math.PI / 2);          // nose points to -Z
 }
 const craftInner = new THREE.Group(); craft.add(craftInner);
-craftInner.add(new THREE.Mesh(bulletGeo(-2.0, 2.6, .52, .3, .46), bodyMat));
-for (const z of [-.9, .2, 1.1]) { const band = new THREE.Mesh(new THREE.CylinderGeometry(.535, .535, .035, 36, 1, true).rotateX(Math.PI / 2), mat(0x0a0c0f,.7,.2)); band.position.z = z; craftInner.add(band); }
-const finShape = new THREE.Shape(); finShape.moveTo(.45, .55); finShape.lineTo(1.05, 1.45); finShape.lineTo(1.05, 2.05); finShape.lineTo(.45, 2.0); finShape.closePath();
+craftInner.add(new THREE.Mesh(bulletGeo(-2.0, 2.6, .32, .3, .28), bodyMat));
+for (const z of [-.9, .2, 1.1]) { const band = new THREE.Mesh(new THREE.CylinderGeometry(.335, .335, .035, 36, 1, true).rotateX(Math.PI / 2), mat(0x0a0c0f,.7,.2)); band.position.z = z; craftInner.add(band); }
+const finShape = new THREE.Shape(); finShape.moveTo(.27, .55); finShape.lineTo(1.05, 1.45); finShape.lineTo(1.05, 2.05); finShape.lineTo(.27, 2.0); finShape.closePath();
 const finGeo = new THREE.ExtrudeGeometry(finShape, {depth:.04, bevelEnabled:false}).translate(0, 0, -.02).applyMatrix4(new THREE.Matrix4().set(0,0,1,0, 1,0,0,0, 0,1,0,0, 0,0,0,1));
 for (let i = 0; i < 4; i++) { const f = new THREE.Mesh(finGeo, bodyMat); f.rotation.z = i * Math.PI / 2; craftInner.add(f); }
 const podGeo = bulletGeo(-.35, .42, .17, .0, .13), liftRotors = [];
@@ -678,9 +682,10 @@ for (let i = 0; i < 4; i++) {
   box(rotor, [.95,.07,.025], darkMat, [0,0,0]).userData.th = .2; box(rotor, [.07,.95,.025], darkMat, [0,0,0]).userData.th = .2;
   liftRotors.push(rotor);
 }
-const camGimbal = new THREE.Group(); camGimbal.position.set(0, -.42, -1.35); craftInner.add(camGimbal);
+const camGimbal = new THREE.Group(); camGimbal.position.set(0, -.3, -1.35); craftInner.add(camGimbal);
 box(camGimbal, [.2,.14,.2], darkMat, [0,0,0]).userData.th = .45;
 cylinder(camGimbal, .06,.08,.08, blueMat, [0,-.02,-.12], [Math.PI/2,0,0]);
+craftInner.scale.setScalar(DRONE_SCALE);
 registerGroup(craft, .34); registerGroup(craftInner, .34);
 
 // ───────────────────────── Aircraft geometry helpers ─────────────────────────
@@ -1087,7 +1092,7 @@ createLightPlane(-900, 1300); createLightPlane(1600, 600); createLightPlane(-220
 createBirdFlock(-2600, 1900, 9, 300); createBirdFlock(2800, 2400, 8, 280); createBirdFlock(2300, -2900, 10, 320);
 
 // ───────────────────────── State ─────────────────────────
-const state = {pos:new THREE.Vector3(0, PAD_H + 2.6, 0), prevPos:new THREE.Vector3(0, PAD_H + 2.6, 0), vel:new THREE.Vector3(), rot:new THREE.Euler(0,0,0,'YXZ'), prevYaw:0, prevPitch:0, prevRoll:0,
+const state = {pos:new THREE.Vector3(0, PAD_H + DRONE_REST_H, 0), prevPos:new THREE.Vector3(0, PAD_H + DRONE_REST_H, 0), vel:new THREE.Vector3(), rot:new THREE.Euler(0,0,0,'YXZ'), prevYaw:0, prevPitch:0, prevRoll:0,
   ang:new THREE.Vector3(), battery:1, energyWh:180, time:0, paused:false, slow:false, recording:false, history:[], hover:false, assisted:true, thermal:false, freeCam:false, tagCount:0,
   wind:0, gust:0, mass:3.8, thrust:0, wingFactor:1, powerFactor:1, camPan:0, camTilt:-8, altCmd:24, modeBlend:0, night:false, dayClock:0,
   weatherTimer:34, weatherMode:'CLEAR', weatherTarget:0, weatherStrength:0, explosions:[], aiTarget:null, cruiseSpeed:0, crashed:false, crashTimer:0, returning:false, returnTimer:0, cameraMode:'behind',
@@ -1189,7 +1194,7 @@ window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 window.addEventListener('blur', () => keys.clear());   // no stuck nudge keys after alt-tab
 // Free orbit camera input: drag to orbit (with inertia), wheel to zoom (exponential), double-click to reset behind.
 // Targets set here; updateCamera() eases the actual camera towards them every frame.
-let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .3, orbitDist = 34, orbitVX = 0, orbitVY = 0;
+let drag = false, lastX = 0, lastY = 0, orbitYaw = 0, orbitPitch = .3, orbitDist = 9, orbitVX = 0, orbitVY = 0;
 const ORBIT_MIN_P = -.2, ORBIT_MAX_P = 1.45;
 canvas.addEventListener('pointerdown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; orbitVX = orbitVY = 0; canvas.setPointerCapture(e.pointerId); });
 canvas.addEventListener('pointerup', () => drag = false);
@@ -1200,8 +1205,8 @@ canvas.addEventListener('pointermove', e => {
   orbitYaw -= dx * .0055; orbitPitch = clamp(orbitPitch + dy * .0045, ORBIT_MIN_P, ORBIT_MAX_P);
   orbitVX = lerp(orbitVX, -dx * .0055 * 60, .5); orbitVY = lerp(orbitVY, dy * .0045 * 60, .5);   // rad/s for coasting
 });
-canvas.addEventListener('wheel', e => { if (state.cameraMode !== 'free') return; e.preventDefault(); orbitDist = clamp(orbitDist * Math.exp(e.deltaY * .0012), 6, 260); }, {passive:false});
-canvas.addEventListener('dblclick', () => { if (state.cameraMode === 'free') { orbitYaw = 0; orbitPitch = .3; orbitDist = 34; orbitVX = orbitVY = 0; } });
+canvas.addEventListener('wheel', e => { if (state.cameraMode !== 'free') return; e.preventDefault(); orbitDist = clamp(orbitDist * Math.exp(e.deltaY * .0012), 1.8, 260); }, {passive:false});
+canvas.addEventListener('dblclick', () => { if (state.cameraMode === 'free') { orbitYaw = 0; orbitPitch = .3; orbitDist = 9; orbitVX = orbitVY = 0; } });
 function togglePause() { state.paused = !state.paused; updatePauseButtons(); }
 function updatePauseButtons() { $('pauseBtn').textContent = state.paused ? 'Resume' : 'Pause'; $('playBottom').textContent = state.paused ? 'Resume' : 'Pause'; $('simStatus').textContent = state.paused ? 'SIM PAUSED' : 'SIM RUNNING'; }
 function toggleCamera() { const modes = ['free','behind','fpv']; state.cameraMode = modes[(modes.indexOf(state.cameraMode || 'behind') + 1) % modes.length]; state.freeCam = state.cameraMode === 'free'; updateCameraButton(); }
@@ -1589,7 +1594,7 @@ $('terminateTrackBtn').addEventListener('click', () => {
 });
 $('launchBtn').addEventListener('click', () => {
   if (state.launchStage !== 'parked') return;
-  missionLog('start'); state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = terrainHeight(0, 0) + 2.6; state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
+  missionLog('start'); state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = terrainHeight(0, 0) + DRONE_REST_H; state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
   $('launchBtn').disabled = true; $('launchOverlay').style.display = 'none';
   $('flightState').textContent = 'VERTICAL TAKEOFF'; toast('Launch · vertical climb');
 });
@@ -2222,7 +2227,7 @@ function attackGuidance(t, G) {
   const est = Math.min(behind, align);
   // Far out we want to be on its tail and heading its way before committing; inside ~450 m, being anywhere in its
   // rear half is enough → commit to the collision course (rear-quarter hit) instead of looping round again.
-  const commit = R < 450 ? Math.max(est, behind * 1.4) : est;
+  const commit = lerp(est, Math.max(est, behind * 1.4), 1 - smoothstep(400, 500, R));   // eased in around 450 m (no step → no bank reversal)
   // Once committed and on proportional navigation (< 600 m) stay committed while still in its rear half: a hard turn
   // by the target would otherwise flip steering back to the rear-slot aim point on the far side → bank reversal (weave).
   const latched = a.latched && R3 < 650 && behind > -.1;
@@ -2238,7 +2243,8 @@ function attackGuidance(t, G) {
   // as far as the drone still has to turn to match the target's heading (little turn left → keep dashing).
   // Gentle closure (planned 1.5 m/s² braking), and slower still while the target is turning so we don't fly
   // through its turn and weave across its track (the S-shape).
-  const turning = smoothstep(.03, .1, Math.abs(t.turnRate || 0)) * (1 - smoothstep(250, 600, R3));
+  // (not in the last ~100 m: against a small, hard-turning target the drone must keep closing or it lags behind its tail)
+  const turning = smoothstep(.03, .1, Math.abs(t.turnRate || 0)) * (1 - smoothstep(250, 600, R3)) * smoothstep(60, 150, R3);
   // Closing-speed profile. Far behind: catch up fast but arrive at its tail (~350 m) at a calm +10 m/s.
   // Then — only once established on its tail — build up steadily to a fast +32 m/s finish so the hit is certain.
   const onTail = smoothstep(.55, .85, est);
@@ -2272,16 +2278,16 @@ function attackGuidance(t, G) {
     const vrx = tv.x - state.vel.x, vrz = tv.z - state.vel.z, R2 = rx * rx + rz * rz;
     const losRate = (rz * vrx - rx * vrz) / Math.max(1, R2);
     const Vc = Math.max(2, -(rx * vrx + rz * vrz) / R);
-    const N = 4, Vd = Math.max(V_MIN, state.cruiseSpeed), los = Math.atan2(-rx, -rz);
+    const N = lerp(5, 4, smoothstep(60, 200, R3)), Vd = Math.max(V_MIN, state.cruiseSpeed), los = Math.atan2(-rx, -rz);   // a bit more gain at the very end (0.45 m half-span drone)
     const pnRate = (N * Vc * losRate + .5 * N * Vt * (t.turnRate || 0)) / Vd;
     G.rateCmd = pnRate + .35 * wrapAngle(los - state.rot.y) * (a.settling ? .6 : 1);
     G.aim.set(t.pos.x, 0, t.pos.z);
   }
   // Altitude: target height (+ its climb) with a side offset that collapses to 0 inside ~40 m → shallow dive/climb in.
-  const off = a.side * clamp((R3 - 40) * .06, 0, 25);
+  const off = a.side * clamp((R3 - 60) * .06, 0, 25);   // gone by 60 m: the 1.2 m drone must meet it within ~±0.8 m vertically
   // Collision-course vertical law: copy its climb rate (feed-forward) and null the height error by arrival.
   G.alt = t.pos.y + off;
-  G.tau = clamp(Math.min(tg, R3 / Math.max(5, V - Vt)) * .6, .9, 14);
+  G.tau = clamp(Math.min(tg, R3 / Math.max(5, V - Vt)) * .6, lerp(.5, .9, smoothstep(30, 90, R3)), 14);
   G.ff = 1 - smoothstep(500, 1200, R);                  // copy the target's vertical rate when it matters
   G.terminal = R3 < 140 && commit > .3;
   a.phase = commit > .55 ? (R3 < 260 ? 'terminal' : 'join') : 'intercept';
@@ -2568,7 +2574,7 @@ function stepPowerLoss(h) {
 function resetToPad(reason) {
   if (state.mission && !state.mission.end) state.mission.end = [state.pos.x, state.pos.z];   // where the sortie ended (before moving to the pad)
   state.returning = false; state.crashed = false; state.batteryDead = false;
-  if (reason === 'landed') state.pos.y = terrainHeight(0, 0) + 2.6; else state.pos.set(0, terrainHeight(0,0) + 2.6, 0);   // landed: stays where it touched down
+  if (reason === 'landed') state.pos.y = terrainHeight(0, 0) + DRONE_REST_H; else state.pos.set(0, terrainHeight(0,0) + DRONE_REST_H, 0);   // landed: stays where it touched down
   state.vel.set(0,0,0); state.altCmd = state.pos.y; state.tiltX = state.tiltZ = 0; state.rtbAlt = null; state.landAim = null; state.userAlt = null; state.nudging = false; state.altNudge = false;
   state.cruiseSpeed = 0; state.turnCmd = 0; state.searchWp = null; state.ignoredTargets.clear();
   state.aiTarget = null; state.pursuitMode = false; state.manualWaypointActive = false; mapWaypoint = null;
@@ -2609,7 +2615,7 @@ function physicsStep(h) {
     }
     return;
   }
-  if (state.launchStage === 'parked') { state.vel.set(0,0,0); state.pos.y = terrainHeight(state.pos.x, state.pos.z) + 2.6; state.hover = true; state.modeBlend = 1; return; }
+  if (state.launchStage === 'parked') { state.vel.set(0,0,0); state.pos.y = terrainHeight(state.pos.x, state.pos.z) + DRONE_REST_H; state.hover = true; state.modeBlend = 1; return; }
   if (state.launchStage === 'takeoff') {
     // ~8 s sequence: 0–2.5 s straight vertical climb, 2.5–7.5 s gradual pitch-over into forward flight.
     const t = state.takeoffT = (state.takeoffT || 0) + h;
@@ -2623,7 +2629,7 @@ function physicsStep(h) {
     state.rot.x = damp(state.rot.x, .12 * smoothstep(3, 7.5, t), 2, h);   // slight nose-up while climbing out
     state.pos.addScaledVector(state.vel, h);
     const gnd = terrainHeight(state.pos.x, state.pos.z);
-    if (state.pos.y < gnd + 2.6) { state.pos.y = gnd + 2.6; state.vel.y = Math.max(0, state.vel.y); }
+    if (state.pos.y < gnd + DRONE_REST_H) { state.pos.y = gnd + DRONE_REST_H; state.vel.y = Math.max(0, state.vel.y); }
     drainBattery(h, 700 + state.vel.y * 45);   // hover lift is expensive
     if (t >= 8) {
       state.launchStage = 'active'; state.aiActivated = true;
@@ -2643,8 +2649,8 @@ function physicsStep(h) {
   //    whole thing takes ~45-60 s. The airframe tilts towards its acceleration (thrust vector), nose comes up into
   //    hover as speed bleeds off, and it yaws into its direction of travel while moving. ──
   if (state.rtb === 'landing') {
-    const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + 2.6;
-    if (!state.landAim) { state.landAim = {x:PAD.x + (Math.random() - .5) * 2, z:PAD.z + (Math.random() - .5) * 2}; state.landV0 = Math.max(15, Math.hypot(state.vel.x, state.vel.z)); state.landFloat = 5 + Math.random() * 7; state.landHover = false; state.landDesc = false; state.hoverT = 0; }
+    const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + DRONE_REST_H;
+    if (!state.landAim) { state.landAim = {x:PAD.x + (Math.random() - .5) * 1, z:PAD.z + (Math.random() - .5) * 1}; state.landV0 = Math.max(15, Math.hypot(state.vel.x, state.vel.z)); state.landFloat = 5 + Math.random() * 7; state.landHover = false; state.landDesc = false; state.hoverT = 0; }
     const ex = state.landAim.x - state.pos.x, ez = state.landAim.z - state.pos.z, dH = Math.hypot(ex, ez);
     const hs = Math.hypot(state.vel.x, state.vel.z), agl = state.pos.y - padY;
     let ax, az;
@@ -2660,19 +2666,19 @@ function physicsStep(h) {
         const vd = Math.min(10, Math.sqrt(2 * 1.2 * (dH - 4)));
         ax = .8 * (vd * ex / dH - state.vel.x); az = .8 * (vd * ez / dH - state.vel.z);
       } else {   // ωn≈.6, ζ≈.5 → small overshoot, then settles; a bit firmer in the last few metres (ωn≈.75) so it ends on the pad
-        const low = state.landDesc && agl < 6, kp = low ? .7 : dH < 4 ? .56 : .36, kd = low ? .95 : dH < 4 ? .8 : .62;   // firmest just above the pad
+        const low = state.landDesc && agl < 6, kp = low ? .9 : dH < 4 ? .56 : .36, kd = low ? 1.2 : dH < 4 ? .8 : .62;   // firmest just above the pad
         ax = kp * ex - kd * state.vel.x; az = kp * ez - kd * state.vel.z;
       }
     }
-    const am = Math.hypot(ax, az), aLim = state.landDesc && agl < 6 ? 4.5 : 3.5; if (am > aLim) { ax *= aLim / am; az *= aLim / am; }
+    const am = Math.hypot(ax, az), aLim = state.landDesc && agl < 6 ? 6 : 3.5; if (am > aLim) { ax *= aLim / am; az *= aLim / am; }
     // gusts (deviation from the mean wind) push it around; the controller has to keep correcting
     state.wxAvg = damp(state.wxAvg ?? wind.x, wind.x, .3, h); state.wzAvg = damp(state.wzAvg ?? wind.z, wind.z, .3, h);
     const gx = (wind.x - state.wxAvg) * .8, gz = (wind.z - state.wzAvg) * .8;
     state.vel.x += (ax + gx) * h; state.vel.z += (az + gz) * h;
     // vertical: descend along the approach to a 25 m hover; then down once settled (or after 10 s), slowing near the ground
-    if (state.landHover && !state.landDesc && ((dH < 2 && hs < 1.5) || state.hoverT > 10)) { state.landDesc = true; radioMessage('SETTLED · DESCENDING'); }
+    if (state.landHover && !state.landDesc && ((dH < 1.5 && hs < 1.2) || state.hoverT > 10)) { state.landDesc = true; radioMessage('SETTLED · DESCENDING'); }
     let vyCmd;
-    if (state.landDesc) vyCmd = dH > 3.5 && agl > 3 ? -.7 : dH > 1.8 && agl < 3 ? -.15 : -clamp(agl * .3, .6, 3) * (agl < 2 ? .7 : 1);   // off the spot → (almost) hold height while it corrects
+    if (state.landDesc) vyCmd = dH > 2.5 && agl > 3 ? -.7 : dH > 1.2 && agl < 3 ? -.12 : -clamp(agl * .3, .6, 3) * (agl < 2 ? .7 : 1);   // off the spot → (almost) hold height while it corrects
     else if (state.landHover) vyCmd = clamp((25 - agl) * .4, -4, 2);
     else vyCmd = clamp((25 - agl) / Math.max(4, 2 * dH / Math.max(3, hs)), -6, 2);   // glide that reaches 25 m over the spot
     state.vel.y = damp(state.vel.y, vyCmd + wind.y * .3, 2, h);
@@ -2897,8 +2903,8 @@ function physicsStep(h) {
 }
 
 // Collision with a real airframe: the drone's position in the object's local frame (nose −Z, +X right wing, +Y up)
-// against its hit boxes [cx,cy,cz, hx,hy,hz], each grown by the drone's own half-span DR (airframe touching airframe).
-const HIT_DR = 1.5, _hitQ = new THREE.Quaternion(), _hitE = new THREE.Euler(0, 0, 0, 'YXZ'), _hitV = new THREE.Vector3();
+// against its hit boxes [cx,cy,cz, hx,hy,hz], each grown by the drone's own half-span (0.45 m, rotor tips) — airframe touching airframe.
+const HIT_DR = .45, _hitQ = new THREE.Quaternion(), _hitE = new THREE.Euler(0, 0, 0, 'YXZ'), _hitV = new THREE.Vector3();
 function hitsAirframe(o, boxes, pitch, yaw, roll) {
   _hitV.subVectors(state.pos, o.pos).applyQuaternion(_hitQ.setFromEuler(_hitE.set(pitch || 0, yaw || 0, roll || 0)).invert());
   for (const b of boxes) if (Math.abs(_hitV.x - b[0]) < b[3] + HIT_DR && Math.abs(_hitV.y - b[1]) < b[4] + HIT_DR && Math.abs(_hitV.z - b[2]) < b[5] + HIT_DR) return true;
@@ -2924,7 +2930,7 @@ function recordFrame(h) {
 function impact(target, label) {
   recordFrame(1);   // force the final frame
   const tScale = target.type === 'plane' ? 6 : target.type === 'birds' ? 1.2 : target.type === 'cessna' ? 2.6 : 2.4;
-  explodeAt(state.pos.clone(), 1.8, state.vel, 0x10151c); explodeAt(target.pos.clone(), tScale, target.vel, target.type === 'cessna' ? 0xe6eaee : target.type === 'plane' ? 0xeef0f0 : 0x4a5563);
+  explodeAt(state.pos.clone(), 1.0, state.vel, 0x10151c); explodeAt(target.pos.clone(), tScale, target.vel, target.type === 'cessna' ? 0xe6eaee : target.type === 'plane' ? 0xeef0f0 : 0x4a5563);
   craft.visible = false; target.group.visible = false; if (target.trail) target.trail.visible = false;
   if (target.isAmbient) { const i = ambientActors.indexOf(target); if (i >= 0) ambientActors.splice(i, 1); target.removed = true; }
   if (target.imp) target.imp.quad.visible = false;
@@ -2993,7 +2999,7 @@ function stepReplay(rdt) {
   _rf.subVectors(_rc, _rq); if (_rf.lengthSq() < 1) _rf.set(fx, 0, fz); _rf.normalize();
   const mid = _rq.clone().lerp(_rc, .5);
   if (cut === 'CHASE CAM') {
-    camera.position.copy(_rq).addScaledVector(_rf, -18); camera.position.y += 5; camera.up.set(0, 1, 0); camera.lookAt(sep < 400 ? mid : _rc);
+    camera.position.copy(_rq).addScaledVector(_rf, -10); camera.position.y += 3; camera.up.set(0, 1, 0); camera.lookAt(sep < 400 ? mid : _rc);
   } else if (cut === 'SIDE CAM') {
     if (!replay.side) { const d = Math.max(45, sep * 1.1); replay.side = new THREE.Vector3(mid.x - _rf.z * d, mid.y + 8, mid.z + _rf.x * d); }
     camera.position.copy(replay.side); camera.up.set(0, 1, 0); camera.lookAt(mid);
@@ -3239,7 +3245,7 @@ function renderZoomView(rdt) {
   // Camera: under the drone, gimbal direction + a little shake that grows with zoom and turbulence.
   const sh = .00035 * zv.zoom * (1 + Math.abs(wind.y) * .3), tt = state.time, cp = Math.cos(zv.pitch);
   zv.fwd.set(-Math.sin(zv.yaw) * cp, Math.sin(zv.pitch), -Math.cos(zv.yaw) * cp);
-  zoomCam.position.copy(renderPos); zoomCam.position.y -= .6; zoomCam.up.set(0, 1, 0);
+  zoomCam.position.copy(renderPos); zoomCam.position.y -= .15; zoomCam.up.set(0, 1, 0);
   _zp.copy(zoomCam.position).addScaledVector(zv.fwd, 100); _zp.x += Math.sin(tt * 13.1) * sh * 100; _zp.y += Math.sin(tt * 9.7 + 1) * sh * 100; _zp.z += Math.cos(tt * 11.3) * sh * 100;
   zoomCam.lookAt(_zp);
   const cr = renderer.domElement.getBoundingClientRect(), r = box.getBoundingClientRect();
@@ -3276,7 +3282,7 @@ function updateCamera(rdt) {
     camYaw = dampAngle(camYaw, renderYaw, 1.2, rdt);
     freeCam.yaw = dampAngle(freeCam.yaw, orbitYaw, 10, rdt); freeCam.pitch = damp(freeCam.pitch, orbitPitch, 10, rdt); freeCam.dist = damp(freeCam.dist, orbitDist, 6, rdt);
     const a = camYaw + freeCam.yaw, hr = Math.cos(freeCam.pitch) * freeCam.dist;
-    camLook.copy(p); camLook.y += .8;
+    camLook.copy(p); camLook.y += .2;
     camera.position.set(p.x + Math.sin(a) * hr, p.y + Math.sin(freeCam.pitch) * freeCam.dist, p.z + Math.cos(a) * hr);
     camera.up.set(0, 1, 0); camera.lookAt(camLook);
   } else if (mode === 'fpv') {
@@ -3288,14 +3294,14 @@ function updateCamera(rdt) {
     const rollMag = Math.abs(state.rot.z);
     const stabBlend = smoothstep(0.08, 0.55, rollMag);  // 0=level, 1=full roll
     const levelUp = upFPV.clone().lerp(new THREE.Vector3(0,1,0), 1 - stabBlend);
-    camera.position.copy(p).addScaledVector(fwdFPV, 2.6);
+    camera.position.copy(p).addScaledVector(fwdFPV, 2.6 * DRONE_SCALE + .08);
     camera.up.copy(levelUp.normalize());
     camera.lookAt(p.clone().addScaledVector(fwdFPV, 200));
   } else {
     if (!camInit) { camYaw = renderYaw; camInit = true; }
     camYaw = dampAngle(camYaw, renderYaw, 5, rdt);                         // chase camera swings gently into turns
-    const cx = -Math.sin(camYaw), cz = -Math.cos(camYaw), dist = Math.min(38, 17 + speed * .07);
-    camera.position.set(p.x - cx * dist, p.y + Math.min(10, 4 + speed * .035), p.z - cz * dist); camera.up.set(0, 1, 0); camera.lookAt(p.x + cx * 14, p.y + 1.2, p.z + cz * 14);
+    const cx = -Math.sin(camYaw), cz = -Math.cos(camYaw), dist = Math.min(10, 4.5 + speed * .05);   // sized for the 1.2 m drone
+    camera.position.set(p.x - cx * dist, p.y + Math.min(2.8, 1.1 + speed * .015), p.z - cz * dist); camera.up.set(0, 1, 0); camera.lookAt(p.x + cx * 5, p.y + .35, p.z + cz * 5);
   }
   const gy = terrainHeight(camera.position.x, camera.position.z) + 2; if (camera.position.y < gy) camera.position.y = gy;
   const fov = mode === 'fpv' ? 86 : 76 + Math.min(10, speed * .05);
