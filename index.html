@@ -643,12 +643,14 @@ function updateCloudBanks(edt, daylight) {
 // ───────────────────────── Launch pad & player aircraft ─────────────────────────
 const launchPadY = terrainHeight(0, 0);
 const launchPad = new THREE.Group(); scene.add(launchPad);
-// 34 m pad, 30 m landing surface with a touchdown circle and an H
-th(box(launchPad, [34,.65,34], mat(0x263542,.7,.35), [0, launchPadY+.1, 0]), .4);
-th(box(launchPad, [30,.08,30], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), .4);
-for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.3,.1,3.2], mat(0x7dffcb,.4,.5), [sx*14, launchPadY+.55, sz*14], [0, Math.PI/4, 0]), .5);
-{ const ring = new THREE.Mesh(new THREE.RingGeometry(9.2, 10, 48).rotateX(-Math.PI / 2), mat(0xe9eef2, .6, .1)); ring.position.y = launchPadY + .54; launchPad.add(ring); th(ring, .35);
-  const hm = mat(0xe9eef2, .6, .1); th(box(launchPad, [1.1,.06,7], hm, [-2.6, launchPadY+.54, 0]), .35); th(box(launchPad, [1.1,.06,7], hm, [2.6, launchPadY+.54, 0]), .35); th(box(launchPad, [4.1,.06,1.1], hm, [0, launchPadY+.54, 0]), .35); }
+// Pad sized for the 2.6 m drone: 11 m base, 10 m landing surface (PAD_HALF = 5 m) with a touchdown ring, an H and
+// corner markers at the edges.
+const PAD_HALF = 5;
+th(box(launchPad, [11,.65,11], mat(0x263542,.7,.35), [0, launchPadY+.1, 0]), .4);
+th(box(launchPad, [10,.08,10], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), .4);
+for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.14,.1,1.1], mat(0x7dffcb,.4,.5), [sx*4.55, launchPadY+.55, sz*4.55], [0, Math.PI/4, 0]), .5);
+{ const ring = new THREE.Mesh(new THREE.RingGeometry(3.05, 3.35, 48).rotateX(-Math.PI / 2), mat(0xe9eef2, .6, .1)); ring.position.y = launchPadY + .54; launchPad.add(ring); th(ring, .35);
+  const hm = mat(0xe9eef2, .6, .1); th(box(launchPad, [.38,.06,2.35], hm, [-.88, launchPadY+.54, 0]), .35); th(box(launchPad, [.38,.06,2.35], hm, [.88, launchPadY+.54, 0]), .35); th(box(launchPad, [1.4,.06,.38], hm, [0, launchPadY+.54, 0]), .35); }
 const craft = new THREE.Group(); scene.add(craft);
 // Bullet-shaped tail-sitter: ogive fuselage, four swept arms with nose-facing motors, four tail fins.
 const bodyMat = mat(0x16191d,.6,.22), motorMat = mat(0x1d2024,.45,.5), accentMat = mat(0xb08a3a,.35,.8);
@@ -681,12 +683,91 @@ box(camGimbal, [.2,.14,.2], darkMat, [0,0,0]).userData.th = .45;
 cylinder(camGimbal, .06,.08,.08, blueMat, [0,-.02,-.12], [Math.PI/2,0,0]);
 registerGroup(craft, .34); registerGroup(craftInner, .34);
 
+// ───────────────────────── Aircraft geometry helpers ─────────────────────────
+// All aircraft are built in real metres at scale 1: nose towards −Z, +X = right wing, +Y = up.
+// Wing / tail panel: a tapered, swept planform (ExtrudeGeometry) whose thickness tapers with the chord.
+// The panel runs outwards along its own +X, then is rotated about the aircraft's Z axis by `ang`
+// (0 = right wing, π = left wing, π/2 = fin up, −π/2 = ventral fin; add/subtract dihedral or cant).
+// `at` = root leading-edge position; `sweep` = how far aft the tip leading edge sits.
+function wingPanel(parent, material, {root, tip, span, sweep = 0, t = .12, ang = 0, at = [0, 0, 0], th}) {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0); s.lineTo(span, sweep); s.lineTo(span, sweep + tip); s.lineTo(0, root); s.closePath();
+  const bv = Math.min(t * .32, tip * .15), dep = Math.max(t - 2 * bv, t * .2);   // bevel rounds the edges; total thickness ≈ t
+  const geo = new THREE.ExtrudeGeometry(s, {depth:dep, bevelEnabled:true, bevelThickness:bv, bevelSize:bv * .6, bevelSegments:2, steps:1});
+  geo.translate(0, 0, -dep / 2).rotateX(Math.PI / 2);                    // shape y → aft (+Z), thickness → Y
+  const p = geo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, p.getY(i) * lerp(1, tip / root, clamp(p.getX(i) / span, 0, 1)));   // thinner towards the tip
+  geo.rotateZ(ang); geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, material); m.position.set(...at); if (th !== undefined) m.userData.th = th; parent.add(m); return m;
+}
+// Streamlined fuselage (LatheGeometry about the Z axis): rounded nose over `nose` m, constant section, tail cone over
+// `tail` m tapering to radius `tailR`; `up` lifts the tail cone (airliner upsweep), `sy` makes the section taller.
+// Returns the mesh; mesh.userData.r(z) = local radius at z (handy for placing windows, fins…).
+function fuselage(parent, material, {len, r, nose, tail, tailR = .05, noseR = 0, up = 0, sy = 1, at = [0, 0, 0], pow = .5, seg = 28, th}) {
+  const z0 = -len / 2, z1 = len / 2;
+  const rad = z => {
+    if (z < z0 + nose) { const u = (z - z0) / nose; return lerp(noseR, r, Math.pow(1 - (1 - u) * (1 - u), pow)); }
+    if (z > z1 - tail) { const u = (z - (z1 - tail)) / tail; return lerp(r, tailR, u * u * (3 - 2 * u) * .35 + u * .65); }
+    return r;
+  };
+  const pts = [], n = 44;
+  pts.push(new THREE.Vector2(0, -z0));
+  for (let i = 0; i <= n; i++) { const u = i / n, z = z0 + len * (u < .5 ? Math.pow(u * 2, 1.6) / 2 : 1 - Math.pow((1 - u) * 2, 1.6) / 2); pts.push(new THREE.Vector2(Math.max(.001, rad(z)), -z)); }
+  pts.push(new THREE.Vector2(0, -z1));
+  const geo = new THREE.LatheGeometry(pts.reverse(), seg).rotateX(-Math.PI / 2);   // lathe y → −Z (nose forward)
+  geo.scale(1, sy, 1);
+  if (up) { const p = geo.attributes.position; for (let i = 0; i < p.count; i++) { const z = p.getZ(i); if (z > z1 - tail) { const u = (z - (z1 - tail)) / tail; p.setY(i, p.getY(i) + up * u * u); } } }
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, material); m.position.set(...at); if (th !== undefined) m.userData.th = th;
+  m.userData.r = rad; parent.add(m); return m;
+}
+function ellipsoid(parent, rx, ry, rz, material, pos, th, seg = 18) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(1, seg, Math.max(8, seg * .6 | 0)), material); m.scale.set(rx, ry, rz); m.position.set(...pos);
+  if (th !== undefined) m.userData.th = th; parent.add(m); return m;
+}
+// Engine nacelle along Z: cowling (slightly waisted), dark intake disc at the front, hot exhaust cone at the back.
+const intakeMat = mat(0x0b0d10, .6, .5), exhaustMat = mat(0x4a4038, .45, .7, 0x1a0802);
+function nacelle(parent, material, {r, len, at, heat = .88, hot = 1, exhaust = .55}) {
+  const g = new THREE.Group(); g.position.set(...at); parent.add(g);
+  const pts = []; for (let i = 0; i <= 12; i++) { const u = i / 12; pts.push(new THREE.Vector2(r * (1 - .18 * u * u) * (i === 0 ? .94 : 1), len / 2 - len * u)); }
+  const cowl = new THREE.Mesh(new THREE.LatheGeometry(pts.reverse(), 22).rotateX(-Math.PI / 2), material); cowl.userData.th = heat; g.add(cowl);
+  cylinder(g, r * .9, r * .9, .02, intakeMat, [0, 0, -len / 2 + .04], [Math.PI / 2, 0, 0]).userData.th = heat * .8;
+  const cone = cylinder(g, r * .82 * exhaust, r * .2 * exhaust, len * .22, exhaustMat, [0, 0, len / 2 + len * .1], [Math.PI / 2, 0, 0]); cone.userData.th = hot;
+  return g;
+}
+// Cylinder between two points (struts, gear legs, pylons).
+const _sa = new THREE.Vector3(), _sb = new THREE.Vector3();
+function strut(parent, a, b, r, material, th) {
+  _sa.set(...a); _sb.set(...b); const l = _sa.distanceTo(_sb);
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, l, 8), material);
+  m.position.copy(_sa).add(_sb).multiplyScalar(.5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), _sb.sub(_sa).normalize());
+  if (th !== undefined) m.userData.th = th; parent.add(m); return m;
+}
+// Propeller hub group with n twisted blades of diameter d; spins about Z (the existing `propeller` hook).
+function propellerGroup(parent, {n = 2, d, at, chord = .1, material, hubR = .08, th = .2}) {
+  const p = new THREE.Group(); p.position.set(...at); parent.add(p);
+  for (let i = 0; i < n; i++) {
+    const arm = new THREE.Group(); arm.rotation.z = i * TAU / n; p.add(arm);
+    const b = box(arm, [chord, d / 2 - hubR * .5, chord * .14], material, [0, d / 4 + hubR * .25, 0], [0, .35, 0]); b.userData.th = th;
+  }
+  const sp = new THREE.Mesh(new THREE.ConeGeometry(hubR * 1.2, hubR * 3, 14).rotateX(-Math.PI / 2), mat(0x8c939a, .3, .8)); sp.userData.th = th + .1; p.add(sp);
+  return p;
+}
+
 // ───────────────────────── Scouts ─────────────────────────
 // Three classes with very different heat signatures: jets burn hot, heavies run warm, propeller scouts are cool.
+// Models are real size (light 2.5 m span, jet 3.2 m, heavy 20 m). `size` is NOT the model size: it is the gameplay
+// identification scale (classifyRange) and must stay as is. `hit` = local hit boxes [cx,cy,cz, hx,hy,hz] (m)
+// matching the airframe (body, wing, tail); the drone's own half-span DR is added in the collision test.
+// Speeds are realistic: light ~150 km/h, heavy ~305 km/h, jet ~330 km/h (economical cruise — still catchable at the
+// drone's 400 km/h dash).
 const SCOUT_SPEC = {
-  light:{scale:1.7, speed:42, body:31, exhaust:96,  sig:.35, detect:1500, size:12, label:'PROPELLER SCOUT', hull:.3},
-  heavy:{scale:2.8, speed:54, body:52, exhaust:335, sig:.8,  detect:2300, size:20, label:'HEAVY SCOUT',     hull:.4},
-  fast: {scale:1.35,speed:68, body:76, exhaust:510, sig:1,   detect:2600, size:11, label:'JET SCOUT',       hull:.46}
+  light:{speed:42, body:31, exhaust:96,  sig:.35, detect:1500, size:12, label:'PROPELLER SCOUT', hull:.3,
+    hit:[[0, 0, -.1, .25, .25, 1.75], [0, 0, .35, 1.25, .38, .85]]},
+  heavy:{speed:85, body:52, exhaust:335, sig:.8,  detect:2300, size:20, label:'HEAVY SCOUT',     hull:.4,
+    hit:[[0, 0, 0, .6, .75, 5.5], [0, .25, -.45, 10, .3, .75], [0, .55, 4.6, 2.2, 1.6, .75]]},
+  fast: {speed:92, body:76, exhaust:510, sig:1,   detect:2600, size:11, label:'JET SCOUT',       hull:.46,
+    hit:[[0, .1, 0, .3, .38, 1.95], [0, 0, .55, 1.6, .38, .95]]}
 };
 const scouts = [], plumeList = [];
 const TRAIL_PTS = {light:14, heavy:40, fast:60}, TRAIL_HEAT = {light:.22, heavy:.5, fast:.85};
@@ -695,49 +776,86 @@ function fillTrailColors(s) {
   for (let j = 0; j < n; j++) { paletteRGB(TRAIL_HEAT[s.kind] * Math.pow(j / (n - 1), 1.5)); c.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); arr[j*3] = c.r; arr[j*3+1] = c.g; arr[j*3+2] = c.b; }
   s.trail.geometry.attributes.color.needsUpdate = true;
 }
-function makePlume(g, sc, x, heat, len) {
-  const geo = new THREE.ConeGeometry(.3*sc, len*sc, 10, 1, true).rotateX(Math.PI/2);
+// Thermal-only exhaust plume: open cone of radius r and length len, starting at pos (x,y,z) and pointing aft (+Z).
+function makePlume(g, r, len, pos, heat) {
+  const geo = new THREE.ConeGeometry(r, len, 10, 1, true).rotateX(Math.PI/2);
   const p = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({transparent:true, opacity:.6, depthWrite:false, toneMapped:false, side:THREE.DoubleSide}));
-  p.position.set(x*sc, 0, (1.7 + len/2) * sc); p.userData.thermalOnly = true; p.userData.plumeHeat = heat; p.visible = thermalOn; g.add(p); plumeList.push(p);
+  p.position.set(pos[0], pos[1], pos[2] + len / 2); p.userData.thermalOnly = true; p.userData.plumeHeat = heat; p.visible = thermalOn; g.add(p); plumeList.push(p);
   paletteRGB(heat); p.material.color.setRGB(_rgb[0], _rgb[1], _rgb[2], THREE.SRGBColorSpace); return p;
 }
-function createScout(kind = 'heavy', difficulty = 'normal', start) {
-  const spec = SCOUT_SPEC[kind], sc = spec.scale, g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
-  const hullMat = mat(kind === 'fast' ? 0x687f8e : 0x68717d, .45, .35);
-  const shape = new THREE.Shape();
-  shape.moveTo(-3.7*sc, 2.8*sc); shape.lineTo(-1.05*sc, -4.8*sc); shape.lineTo(0, -6.0*sc); shape.lineTo(1.05*sc, -4.8*sc);
-  shape.lineTo(3.7*sc, 2.8*sc); shape.lineTo(1.2*sc, 1.55*sc); shape.lineTo(-1.2*sc, 1.55*sc); shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, {depth:.22*sc, bevelEnabled:true, bevelSegments:1, steps:1, bevelSize:.06*sc, bevelThickness:.04*sc}); geo.rotateX(Math.PI/2);
-  const delta = new THREE.Mesh(geo, mat(kind === 'fast' ? 0x344553 : 0x3b4653, .38, .62)); delta.position.y = .18*sc; g.add(delta);
-  box(g, [.72*sc,.42*sc,4.2*sc], hullMat, [0,.36*sc,-.15*sc]);
-  box(g, [.45*sc,.24*sc,1.4*sc], mat(0x202b36,.3,.7), [0,.48*sc,1.35*sc]);
-  const plumes = []; let propeller = null;
-  if (kind === 'light') {
-    // Propeller scout: small piston engine + pusher prop. No jet nozzles, only a faint warm cowling.
-    cylinder(g, .2*sc,.26*sc,.7*sc, mat(0x2b333b,.5,.5), [0,.3*sc,2.3*sc], [Math.PI/2,0,0]).userData.th = .58;
-    cylinder(g, .04*sc,.05*sc,.5*sc, mat(0x3a3f45,.5,.6), [.28*sc,.12*sc,2.0*sc], [Math.PI/2,0,0]).userData.th = .64;
-    propeller = new THREE.Group(); propeller.position.set(0, .3*sc, 2.75*sc); g.add(propeller);
-    const pm = mat(0x343b43,.7,.2);
-    box(propeller, [1.15*sc,.07*sc,.03*sc], pm, [0,0,0]).userData.th = .18; box(propeller, [.07*sc,1.15*sc,.03*sc], pm, [0,0,0]).userData.th = .18;
-    cylinder(propeller, .08*sc,.08*sc,.1*sc, mat(0x888f96,.3,.8), [0,0,0], [Math.PI/2,0,0]).userData.th = .2;
-  } else {
-    for (const x of [-.65, .65]) {
-      const e = cylinder(g, .25*sc,.32*sc,.8*sc, kind === 'fast' ? mat(0xff6c36,.3,.1,0x9b2a08) : mat(0x5a5048,.4,.6,0x2a0f06), [x*sc,0,1.3*sc], [Math.PI/2,0,0]);
-      e.userData.th = kind === 'fast' ? 1 : .78;
-      plumes.push(makePlume(g, sc, x, kind === 'fast' ? .85 : .5, kind === 'fast' ? 2.8 : 1.6));
-    }
+// PROPELLER SCOUT — small delta-wing pusher drone: 2.5 m span, 3.5 m long, Ø0.45 m body, cranked mid delta,
+// wingtip fins up and down, small rear piston engine with a 2-blade 0.8 m pusher prop. Dark grey, runs cool.
+function buildPropScout(g) {
+  const skin = mat(0x3c4249, .55, .3), dark = mat(0x23282e, .5, .4);
+  const body = fuselage(g, skin, {len:3.0, r:.225, nose:.75, tail:.55, tailR:.15, at:[0, 0, -.25]});
+  ellipsoid(g, .12, .07, .32, mat(0x15202b, .2, .7), [0, .17, -1.2], .3);                       // camera / sensor window
+  for (const sx of [-1, 1]) {
+    const a = sx > 0 ? 0 : Math.PI;
+    wingPanel(g, skin, {root:1.75, tip:1.05, span:.32, sweep:.7, t:.07, ang:a, at:[sx * .18, -.02, -.55]});   // inner strake (crank)
+    wingPanel(g, skin, {root:1.05, tip:.42, span:.75, sweep:.6, t:.06, ang:a, at:[sx * .5, -.02, .15]});     // outer delta panel
+    wingPanel(g, dark, {root:.42, tip:.2, span:.36, sweep:.24, t:.03, ang:Math.PI / 2, at:[sx * 1.25, 0, .75]});   // tip fin up
+    wingPanel(g, dark, {root:.36, tip:.18, span:.2, sweep:.14, t:.03, ang:-Math.PI / 2, at:[sx * 1.25, 0, .8]});   // tip fin down
   }
+  // rear piston engine + muffler (the only warm bits)
+  const eng = cylinder(g, .17, .13, .32, mat(0x2b333b, .5, .5), [0, 0, 1.38], [Math.PI / 2, 0, 0]); eng.userData.th = .58;
+  cylinder(g, .03, .03, .3, mat(0x3a3f45, .5, .6), [.14, -.12, 1.3], [Math.PI / 2, 0, 0]).userData.th = .64;
+  const propeller = propellerGroup(g, {n:2, d:.8, at:[0, 0, 1.6], chord:.07, material:mat(0x343b43, .7, .2), hubR:.06, th:.18});
+  return {propeller, plumes:[]};
+}
+// JET SCOUT — small jet drone: 3.2 m span, ~3.9 m long, slim pointed body with a light nose dome, mid delta with tip
+// fins, small jet engine pod on top of the rear fuselage with a hot nozzle. Black. One thermal plume.
+function buildJetScout(g) {
+  const skin = mat(0x121418, .42, .5), dark = mat(0x0a0b0d, .4, .5);
+  fuselage(g, skin, {len:3.5, r:.22, nose:1.2, tail:.6, tailR:.12, pow:.75, at:[0, 0, -.2]});
+  ellipsoid(g, .2, .2, .45, mat(0xd7dad6, .35, .1), [0, 0, -1.6], .32);                       // light radome / nose dome
+  for (const sx of [-1, 1]) {
+    wingPanel(g, skin, {root:2.0, tip:.38, span:1.4, sweep:1.45, t:.07, ang:sx > 0 ? 0 : Math.PI, at:[sx * .2, -.03, -.55]});
+    wingPanel(g, dark, {root:.45, tip:.18, span:.38, sweep:.3, t:.03, ang:Math.PI / 2, at:[sx * 1.6, -.01, .95]});
+    wingPanel(g, dark, {root:.3, tip:.14, span:.18, sweep:.15, t:.03, ang:-Math.PI / 2, at:[sx * 1.6, -.01, 1.0]});
+  }
+  // engine pod on top of the rear fuselage, on a short pylon, with a hot nozzle
+  box(g, [.06, .14, .7], skin, [0, .25, .75]);
+  nacelle(g, mat(0x1b1d21, .4, .55), {r:.16, len:1.25, at:[0, .4, 1.1], heat:.82, hot:1, exhaust:.9});
+  const plumes = [makePlume(g, .22, 2.6, [0, .4, 1.86], .85)];
+  return {propeller:null, plumes};
+}
+// HEAVY SCOUT — MQ-9-type surveillance drone: 20 m span, 11 m long, slender fuselage with a satcom bulge on top of
+// the nose, sensor ball under it, long straight high-aspect wing, Y-tail (two surfaces 45° up + ventral fin),
+// 3-blade 2.9 m pusher prop. Light grey; warm turboprop with a small exhaust plume.
+function buildHeavyScout(g) {
+  const skin = mat(0xaab0b5, .5, .25), dark = mat(0x2a2f35, .45, .5);
+  const fz = fuselage(g, skin, {len:10.4, r:.55, nose:2.4, tail:3.0, tailR:.22, sy:1.12, at:[0, 0, -.2]});
+  ellipsoid(g, .56, .45, 2.0, skin, [0, .33, -3.4]);                                              // satcom bulge
+  const ball = ellipsoid(g, .34, .34, .34, mat(0x30363c, .35, .55), [0, -.72, -3.5], .4);       // EO/IR sensor ball
+  cylinder(g, .06, .06, .3, dark, [0, -.45, -3.5]);
+  ellipsoid(g, .14, .14, .06, mat(0x0d1a26, .1, .9), [0, -.76, -3.82], .38);
+  for (const sx of [-1, 1]) {
+    wingPanel(g, skin, {root:1.25, tip:.55, span:9.45, sweep:.35, t:.17, ang:sx > 0 ? .03 : Math.PI - .03, at:[sx * .5, .18, -1.05]});   // long straight wing
+    wingPanel(g, skin, {root:1.0, tip:.5, span:2.3, sweep:.75, t:.1, ang:sx > 0 ? Math.PI / 4 : Math.PI * 3 / 4, at:[sx * .18, .3, 3.75]});   // Y-tail
+  }
+  wingPanel(g, skin, {root:.95, tip:.5, span:1.3, sweep:.55, t:.09, ang:-Math.PI / 2, at:[0, -.28, 3.85]});   // ventral fin
+  const eng = ellipsoid(g, .38, .38, .6, mat(0x8f969c, .45, .35), [0, .05, 4.85], .62);           // engine bay / tail cone
+  cylinder(g, .05, .05, .35, exhaustMat, [.3, .25, 4.75], [Math.PI / 2, 0, -.5]).userData.th = .9;
+  const propeller = propellerGroup(g, {n:3, d:2.9, at:[0, .05, 5.45], chord:.2, material:mat(0x2b3036, .6, .3), hubR:.17, th:.24});
+  const plumes = [makePlume(g, .14, 1.4, [.32, .27, 4.95], .5)];
+  return {propeller, plumes};
+}
+const SCOUT_BUILDERS = {light:buildPropScout, fast:buildJetScout, heavy:buildHeavyScout};
+function createScout(kind = 'heavy', difficulty = 'normal', start) {
+  const spec = SCOUT_SPEC[kind], g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
+  const {propeller, plumes} = SCOUT_BUILDERS[kind](g);
   const pos = start ? start.clone() : new THREE.Vector3((Math.random()-.5)*35, 18+Math.random()*12, -35-Math.random()*45);
   g.position.copy(pos);
   registerGroup(g, spec.hull, true);
-  const speed = spec.speed * (difficulty === 'easy' ? .82 : difficulty === 'hard' ? 1.15 : 1);   // hard jet stays below the drone's 84 m/s dash
+  // hard ×1.15, but always ≥10 m/s below the drone's 111 m/s dash so a chase can still close
+  const speed = Math.min(spec.speed * (difficulty === 'easy' ? .82 : difficulty === 'hard' ? 1.15 : 1), 101);   // 101 = V_DASH (111, defined later) − 10
   const n = TRAIL_PTS[kind], tg = new THREE.BufferGeometry();
   tg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n*3), 3)); tg.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n*3), 3));
   const trail = new THREE.Line(tg, new THREE.LineBasicMaterial({vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, toneMapped:false}));
   trail.frustumCulled = false; trail.visible = false; scene.add(trail);
   const s = {group:g, kind, spec, difficulty, isScout:true, bodyTemp:spec.body, exhaustTemp:spec.exhaust, speed, health:100, tagged:false, destroyed:false,
     pos:pos.clone(), prev:pos.clone(), vel:new THREE.Vector3(0, 0, -speed), yaw:0, pitch:0, roll:0, waypoint:null, waypointTimer:0, routeTimer:0, routeY:pos.y,
-    trail, trailPts:[], trailTimer:0, plumes, propeller, identified:false, curiosity:Math.random(), detect:spec.detect, size:spec.size, sig:spec.sig, removeAt:0};
+    trail, trailPts:[], trailTimer:0, plumes, propeller, identified:false, curiosity:Math.random(), detect:spec.detect, size:spec.size, sig:spec.sig, removeAt:0, hit:spec.hit};
   fillTrailColors(s); g.userData.scout = s; scouts.push(s); return s;
 }
 function removeScout(s) {
@@ -772,79 +890,107 @@ function createBirdFlock(cx, cz, count = 7, radius = 300) {
   a.pos.set(cx + Math.cos(a.ang)*a.rx, terrainHeight(cx + Math.cos(a.ang)*a.rx, cz + Math.sin(a.ang)*a.rz) + a.hoverH, cz + Math.sin(a.ang)*a.rz); a.prev.copy(a.pos);
   ambientActors.push(a);
 }
-// ── Airliner builders (wide-body, narrow-body, regional) ─────────────────────
-function buildWidebody(g, livery) {
-  const fus=mat(livery.body,.35,.22), wm=mat(0x9aa5ad,.42,.28), tailM=mat(livery.tail,.35,.22), em=mat(0x282e34,.45,.4), acc=mat(livery.accent,.38,.3);
-  // fuselage cylinders – slightly tapering toward tail
-  cylinder(g, .95,1.08,16, fus, [0,0,-2.5], [Math.PI/2,0,0]);
-  cylinder(g, .80,.95, 8, fus, [0,0, 7.5], [Math.PI/2,0,0]);
-  // cockpit hump (upper deck)
-  const hump=new THREE.Mesh(new THREE.SphereGeometry(.8,16,10),fus); hump.scale.set(1,.6,1.6); hump.position.set(0,.58,-6.5); g.add(hump);
-  // nose cone
-  const noseM=new THREE.Mesh(new THREE.SphereGeometry(.95,20,14),fus); noseM.scale.set(1,.9,1.8); noseM.position.set(0,0,-10.5); g.add(noseM);
-  // painted tail section – livery colour
-  const tailSec=new THREE.Mesh(new THREE.SphereGeometry(.88,16,12),tailM); tailSec.scale.set(.82,.75,1.1); tailSec.position.set(0,0,11); g.add(tailSec);
-  // wings – two swept panels each side
-  for (const sx of [-1,1]) {
-    box(g,[14,.32,5.8],wm,[sx*8,-.12,-.2],[0,0,sx*.06]);
-    box(g,[ 8,.18,3.4],wm,[sx*18,-.06, .9],[0,0,sx*.08]);
-    // winglet
-    box(g,[.18,1.4,.65],acc,[sx*21.5,.44,1.5],[0,0,sx*.28]);
-    // 4 turbofan engines (inner + outer)
-    for (const [ex,ez] of [[sx*7,.8],[sx*14,.1]]) {
-      cylinder(g,.56,.68,2.6,em,[ex,-1.0,ez],[Math.PI/2,0,0]).userData.th=.88;
+// ── Airliners: one parametric builder, real dimensions (m) per type ─────────────────────
+// Fuselage (lathe, upswept tail cone) + cabin-window strip + cockpit windows + cheatline, swept tapered wing panels
+// with dihedral (raked tips / sharklets / winglets), engines under the wing or on the rear fuselage, tailplane
+// (conventional or T-tail) and a fin in the livery colour. Also returns local hit boxes matching the airframe.
+const windowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d');
+  x.fillStyle = '#10161d'; x.beginPath(); x.roundRect(16, 18, 32, 28, 9); x.fill();
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; return t; })();
+// Curved band on a fuselage section of radius r1 (front) → r2 (back) between z0 and z1, centred at angle a (0 = top,
+// ±π/2 = sides) with angular width w. CylinderGeometry θ: x = r·sinθ, y = −r·cosθ after the rotation, so θ = π − a.
+function fuselageBand(parent, material, r1, r2, z0, z1, a, w, yOff = 0) {
+  const geo = new THREE.CylinderGeometry(r2, r1, z1 - z0, 10, 1, true, Math.PI - a - w / 2, w).rotateX(Math.PI / 2);
+  const m = new THREE.Mesh(geo, material); m.position.set(0, yOff, (z0 + z1) / 2); parent.add(m); return m;
+}
+const AIRLINER_TYPES = [
+  // B787-9-like widebody: 63 m long, Ø5.8 m, 60 m span (raked tips), 2 big engines under the wing, 20 m tailplane, 9.5 m fin
+  {L:62.8, D:5.8, nose:7.5, tail:15, tailR:.4, up:2.2, wingY:-1.6, wingZ:-6.5, x0:2.4, dih:.1, t:.75,
+    panels:[{root:12.5, tip:7, span:7, sweep:5.2}, {root:7, tip:2.4, span:17.6, sweep:11.8}, {root:2.4, tip:.8, span:3, sweep:3.2}],
+    engines:[{x:10.2, y:-2.6, z:-1.5, r:1.5, len:6.5}],
+    htail:{root:6.3, tip:2.2, span:9.4, sweep:6.5, z:22, y:.5, x0:1.0, dih:.12}, fin:{root:9.5, tip:3.3, h:9.5, sweep:7.6, z:20.3},
+    cabin:[-22, 15], winRep:58},
+  // A320-like narrowbody: 37.6 m long, Ø4 m, 35.8 m span with sharklets, 2 engines under the wing, 12.5 m tailplane, 6 m fin
+  {L:37.6, D:3.95, nose:4.5, tail:10, tailR:.3, up:1.4, wingY:-1.1, wingZ:-3.9, x0:1.6, dih:.09, t:.5,
+    panels:[{root:7, tip:4.2, span:4.6, sweep:2.6}, {root:4.2, tip:1.5, span:11.2, sweep:5.9}],
+    tipFin:{root:1.5, tip:.45, h:2.4, sweep:1.4, cant:.2},
+    engines:[{x:5.75, y:-2.0, z:-2.2, r:1.05, len:4.3}],
+    htail:{root:3.8, tip:1.4, span:5.7, sweep:3.3, z:13.3, y:.35, x0:.5, dih:.1}, fin:{root:5.6, tip:2.0, h:5.9, sweep:4.6, z:11.8},
+    cabin:[-13.5, 9], winRep:40},
+  // CRJ900-like regional: 36.2 m long, Ø2.7 m, 24.9 m span with winglets, T-tail, 2 engines on the rear fuselage
+  {L:36.2, D:2.7, nose:3.6, tail:8, tailR:.3, up:.7, wingY:-.8, wingZ:0, x0:1.1, dih:.07, t:.38,
+    panels:[{root:5, tip:3.4, span:3, sweep:1.6}, {root:3.4, tip:1.2, span:8.2, sweep:4.3}],
+    tipFin:{root:1.1, tip:.5, h:1.3, sweep:.9, cant:.26},
+    engines:[{x:2.4, y:.6, z:9.8, r:.72, len:3.6, rear:true}],
+    ttail:true, htail:{root:2.8, tip:1.3, span:4.2, sweep:2.0, x0:.1, dih:-.05}, fin:{root:5, tip:3.4, h:4.3, sweep:3.8, z:11.2},
+    cabin:[-13.5, 8], winRep:38}
+];
+function buildAirliner(g, livery, P) {
+  const skin = mat(livery.body, .35, .22), wm = mat(0xb4bcc3, .42, .3), tailM = mat(livery.tail, .35, .22), acc = mat(livery.accent, .38, .3);
+  const engM = mat(livery.body, .38, .3), glass = mat(0x10161d, .15, .7);
+  const r = P.D / 2, z0 = -P.L / 2, z1 = P.L / 2, hit = [[0, P.up * .25, 0, r, r + P.up * .25, z1]];
+  const fus = fuselage(g, skin, {len:P.L, r, nose:P.nose, tail:P.tail, tailR:P.tailR, up:P.up, pow:.62, seg:36});
+  const rad = fus.userData.r, topY = z => rad(z) + (z > z1 - P.tail ? P.up * ((z - (z1 - P.tail)) / P.tail) ** 2 : 0);
+  // belly fairing (wing-body) in light grey
+  ellipsoid(g, r * .82, r * .45, P.panels[0].root * .75, wm, [0, -r * .62, P.wingZ + P.panels[0].root * .5]);
+  // cabin windows + cheatline + cockpit windows
+  const winMat = new THREE.MeshStandardMaterial({color:0xffffff, map:windowTex.clone(), transparent:true, alphaTest:.5, roughness:.3, metalness:.2});
+  winMat.map.repeat.set(1, P.winRep); winMat.map.needsUpdate = true;
+  const wa = Math.PI / 2 - .3, ww = 1.0 / r;                          // strip slightly above the side centre (~.8 m tall, windows ~.4 m)
+  for (const s of [-1, 1]) {
+    fuselageBand(g, winMat, r * 1.006, r * 1.006, P.cabin[0], P.cabin[1], s * wa, ww * .8).userData.th = .3;
+    fuselageBand(g, acc, r * 1.004, r * 1.004, P.cabin[0] - 3, P.cabin[1] + 2, s * (wa + ww * .62), ww * .25).userData.th = .3;
+  }
+  { const za = z0 + P.nose * .36, zb = z0 + P.nose * .47;              // wrap-around cockpit windows on the upper nose
+    fuselageBand(g, glass, rad(za) * 1.01, rad(zb) * 1.01, za, zb, .4, .66, r * .02).userData.th = .3;
+    fuselageBand(g, glass, rad(za) * 1.01, rad(zb) * 1.01, za, zb, -.4, .66, r * .02).userData.th = .3;
+    fuselageBand(g, glass, rad(za) * 1.01, rad(zb) * 1.01, za, zb, 1.06, .5, 0).userData.th = .3;
+    fuselageBand(g, glass, rad(za) * 1.01, rad(zb) * 1.01, za, zb, -1.06, .5, 0).userData.th = .3; }
+  // wing panels (chained root → tip) with dihedral; hit boxes per panel
+  const wingTip = {x:0, y:0, z:0, chord:0};
+  for (const sx of [-1, 1]) {
+    let x = P.x0, y = P.wingY, z = P.wingZ;
+    for (const pn of P.panels) {
+      wingPanel(g, wm, {root:pn.root, tip:pn.tip, span:pn.span, sweep:pn.sweep, t:P.t * pn.root / P.panels[0].root, ang:sx > 0 ? P.dih : Math.PI - P.dih, at:[sx * x, y, z]});
+      const dx = pn.span * Math.cos(P.dih), dy = pn.span * Math.sin(P.dih);
+      if (sx > 0) hit.push([x + dx / 2, y + dy / 2, z + (pn.sweep + (pn.root + pn.tip) / 2) / 2, dx / 2, .6 + dy / 2, (pn.sweep + (pn.root + pn.tip) / 2) / 2 + .2],
+                           [-(x + dx / 2), y + dy / 2, z + (pn.sweep + (pn.root + pn.tip) / 2) / 2, dx / 2, .6 + dy / 2, (pn.sweep + (pn.root + pn.tip) / 2) / 2 + .2]);
+      x += dx; y += dy; z += pn.sweep; Object.assign(wingTip, {x, y, z, chord:pn.tip});
+    }
+    if (P.tipFin) { const f = P.tipFin; wingPanel(g, acc, {root:f.root, tip:f.tip, span:f.h, sweep:f.sweep, t:.1, ang:sx > 0 ? Math.PI / 2 - f.cant : Math.PI / 2 + f.cant, at:[sx * (x - .02), y, z + (wingTip.chord - f.root)]}); }
+    // engines
+    for (const e of P.engines) {
+      const ex = sx * e.x;
+      nacelle(g, engM, {r:e.r, len:e.len, at:[ex, e.y, e.z], heat:.88, hot:1, exhaust:.7});
+      if (e.rear) box(g, [e.x - r * .8, .22, e.len * .45], wm, [sx * (r * .8 + (e.x - r * .8) / 2), e.y, e.z + .2]);   // horizontal pylon to the fuselage
+      else box(g, [.3, Math.max(.4, P.wingY + (e.x - P.x0) * Math.tan(P.dih) - (e.y + e.r * .7)), e.len * .7], wm, [ex, (P.wingY + (e.x - P.x0) * Math.tan(P.dih) + e.y + e.r * .7) / 2, e.z + e.len * .1]);
+      hit.push([ex, e.y, e.z, e.r + .1, e.r + .1, e.len / 2 + .3]);
     }
   }
-  // accent cheatline (short – stays within fuselage)
-  box(g,[.5,.07,22],acc,[0,.9,-.5]);
-  // tail planes + fin
-  box(g,[13,.14,2.8],wm,[0,.1,10]);
-  box(g,[.2,2.6,3.2],tailM,[0,1.55,10.2]);
+  // fin (livery colour) + tailplane
+  const fn = P.fin; let finBase = Infinity; for (let k = 0; k <= 6; k++) finBase = Math.min(finBase, topY(fn.z + fn.root * k / 6));
+  finBase -= .15;
+  wingPanel(g, tailM, {root:fn.root, tip:fn.tip, span:fn.h, sweep:fn.sweep, t:fn.root * .1, ang:Math.PI / 2, at:[0, finBase, fn.z]});
+  hit.push([0, finBase + fn.h / 2, fn.z + (fn.sweep + (fn.root + fn.tip) / 2) / 2, .5, fn.h / 2, (fn.sweep + (fn.root + fn.tip) / 2) / 2 + .2]);
+  const ht = P.htail, hy = P.ttail ? finBase + fn.h - .1 : ht.y, hz = P.ttail ? fn.z + fn.sweep + .2 : ht.z;
+  for (const sx of [-1, 1]) wingPanel(g, P.ttail ? tailM : wm, {root:ht.root, tip:ht.tip, span:ht.span, sweep:ht.sweep, t:ht.root * .11, ang:sx > 0 ? ht.dih : Math.PI - ht.dih, at:[sx * ht.x0, hy, hz]});
+  hit.push([0, hy, hz + (ht.sweep + (ht.root + ht.tip) / 2) / 2, ht.x0 + ht.span, .7, (ht.sweep + (ht.root + ht.tip) / 2) / 2 + .2]);
+  return {hit, tip:wingTip, tail:[topY(z1 - .3) - rad(z1 - .3) * .6, z1], top:r, finTop:[finBase + fn.h, fn.z + fn.sweep + fn.tip * .5]};
 }
-function buildNarrowbody(g, livery) {
-  const fus=mat(livery.body,.36,.22), wm=mat(0x9aa5ad,.42,.28), tailM=mat(livery.tail,.35,.22), em=mat(0x2a3038,.45,.4), acc=mat(livery.accent,.4,.3);
-  cylinder(g,.72,.84,16, fus,[0,0,0],[Math.PI/2,0,0]);
-  const noseM=new THREE.Mesh(new THREE.SphereGeometry(.76,16,10),fus); noseM.scale.set(1,.88,1.5); noseM.position.set(0,0,-8.2); g.add(noseM);
-  const tailSec=new THREE.Mesh(new THREE.SphereGeometry(.74,14,10),tailM); tailSec.scale.set(.78,.74,1.1); tailSec.position.set(0,0,8.2); g.add(tailSec);
-  for (const sx of [-1,1]) {
-    box(g,[11,.24,4.0],wm,[sx*6.5,-.08,-.1],[0,0,sx*.05]);
-    box(g,[ 6,.14,2.4],wm,[sx*14, .02, .6],[0,0,sx*.07]);
-    box(g,[.16,1.2,.6],acc,[sx*17.5,.48,.7],[0,0,sx*.2]);
-    cylinder(g,.44,.54,2.0,em,[sx*8,-.76,.1],[Math.PI/2,0,0]).userData.th=.88;
-  }
-  // accent cheatline (fits within fuselage length)
-  box(g,[.4,.06,16],acc,[0,.74,0]);
-  box(g,[10,.12,2.2],wm,[0,.1,7.8]);
-  box(g,[.18,2.2,2.6],tailM,[0,1.25,8.4]);
-}
-function buildRegional(g, livery) {
-  const fus=mat(livery.body,.38,.22), wm=mat(0x8a96a0,.44,.28), tailM=mat(livery.tail,.36,.22), em=mat(0x252c33,.46,.4), acc=mat(livery.accent,.42,.3);
-  cylinder(g,.56,.67,12, fus,[0,0,.4],[Math.PI/2,0,0]);
-  const noseM=new THREE.Mesh(new THREE.SphereGeometry(.6,14,10),fus); noseM.scale.set(1,.88,1.6); noseM.position.set(0,0,-6.4); g.add(noseM);
-  const tailSec=new THREE.Mesh(new THREE.SphereGeometry(.58,12,10),tailM); tailSec.scale.set(.72,.7,1.1); tailSec.position.set(0,0,6.8); g.add(tailSec);
-  for (const sx of [-1,1]) {
-    box(g,[8,.18,2.8],wm,[sx*5,-.04, .6],[0,0,sx*.04]);
-    box(g,[5,.12,1.6],wm,[sx*10, .0,1.3],[0,0,sx*.05]);
-    box(g,[.14,1.0,.45],acc,[sx*12,.32,1.2],[0,0,sx*.16]);
-    // rear pods – slightly offset from centreline
-    cylinder(g,.35,.42,1.6,em,[sx*1.0,-.08,5.8],[Math.PI/2,0,0]).userData.th=.86;
-  }
-  // cheatline (fits within fuselage)
-  box(g,[.32,.05,12],acc,[0,.58,.4]);
-  box(g,[7,.1,1.6],wm,[0,.08,6.2]);
-  box(g,[.14,1.7,2.0],tailM,[0,.98,6.8]);
-}
+const buildWidebody = (g, l) => buildAirliner(g, l, AIRLINER_TYPES[0]);
+const buildNarrowbody = (g, l) => buildAirliner(g, l, AIRLINER_TYPES[1]);
+const buildRegional = (g, l) => buildAirliner(g, l, AIRLINER_TYPES[2]);
 const LIVERIES = [
-  {body:0xf0f2f3, tail:0xfafbfb, accent:0x3566b4},   // blue/white
-  {body:0xeef0f0, tail:0xf5f6f6, accent:0xcc3333},   // red/white  
-  {body:0xeceeef, tail:0xf5f5f5, accent:0x2e8b44},   // green/white
-  {body:0xf1f2f0, tail:0xfbfcfa, accent:0xc87820},   // orange
-  {body:0xeceef0, tail:0xf4f6f8, accent:0x1a1a2e},   // dark navy
+  {body:0xf0f2f3, tail:0x3566b4, accent:0x3566b4},   // blue/white
+  {body:0xeef0f0, tail:0xcc3333, accent:0xcc3333},   // red/white
+  {body:0xeceeef, tail:0x2e8b44, accent:0x2e8b44},   // green/white
+  {body:0xf1f2f0, tail:0xc87820, accent:0xc87820},   // orange
+  {body:0xeceef0, tail:0x1a1a2e, accent:0x1a1a2e},   // dark navy
 ];
 const PLANE_BUILDERS = [buildWidebody, buildNarrowbody, buildRegional];
-const PLANE_SCALES   = [2.1, 1.75, 1.4];   // ~12 % smaller than before
-const PLANE_SPEEDS   = [[188,200],[182,196],[175,190]];   // ~650-720 km/h: they pass through the area
-const PLANE_SIZES    = [48, 37, 26];
+const PLANE_SCALES   = [1, 1, 1];                   // models are built in real metres
+const PLANE_SPEEDS   = [[118,128],[115,126],[112,122]];   // ~400-460 km/h (low-altitude speed limit): through-traffic
+const PLANE_SIZES    = [48, 37, 26];                // gameplay identification scale (classifyRange) — NOT the model size
 // ── Aircraft lights (airliners): red nav light on the left wingtip, green on the right, white on the tail,
 // a flashing red anti-collision beacon on top & bottom and white double-flash wingtip strobes.
 // Bright at night, strobes faintly visible by day; not visible in thermal. Drawn as glow sprites so they also show
@@ -852,14 +998,16 @@ const PLANE_SIZES    = [48, 37, 26];
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
   const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.2, 'rgba(255,255,255,.8)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
-const LIGHT_LAYOUT = [ // [wingtip x, wingtip z, tail y, tail z, body top y] in builder units per airliner type
-  [22.2, 1.0, 2.9, 11.6, 1.05], [17.6, .6, 2.4, 9.6, .85], [12.6, 1.3, 1.9, 7.8, .7]];
+const LIGHT_LAYOUT = [ // [wingtip x, wingtip y, wingtip z, tail y, tail z, body top y, body bottom y] in metres per airliner type
+  [29.85, 1.2, 14.1, 2.3, 31.5, 2.95, -3.15],    // B787-9 type: raked wingtips, tail cone, top / belly beacons
+  [17.35, .35, 5.3, 1.45, 18.9, 2.0, -2.15],     // A320 type: at the sharklet roots
+  [12.3, 0, 6.5, .8, 18.2, 1.4, -1.45]];         // CRJ900 type: at the winglet roots
 function addAircraftLights(a) {
-  const [wx, wz, ty, tz, by] = LIGHT_LAYOUT[a.planeType] || LIGHT_LAYOUT[1];
+  const [wx, wy, wz, ty, tz, by, bb] = LIGHT_LAYOUT[a.planeType] || LIGHT_LAYOUT[1];
   const L = (x, y, z, color, kind, size) => { const spr = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, color, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false, toneMapped:false}));
     spr.renderOrder = 4; scene.add(spr); return {p:new THREE.Vector3(x, y, z), kind, size, spr}; };
-  a.lights = [L(-wx, 0, wz, 0xff2020, 'nav', 1.6), L(wx, 0, wz, 0x20ff50, 'nav', 1.6), L(0, ty, tz, 0xffffff, 'nav', 1.3),
-    L(0, by, -1, 0xff2a10, 'beacon', 2.2), L(0, -by, -1, 0xff2a10, 'beacon', 2.2), L(-wx, 0, wz + .3, 0xffffff, 'strobe', 3), L(wx, 0, wz + .3, 0xffffff, 'strobe', 3)];
+  a.lights = [L(-wx, wy, wz, 0xff2020, 'nav', 1.6), L(wx, wy, wz, 0x20ff50, 'nav', 1.6), L(0, ty, tz, 0xffffff, 'nav', 1.3),
+    L(0, by, -1, 0xff2a10, 'beacon', 2.2), L(0, bb, -1, 0xff2a10, 'beacon', 2.2), L(-wx, wy, wz + .3, 0xffffff, 'strobe', 3), L(wx, wy, wz + .3, 0xffffff, 'strobe', 3)];
   a.lightPhase = Math.random() * 3;
 }
 const _lw = new THREE.Vector3();
@@ -885,40 +1033,51 @@ function createPassengerPlane(x, y, z, planeType) {
   const t = planeType !== undefined ? planeType : Math.floor(Math.random() * 3);
   const g = new THREE.Group(); scene.add(g);
   const livery = LIVERIES[Math.floor(Math.random() * LIVERIES.length)];
-  PLANE_BUILDERS[t](g, livery);
+  const built = PLANE_BUILDERS[t](g, livery);
   g.scale.setScalar(PLANE_SCALES[t]); registerGroup(g, .28, true); g.position.set(x, y, z);
   const [sMin, sMax] = PLANE_SPEEDS[t];
   // Altitude 280–750 m, smooth slow variation in flight
   const altTarget = 280 + Math.random() * 470;
   const a = {type:'plane', kind:'plane', isAmbient:true, group:g, pos:new THREE.Vector3(x,y,z), prev:new THREE.Vector3(x,y,z), vel:new THREE.Vector3(),
     altBase:altTarget, altPhase:Math.random()*TAU, altAmp: 10 + Math.random()*30,
-    speed:sMin + Math.random()*(sMax-sMin), yaw:0, size:PLANE_SIZES[t], detect:2600, sig:.88, curiosity:Math.random()*.5, identified:false, planeType:t, transit:true};
+    speed:sMin + Math.random()*(sMax-sMin), yaw:0, size:PLANE_SIZES[t], detect:2600, sig:.88, curiosity:Math.random()*.5, identified:false, planeType:t, transit:true, hit:built.hit, built};
   // Airliners are through-traffic: a straight line across the area, then they leave and are removed.
   aimPlane(a, randInside(ARENA * .55), randInside(ARENA * .55)); a.hdg = a.yaw; ambientActors.push(a); addAircraftLights(a); return a;
 }
-// Small civilian hobby plane (high wing, ~11 m span) — about the size of a prop scout, so they are easy to mix up.
+// Small civilian hobby plane, Cessna 172 type, real size: 11.0 m span, 8.3 m long, high wing with struts, 3.4 m
+// tailplane, swept fin, tricycle gear with wheel fairings, 2-blade 1.9 m prop. A similar shape class to a prop scout
+// (high/mid wing, single prop), so they are easy to mix up at a distance.
+const CESSNA_HIT = [[0, 0, .2, .65, .85, 4.1], [0, .85, -.75, 5.5, .2, .85], [0, .75, 3.8, 1.7, .95, .6]];
 function createLightPlane(x, z) {
   const g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
   // Livery: white, black or red body with a contrasting stripe / tail
   const rl = Math.random(), LIV = rl < .5 ? [0x1c1f24, 0xd8dcdf] : rl < .75 ? [0xe6eaee, 0xb3262a] : [0xb3262a, 0xf2f2f2];   // 50 % black · 25 % white · 25 % red
   const white = mat(LIV[0], .5, .15), stripe = mat(LIV[1], .5, .2), glass = mat(0x1b2a38, .2, .6), dark = mat(0x2a2f35, .6, .3);
-  box(g, [1.2, 1.3, 4.0], white, [0, 0, -.6]).userData.th = .34;            // cabin
-  box(g, [.75, .75, 3.8], white, [0, .2, 3.2]).userData.th = .28;           // tail cone
-  box(g, [1.05, .95, 1.0], white, [0, -.05, -3.1]).userData.th = .74;       // engine cowling (warm)
-  box(g, [1.22, .55, 1.5], glass, [0, .45, -1.3]);                          // windows
-  box(g, [11, .14, 1.5], white, [0, .78, -.9]).userData.th = .3;            // high wing
-  box(g, [11.04, .16, .3], stripe, [0, .78, -.25]);
-  box(g, [.07, 1.1, .07], dark, [1.55, .2, -.9], [0, 0, .62]); box(g, [.07, 1.1, .07], dark, [-1.55, .2, -.9], [0, 0, -.62]);   // struts
-  box(g, [3.6, .1, .9], white, [0, .45, 4.7]); box(g, [.1, 1.5, 1.1], stripe, [0, 1.15, 4.7]);   // tailplane + fin
-  box(g, [.12, .7, .12], dark, [.8, -.95, -.6]); box(g, [.12, .7, .12], dark, [-.8, -.95, -.6]); box(g, [.1, .6, .1], dark, [0, -.85, -2.8]);   // gear
-  const prop = new THREE.Group(); prop.position.set(0, -.05, -3.66); g.add(prop);
-  box(prop, [.09, 1.9, .05], dark, [0, 0, 0]).userData.th = .25; cylinder(prop, .12, .12, .15, mat(0x9aa1a8, .3, .8), [0, 0, 0], [Math.PI / 2, 0, 0]).userData.th = .4;
-  g.scale.setScalar(1.6);    // ~18 m wingspan: noticeably bigger than a prop scout
+  fuselage(g, white, {len:8.0, r:.62, nose:1.3, tail:4.6, tailR:.1, up:.5, sy:1.2, pow:.4, at:[0, 0, .15], th:.34});
+  ellipsoid(g, .6, .7, 1.0, white, [0, -.04, -3.05], .74);                     // engine cowling (warm)
+  cylinder(g, .05, .05, .4, exhaustMat, [.25, -.62, -2.75], [Math.PI / 2, 0, 0]).userData.th = .85;   // exhaust stack
+  ellipsoid(g, .635, .45, 1.3, glass, [0, .42, -1.1], .3);                     // windscreen + side windows
+  for (const s of [-1, 1]) { const b = fuselageBand(g, stripe, .623, .623, -3.2, -.3, s * Math.PI / 2, .3); b.scale.y = 1.2; }   // cheatline
+  for (const sx of [-1, 1]) {
+    const a = sx > 0 ? .03 : Math.PI - .03;
+    wingPanel(g, white, {root:1.63, tip:1.63, span:2.4, sweep:0, t:.2, ang:a, at:[sx * .3, .84, -1.55], th:.3});          // constant-chord inner wing
+    wingPanel(g, white, {root:1.63, tip:1.12, span:2.8, sweep:.3, t:.2, ang:a, at:[sx * 2.7, .91, -1.55], th:.3});        // tapered outer wing
+    strut(g, [sx * .55, -.35, -.75], [sx * 2.55, .86, -.95], .045, dark);                                              // wing strut
+    strut(g, [sx * .45, -.6, -.25], [sx * 1.25, -1.2, -.15], .04, dark);                                               // spring-steel main gear
+    cylinder(g, .25, .25, .14, dark, [sx * 1.25, -1.3, -.15], [0, 0, Math.PI / 2]);
+    ellipsoid(g, .14, .3, .55, stripe, [sx * 1.25, -1.24, -.15]);                                                     // wheel fairing
+    wingPanel(g, white, {root:1.15, tip:.75, span:1.6, sweep:.3, t:.1, ang:sx > 0 ? 0 : Math.PI, at:[sx * .1, .36, 3.3]});   // tailplane (3.4 m)
+  }
+  wingPanel(g, stripe, {root:1.6, tip:.75, span:1.35, sweep:1.1, t:.1, ang:Math.PI / 2, at:[0, .45, 2.35]});            // swept fin
+  strut(g, [0, -.6, -3.15], [0, -1.25, -3.3], .045, dark);                                                             // nose gear
+  cylinder(g, .2, .2, .12, dark, [0, -1.33, -3.3], [0, 0, Math.PI / 2]); ellipsoid(g, .11, .24, .42, stripe, [0, -1.28, -3.3]);
+  const prop = propellerGroup(g, {n:2, d:1.9, at:[0, -.04, -4.05], chord:.13, material:dark, hubR:.1, th:.25});
   registerGroup(g, .3, true);
   const agl = 110 + Math.random() * 260, y = terrainHeight(x, z) + agl; g.position.set(x, y, z);
+  // size 19 = gameplay identification scale (classifyRange), not the model size
   const a = {type:'cessna', kind:'cessna', isAmbient:true, group:g, propeller:prop, pos:new THREE.Vector3(x, y, z), prev:new THREE.Vector3(x, y, z), vel:new THREE.Vector3(),
-    speed:46 + Math.random() * 14, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:19, detect:1500, sig:.45,
-    curiosity:Math.random(), identified:false};
+    speed:55 + Math.random() * 8, yaw:0, bank:0, maxBank:.52, agl, altPhase:Math.random() * TAU, altAmp:15 + Math.random() * 30, size:19, detect:1500, sig:.45,
+    curiosity:Math.random(), identified:false, hit:CESSNA_HIT};
   aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
 }
 function aimPlane(a, tx, tz) { const dx = tx - a.pos.x, dz = tz - a.pos.z, l = Math.hypot(dx, dz) || 1; a.vel.set(dx/l*a.speed, 0, dz/l*a.speed); a.yaw = Math.atan2(-a.vel.x, -a.vel.z); }
@@ -1645,8 +1804,9 @@ function chooseScoutWaypoint(s) {
 function stepScout(s, h) {
   s.prev.copy(s.pos); s.waypointTimer -= h; s.routeTimer -= h;
   if (!s.waypoint || s.waypointTimer <= 0 || s.pos.distanceToSquared(s.waypoint) < 110 * 110) chooseScoutWaypoint(s);
-  // Look ~20 s ahead: if that point is near the border, head back towards the middle now (turn circle up to ~0.8 km).
-  const lx = s.pos.x + s.vel.x * 20, lz = s.pos.z + s.vel.z * 20;
+  // Look ahead ≥ 20 s (≈ 2.5 turn radii — ~40 s for the 92 m/s jet, whose 30°-bank turn circle is ~1.5 km): if that
+  // point is near the border, head back towards the middle now.
+  const look = Math.max(20, .45 * (s.spd || s.speed)), lx = s.pos.x + s.vel.x * look, lz = s.pos.z + s.vel.z * look;
   const out = Math.max(Math.abs(s.pos.x), Math.abs(s.pos.z));
   if (out > ARENA - 250 && !s.returning) {                 // crossed: random point well inside, turn back briskly
     s.returning = true; s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 60;
@@ -1665,7 +1825,7 @@ function stepScout(s, h) {
     const [lo] = scoutBand(s);   // hold the band's height above the terrain along the route (low flyers hug it)
     s.routeY = Math.min(900, Math.max(s.waypoint.y, peak + Math.max(40, lo * .8), terrainHeight(s.waypoint.x, s.waypoint.z) + lo));
   }
-  const ms = s.speed;   // fly at the class's listed speed (light 151, heavy 194, jet 245 km/h)
+  const ms = s.speed;   // fly at the class's listed speed (light 151, heavy 306, jet 331 km/h)
   const hx = s.waypoint.x - s.pos.x, hz = s.waypoint.z - s.pos.z, hl = Math.hypot(hx, hz) || 1;
   const altWave = Math.sin(state.time * .18 + s.curiosity * 6.28) * 18; // gentle altitude breathing
   // Fixed-wing kinematics: constant airspeed, heading changes only through a coordinated turn.
@@ -2040,13 +2200,20 @@ function attackGuidance(t, G) {
   const vx = tv.x - state.vel.x, vy = tv.y - state.vel.y, vz = tv.z - state.vel.z, vv = vx*vx + vy*vy + vz*vz;
   const tc = vv > 1 ? -(rx*vx + ry*vy + rz*vz) / vv : -1;
   const miss = tc > 0 ? Math.hypot(rx + vx*tc, ry + vy*tc, rz + vz*tc) : R3;
-  if (a.phase === 'headon') { if (!(behind < -.6 && facing > .6 && tc > 0 && miss < 90)) a.phase = ''; }
-  else if (behind < -.9 && facing > .95 && tc > 0 && tc < 15 && miss < 30 && R > 200 && R < 1400) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
+  // Fast targets (≳ 80 m/s, e.g. the 92 m/s jet): passing beside it and turning in behind costs ~1.2 km — at the edge of
+  // radar range, with only ~19 m/s of closure left — so a roughly head-on geometry is taken as a head-on attack.
+  const fastT = smoothstep(80, 92, Vt);
+  if (a.phase === 'headon') { if (!(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) a.phase = ''; }
+  else if (behind < -.9 + .15 * fastT && facing > .95 - .1 * fastT && tc > 0 && tc < 15 + 5 * fastT && miss < 30 + 120 * fastT && R > 200 && R < 1400 + 300 * fastT) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   if (a.phase === 'headon') {
     const tg = interceptTime(rx, ry, rz, tv, Math.max(V_CRUISE, state.cruiseSpeed));
     G.aim.set(t.pos.x + tv.x * tg, 0, t.pos.z + tv.z * tg); G.alt = t.pos.y + tv.y * tg;
     G.speed = Math.max(V_CRUISE, state.cruiseSpeed); G.tau = 1.2; G.ff = 1; G.terminal = R3 < 250;
+    if (R3 < 900) {   // last stretch: proportional navigation nulls the line-of-sight rotation → metre-level miss distance
+      const R2 = rx * rx + rz * rz, losRate = (rz * vx - rx * vz) / Math.max(1, R2), Vc = Math.max(2, -(rx * vx + rz * vz) / R);
+      G.rateCmd = 4 * Vc * losRate / Math.max(V_MIN, state.cruiseSpeed); G.aim.set(t.pos.x, 0, t.pos.z);
+    }
     return;
   }
   // Rear slot: weight wL = 1 while in front/abeam, fading to 0 once established behind — i.e. behind it AND
@@ -2056,7 +2223,11 @@ function attackGuidance(t, G) {
   // Far out we want to be on its tail and heading its way before committing; inside ~450 m, being anywhere in its
   // rear half is enough → commit to the collision course (rear-quarter hit) instead of looping round again.
   const commit = R < 450 ? Math.max(est, behind * 1.4) : est;
-  const wL = 1 - smoothstep(.15, .7, commit);
+  // Once committed and on proportional navigation (< 600 m) stay committed while still in its rear half: a hard turn
+  // by the target would otherwise flip steering back to the rear-slot aim point on the far side → bank reversal (weave).
+  const latched = a.latched && R3 < 650 && behind > -.1;
+  const wL = latched ? 0 : 1 - smoothstep(.15, .7, commit);
+  a.latched = wL < .3 && R3 < 600;
   const L = clamp(R * .55, 120, 550) * wL;
   // While well in front, also offset sideways (on the side we already are) so we pass it, turn in, and end up behind.
   const nx = -hz, nz = hx, sideSign = Math.sign(nx * -rx + nz * -rz) || 1;
@@ -2076,7 +2247,10 @@ function attackGuidance(t, G) {
   const closure = Math.min(V_DASH - Vt, R3 > 350 ? approach : lerp(Math.min(8, approach), sprint, onTail) * (1 - .25 * turning));
   const vTurn = Math.max(Vt + 12, 58), vFit = clamp(Math.sqrt(.45 * R * 9.81 * Math.tan(BANK_COMBAT)), vTurn, V_DASH);
   const turnLeft = smoothstep(.15, .6, (1 - align) / 2);
-  const vBehind = Vt + closure, vAround = lerp(V_DASH, vFit, turnLeft);
+  // Vt and the closure are ground speeds, G.speed is airspeed: take off the wind along our heading (else a headwind
+  // leaves it hanging behind a fast target and a tailwind makes it overshoot).
+  const windAlong = wind.x * fwdx + wind.z * fwdz;
+  const vBehind = Vt + closure - windAlong, vAround = lerp(V_DASH, vFit, turnLeft);
   G.speed = lerp(vBehind, vAround, wL);
   // Plan the collision course with the mean speed actually flown (it slows down while closing), not current speed.
   const vPlan = clamp(.7 * V + .3 * G.speed, Vt + 4, V_DASH);
@@ -2090,7 +2264,7 @@ function attackGuidance(t, G) {
     if (sg && a.lastBankSign && sg !== a.lastBankSign) { a.reversals = (a.reversals || []).filter(x => state.time - x < 4); a.reversals.push(state.time); if (a.reversals.length >= 2 && !(a.settleUntil > state.time)) { a.settleUntil = state.time + 3.5; logEvent('Overshooting · settling in behind target', 'warn'); } }
     if (sg) a.lastBankSign = sg;
   }
-  if (a.settleUntil > state.time) { G.speed = Math.min(G.speed, Vt + 3); a.settling = true; } else a.settling = false;
+  if (a.settleUntil > state.time) { G.speed = Math.min(G.speed, Vt + 3 - windAlong); a.settling = true; } else a.settling = false;
   // Committed behind and within 600 m: augmented proportional navigation instead of an aim point.
   // Turn rate = (N·Vc·λ̇ + ½N·a_target⊥)/V  +  a small pursuit term that keeps the nose near the line of sight.
   // Smooth, needs no long-range prediction, and handles a turning target without weaving across its track.
@@ -2470,7 +2644,7 @@ function physicsStep(h) {
   //    hover as speed bleeds off, and it yaws into its direction of travel while moving. ──
   if (state.rtb === 'landing') {
     const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + 2.6;
-    if (!state.landAim) { state.landAim = {x:PAD.x + (Math.random() - .5) * 6, z:PAD.z + (Math.random() - .5) * 6}; state.landV0 = Math.max(15, Math.hypot(state.vel.x, state.vel.z)); state.landFloat = 5 + Math.random() * 7; state.landHover = false; state.landDesc = false; state.hoverT = 0; }
+    if (!state.landAim) { state.landAim = {x:PAD.x + (Math.random() - .5) * 2, z:PAD.z + (Math.random() - .5) * 2}; state.landV0 = Math.max(15, Math.hypot(state.vel.x, state.vel.z)); state.landFloat = 5 + Math.random() * 7; state.landHover = false; state.landDesc = false; state.hoverT = 0; }
     const ex = state.landAim.x - state.pos.x, ez = state.landAim.z - state.pos.z, dH = Math.hypot(ex, ez);
     const hs = Math.hypot(state.vel.x, state.vel.z), agl = state.pos.y - padY;
     let ax, az;
@@ -2485,17 +2659,20 @@ function physicsStep(h) {
       if (dH > 12) {   // well off the spot (long overshoot / gust): reposition along a braking profile — one smooth move back, no pendulum
         const vd = Math.min(10, Math.sqrt(2 * 1.2 * (dH - 4)));
         ax = .8 * (vd * ex / dH - state.vel.x); az = .8 * (vd * ez / dH - state.vel.z);
-      } else { ax = .36 * ex - .62 * state.vel.x; az = .36 * ez - .62 * state.vel.z; }   // ωn≈.6, ζ≈.5 → small overshoot, then settles
+      } else {   // ωn≈.6, ζ≈.5 → small overshoot, then settles; a bit firmer in the last few metres (ωn≈.75) so it ends on the pad
+        const low = state.landDesc && agl < 6, kp = low ? .7 : dH < 4 ? .56 : .36, kd = low ? .95 : dH < 4 ? .8 : .62;   // firmest just above the pad
+        ax = kp * ex - kd * state.vel.x; az = kp * ez - kd * state.vel.z;
+      }
     }
-    const am = Math.hypot(ax, az), aLim = 3.5; if (am > aLim) { ax *= aLim / am; az *= aLim / am; }
+    const am = Math.hypot(ax, az), aLim = state.landDesc && agl < 6 ? 4.5 : 3.5; if (am > aLim) { ax *= aLim / am; az *= aLim / am; }
     // gusts (deviation from the mean wind) push it around; the controller has to keep correcting
     state.wxAvg = damp(state.wxAvg ?? wind.x, wind.x, .3, h); state.wzAvg = damp(state.wzAvg ?? wind.z, wind.z, .3, h);
     const gx = (wind.x - state.wxAvg) * .8, gz = (wind.z - state.wzAvg) * .8;
     state.vel.x += (ax + gx) * h; state.vel.z += (az + gz) * h;
     // vertical: descend along the approach to a 25 m hover; then down once settled (or after 10 s), slowing near the ground
-    if (state.landHover && !state.landDesc && ((dH < 5 && hs < 2) || state.hoverT > 10)) { state.landDesc = true; radioMessage('SETTLED · DESCENDING'); }
+    if (state.landHover && !state.landDesc && ((dH < 2 && hs < 1.5) || state.hoverT > 10)) { state.landDesc = true; radioMessage('SETTLED · DESCENDING'); }
     let vyCmd;
-    if (state.landDesc) vyCmd = dH > 9 && agl > 4 ? -.4 : -clamp(agl * .3, .6, 3) * (agl < 2 ? .7 : 1);
+    if (state.landDesc) vyCmd = dH > 3.5 && agl > 3 ? -.7 : dH > 1.8 && agl < 3 ? -.15 : -clamp(agl * .3, .6, 3) * (agl < 2 ? .7 : 1);   // off the spot → (almost) hold height while it corrects
     else if (state.landHover) vyCmd = clamp((25 - agl) * .4, -4, 2);
     else vyCmd = clamp((25 - agl) / Math.max(4, 2 * dH / Math.max(3, hs)), -6, 2);   // glide that reaches 25 m over the spot
     state.vel.y = damp(state.vel.y, vyCmd + wind.y * .3, 2, h);
@@ -2511,7 +2688,8 @@ function physicsStep(h) {
     if (agl <= .25) {
       const off = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z);
       state.rtb = false; state.landAim = null; state.tiltX = state.tiltZ = 0;
-      radioMessage('TOUCHDOWN · ' + (off < 15 ? off.toFixed(1) + ' m from centre' : 'OFF THE PAD · ' + off.toFixed(0) + ' m') + ' · RECHARGING');
+      const onPad = Math.max(Math.abs(state.pos.x - PAD.x), Math.abs(state.pos.z - PAD.z)) < PAD_HALF; state.lastTouchdown = {off, onPad};
+      radioMessage('TOUCHDOWN · ' + (onPad ? off.toFixed(1) + ' m from centre' : 'OFF THE PAD · ' + off.toFixed(0) + ' m') + ' · RECHARGING');
       missionLog('landed'); resetToPad('landed');
     }
     return;
@@ -2547,7 +2725,9 @@ function physicsStep(h) {
     range = state.pos.distanceTo(tgt.pos);
     if (state.pursuitMode && !tgt.detected) {
       // Off radar: fly to the dead-reckoned estimate (fast, efficient-ish) until the radar picks it up again.
-      trackPos(tgt, _est); G_.aim.set(_est.x, 0, _est.z); G_.alt = _est.y; G_.speed = V_DASH * .85; G_.clear = 80;
+      trackPos(tgt, _est); G_.aim.set(_est.x, 0, _est.z); G_.alt = _est.y; G_.clear = 80;
+      // ≥ 15 m/s faster than the track's estimated speed (a 92 m/s jet would otherwise never be caught up with)
+      const vEst = tgt.trk ? Math.hypot(tgt.trk.vx || 0, tgt.trk.vz || 0) : 0; G_.speed = clamp(vEst + 15, V_DASH * .85, V_DASH);
       state.attack.phase = 'search';
     } else if (state.pursuitMode) {
       attackGuidance(tgt, G_);
@@ -2691,8 +2871,8 @@ function physicsStep(h) {
   if (state.recording && Math.floor(state.time * 20) !== Math.floor((state.time - h) * 20)) state.history.push({t:+state.time.toFixed(3), x:+state.pos.x.toFixed(2), y:+state.pos.y.toFixed(2), z:+state.pos.z.toFixed(2), speed:+speed.toFixed(2), battery:+state.battery.toFixed(4)});
   // Confirmed pursuit of a bird flock or airliner ends in a collision too.
   if (state.pursuitMode && tgt && tgt.isAmbient) {
-    const hitR = tgt.type === 'plane' ? Math.max(14, tgt.size * .5) : tgt.type === 'cessna' ? 11 : 10;
-    if (state.pos.distanceTo(tgt.pos) < hitR) {
+    // airliners / light aircraft: their real airframe hit boxes; bird flock: 10 m around its centre
+    if (tgt.hit ? hitsAirframe(tgt, tgt.hit, 0, tgt.yaw, tgt.bank || 0) : state.pos.distanceTo(tgt.pos) < 10) {
       state.tagCount++;
       const name = CLS_NAME[truthClass(tgt)];
       state.civilianIncidents = (state.civilianIncidents || 0) + 1;
@@ -2701,13 +2881,10 @@ function physicsStep(h) {
       missionLog('hit', tgt); impact(tgt, 'CIVILIAN INCIDENT · ' + name); return;
     }
   }
-  // Intercept test against each scout's oriented bounding volume
+  // Intercept test against each scout's real airframe (per-type local hit boxes: body, wing, tail)
   for (const s of scouts) {
     if (s.destroyed) continue;
-    const dx = state.pos.x - s.pos.x, dy = state.pos.y - s.pos.y, dz = state.pos.z - s.pos.z, c = Math.cos(s.yaw), sn = Math.sin(s.yaw);
-    const lx = c*dx - sn*dz, lz = sn*dx + c*dz, sc = s.spec.scale;
-    const DR = 1.5;   // drone's own half-span: contact is airframe touching airframe
-    if ((Math.abs(lx) < sc*2.8 + DR && Math.abs(dy) < sc*1.35 + DR && Math.abs(lz) < sc*3.1 + DR) || Math.sqrt(dx*dx + dy*dy + dz*dz) < sc*2.35 + DR) {
+    if (s.pos.distanceToSquared(state.pos) < 400 && hitsAirframe(s, s.hit, s.pitch, s.yaw, s.roll)) {
       s.destroyed = true; s.tagged = true; s.removeAt = state.time + 1e9; state.tagCount++;   // removed after the replay
       $('missionState').textContent = 'THREAT NEUTRALISED'; radioMessage('THREAT NEUTRALISED · ' + s.spec.label + (s.guess && s.guess !== s.kind ? ' (was identified as ' + CLS_NAME[s.guess] + ')' : '') + ' · RETURNING TO PAD');
       actLog('Scout tagged: ' + s.spec.label + ' · total ' + state.tagCount + ' · returning to pad', 'ok');
@@ -2719,6 +2896,14 @@ function physicsStep(h) {
   }
 }
 
+// Collision with a real airframe: the drone's position in the object's local frame (nose −Z, +X right wing, +Y up)
+// against its hit boxes [cx,cy,cz, hx,hy,hz], each grown by the drone's own half-span DR (airframe touching airframe).
+const HIT_DR = 1.5, _hitQ = new THREE.Quaternion(), _hitE = new THREE.Euler(0, 0, 0, 'YXZ'), _hitV = new THREE.Vector3();
+function hitsAirframe(o, boxes, pitch, yaw, roll) {
+  _hitV.subVectors(state.pos, o.pos).applyQuaternion(_hitQ.setFromEuler(_hitE.set(pitch || 0, yaw || 0, roll || 0)).invert());
+  for (const b of boxes) if (Math.abs(_hitV.x - b[0]) < b[3] + HIT_DR && Math.abs(_hitV.y - b[1]) < b[4] + HIT_DR && Math.abs(_hitV.z - b[2]) < b[5] + HIT_DR) return true;
+  return false;
+}
 // ───────────────────────── Impact replay ─────────────────────────
 // A ring buffer keeps the last ~8 s of the drone and every object near it (30 Hz). On a collision the buffer is
 // frozen into a replay that plays back in slow motion with cinematic camera cuts: chase → side → impact close-up.
