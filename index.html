@@ -261,7 +261,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><th colspan="2">Gimbal camera</th></tr>
           <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td>Aim (or drag inside the camera window)</td></tr>
           <tr><td><kbd>+</kbd><kbd>−</kbd> / wheel</td><td>Zoom 1–30×</td></tr>
-          <tr><td><kbd>1</kbd> · <kbd>2</kbd></td><td>Flag contact in the square as threat · civil</td></tr>
+          <tr><td><kbd>1</kbd> · <kbd>2</kbd></td><td>Flag contact in the square as threat · civil (permanent — the other key switches it, it can't be removed)</td></tr>
           <tr><td><kbd>V</kbd></td><td>Centre on the nose</td></tr>
           <tr><td><kbd>Z</kbd></td><td>Show / hide gimbal window</td></tr>
           <tr><th colspan="2">View &amp; sensors</th></tr>
@@ -309,7 +309,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
     <div id="zoomView"><div class="zvHead"><b>CAM</b><span id="zvZoom">6×</span><button id="zvClose" title="Hide (Z)">✕</button></div>
       <div id="zvFrame"><div id="zvGlare"></div><i class="zvRet"></i></div>
       <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
-      <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1)">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2)">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button></div></div>
+      <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1) · permanent, Civil switches it">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2) · permanent, Threat switches it">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button></div></div>
     <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
     <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
 
@@ -1243,12 +1243,17 @@ $('zvCentre').onclick = gimbalCentre;
 // Flag whatever is in the scope. Not on radar yet → becomes a visual sighting (track from where it was seen).
 const markCur = m => {
   const t = zv.scope; if (!t) { toast('Scope empty · put the contact inside the square'); return; }
+  // Operator flags are permanent: the same flag again does nothing (safe to press repeatedly while trying to catch a
+  // far-away contact in the square); the other flag switches THREAT ⇄ CIVIL. A flag can never be removed.
+  if (t.userMark === m) return;
+  const prev = t.userMark;
   if (!hasTrack(t)) { t.trk = {x:t.pos.x, y:t.pos.y, z:t.pos.z, vx:t.vel.x, vy:t.vel.y, vz:t.vel.z, w:0, seen:state.time, lost:false, covered:0, noise:20}; logEvent('Visual sighting added to map'); }
   t.identified = true;
-  t.userMark = t.userMark === m ? null : m; missionLog('flag', t);
+  t.userMark = m; missionLog('flag', t);
   // A flagged contact is settled: the AI stops inspecting it now and never comes back to it.
-  if (t.userMark) { state.ignoredTargets.add(t); if (state.aiTarget === t && !state.pursuitMode) { state.aiTarget = null; state.aiThink = 0; hudAcc = 1; } }
-  logEvent(t.userMark ? 'Operator flagged contact as ' + (m === 'threat' ? 'THREAT' : 'CIVILIAN') : 'Operator flag removed', t.userMark === 'threat' ? 'warn' : 'ok');
+  state.ignoredTargets.add(t); if (state.aiTarget === t && !state.pursuitMode) { state.aiTarget = null; state.aiThink = 0; hudAcc = 1; }
+  const name = m === 'threat' ? 'THREAT' : 'CIVILIAN';
+  logEvent(prev ? 'Operator changed flag to ' + name : 'Operator flagged contact as ' + name, m === 'threat' ? 'warn' : 'ok');
 };
 $('zvMarkT').onclick = () => markCur('threat'); $('zvMarkC').onclick = () => markCur('civil');
 $('replayBtn').onclick = () => { if (state.lastReplay && !replay.active) startReplay(state.lastReplay, false); };
