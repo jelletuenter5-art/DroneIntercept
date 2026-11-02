@@ -31,7 +31,7 @@ const { args, buildTestPage, openGame } = require('./lib');
           }
           // gimbal operator (like a human): every 0.5 s point the zoom camera (12×) at the most threatening
           // unidentified radar track — its noisy track position, never the truth — so it gets identified at range
-          if (k === 0 && (S.night || S.weatherStrength > .3)) T.setThermal(true);   // like a human: thermal at night / in mist and rain
+          if (k === 0 && (Math.cos(S.dayClock) < -.1 || S.weatherStrength > .3)) T.setThermal(true);   // (state.night is only updated by the render loop)   // like a human: thermal at night / in mist and rain
           if (useGimbal && k % 60 === 0 && S.launchStage === 'active') {
             // (a human gives up on a blip after a few seconds — e.g. hidden behind a ridge — and tries the next one)
             const tc = [...T.scouts, ...T.ambientActors].filter(c => c.trk && !c.trk.lost && !c.destroyed && !c.identified && !(c._gskip > S.time) && !(c.transit && Math.max(Math.abs(c.pos.x), Math.abs(c.pos.z)) > 4200))

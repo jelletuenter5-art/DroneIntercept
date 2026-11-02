@@ -186,6 +186,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
 .gmBigStars{font-size:44px;letter-spacing:.12em;color:#2a3d4c;margin:6px 0}.gmBigStars i{font-style:normal;color:#ffd35a;text-shadow:0 0 18px #ffbf3f88}
 .gmRules{margin:8px 0 0;padding-left:18px;color:#b9cad9}.gmRules li{margin:3px 0}
 @media (max-width:640px){.gmModes,.gmList{grid-template-columns:1fr}}
+#raidWarn{display:none;position:absolute;left:50%;top:96px;transform:translateX(-50%);z-index:14;pointer-events:none;padding:10px 22px;border-radius:9px;background:#3a0c10ee;border:1.5px solid #ff6b6b;color:#ffe2e2;font:800 15px ui-monospace,monospace;letter-spacing:.12em;text-align:center;box-shadow:0 8px 30px #000b;transition:opacity .6s}#raidWarn small{display:block;font:700 11px ui-monospace,monospace;color:#ffb3a8;letter-spacing:.08em;margin-top:3px}#raidWarn.show{display:block;animation:rwPulse 1s ease-in-out 3}@keyframes rwPulse{50%{box-shadow:0 0 0 6px #ff6b6b55,0 8px 30px #000b}}
 </style>
 </head>
 <body>
@@ -243,7 +244,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="leftcol"><div class="hudbox"><div class="hudlabel">Flight state</div><div class="hudvalue" id="flightState">AI INTERCEPT</div><div class="hudfoot" id="cameraState">AI FOLLOW CAM</div><div class="hudfoot" id="sensorHud">SENSOR</div></div><div id="eventLog"></div></div>
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
-      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>RADAR</span><span id="radarCount">0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="openMapBtn">⊕ Map <kbd>M</kbd></button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
+      <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>RADAR</span><span id="radarCount">0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="openMapBtn">⊕ Map <kbd>M</kbd></button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="raidWarn"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
   <canvas id="mapCanvas" width="600" height="600"></canvas>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
@@ -378,11 +379,11 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <div class="gmSub">Choose how you want to fly.</div>
   <div class="gmModes">
     <button class="gmMode" id="gmSandbox"><b>SANDBOX</b><span>Free play: traffic and scouts keep appearing, spawn anything, fly as long as you like.</span></button>
-    <button class="gmMode" id="gmMissions"><b>MISSIONS</b><span>Defend a site against a scout raid. Zero tolerance: if one scout gets through, the mission fails.</span></button>
+    <button class="gmMode" id="gmMissions"><b>MISSIONS</b><span>Defend a site against a scout raid. Zero tolerance: if one scout crashes into it, the mission fails.</span></button>
   </div>
 </div></div>
 <div id="gmList" class="gm"><div class="gmCard">
-  <h2>MISSIONS · DEFEND</h2><div class="gmSub">One scout reaching the site fails the mission. ★ completed · ★★ no drone lost to a crash or empty battery · ★★★ every scout stopped more than 1.5 km from the site.</div>
+  <h2>MISSIONS · DEFEND</h2><div class="gmSub">A scout crashing into the site fails the mission. You fly from a field pad at the site. ★ completed · ★★ no drone lost to a crash or empty battery · ★★★ every scout stopped more than 1.5 km from the site.</div>
   <div class="gmDiff" id="gmDiff"><button data-d="easy">EASY</button><button data-d="normal">NORMAL</button><button data-d="hard">HARD</button></div>
   <div class="gmList" id="gmMissionList"></div>
   <div class="gmRow"><button class="gmBtn sec" id="gmListBack">← Back</button><span class="sp"></span></div>
@@ -391,9 +392,9 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <h1><small id="gmBriefKind">MISSION</small><span id="gmBriefTitle">DEFEND</span></h1>
   <div class="gmSub" id="gmBriefText"></div>
   <table class="gmTable" id="gmBriefTable"></table>
-  <ul class="gmRules"><li>Scouts arrive one by one from the edge of the map and use valleys and low height to hide from your radar.</li>
+  <ul class="gmRules"><li>Scouts arrive one by one from the edge of the map, use valleys and low height to hide from your radar, and finally dive at the target — you can still stop them in the last seconds.</li>
     <li>Identify contacts (radar, camera, thermal, gimbal), then pick a scout on the map (M) to pursue and ram it.</li>
-    <li>Each ram, crash or empty battery uses a drone; the next one waits on your pad. The raid keeps coming while you relaunch.</li>
+    <li>Each ram, crash or empty battery uses a drone; the next one waits on your field pad at the site. The raid keeps coming while you relaunch.</li>
     <li>Your autopilot patrols around the defended site when it has nothing to investigate. Don't hit civil traffic.</li></ul>
   <div class="gmRow"><button class="gmBtn sec" id="gmBriefBack">← Missions</button><span class="sp"></span><button class="gmBtn" id="gmBriefGo">BEGIN MISSION ▶</button></div>
 </div></div>
@@ -767,6 +768,8 @@ const siteGroup = new THREE.Group(); scene.add(siteGroup);
     .5,0,-.5, .5,0,.5, 0,1,.5, .5,0,-.5, 0,1,.5, 0,1,-.5]; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.computeVertexNormals(); return g; })();
   const wallGeo = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
   const walls = [[], []], roofs = [[], [], []], d = new THREE.Object3D();
+  // strike targets: the structures a raider must actually hit (world boxes [centre, half extents, yaw]) + its aim point
+  const tgt = (s, gx, gz, rot, lx, ly, lz, hx, hy, hz) => { (s.targets = s.targets || []).push({c: new THREE.Vector3(gx + lx * Math.cos(rot) + lz * Math.sin(rot), ly, gz - lx * Math.sin(rot) + lz * Math.cos(rot)), h: [hx, hy, hz], yaw: rot}); };
   const footing = (x, z, w, l, ry) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
     const px = x + Math.cos(ry) * a * w / 2 + Math.sin(ry) * b * l / 2, pz = z - Math.sin(ry) * a * w / 2 + Math.cos(ry) * b * l / 2, y = terrainHeight(px, pz); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [lo - .6, hi]; };
   for (const s of SITES) {
@@ -780,22 +783,27 @@ const siteGroup = new THREE.Group(); scene.add(siteGroup);
         const [lo, hi] = footing(x, z, w, l, ry); houses.push({x, z});
         d.position.set(x, lo, z); d.rotation.set(0, ry, 0); d.scale.set(w, hi + ht - lo, l); d.updateMatrix(); walls[houses.length % 2].push(d.matrix.clone());
         d.position.set(x, hi + ht, z); d.scale.set(w + .8, 2.6 + w * .18, l + .8); d.updateMatrix(); roofs[Math.floor(rnd() * 3)].push(d.matrix.clone());
+        const top = hi + ht + 2.6 + w * .18; tgt(s, x, z, ry, 0, (lo + top) / 2, 0, w / 2 + .4, (top - lo) / 2, l / 2 + .4);
       }
       // church: nave + tower + spire near the centre
       const cy = terrainHeight(s.x, s.z), cr = axis, g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = cr; siteGroup.add(g);
       const white = M(0xe9e4d6, .9), roofM = M(0x6e3a2c, .85);
       put(B(10, cy + 9 - (cy - 1.5), 20), white, 0, cy - 1.5, 0, 0, .4, g); put(roofGeo, roofM, 0, cy + 7.5, 0, 0, .35, g).scale.set(11, 4.5, 21);
       put(B(5.5, 20, 5.5), white, 0, cy - 1.5, -12, 0, .4, g); put(new THREE.ConeGeometry(4.2, 9, 4).translate(0, 4.5, 0), M(0x3f4a48, .6, .3), 0, cy + 18.5, -12, Math.PI / 4, .35, g);
+      tgt(s, s.x, s.z, cr, 0, cy + 5, 0, 5.5, 6.5, 10.5); tgt(s, s.x, s.z, cr, 0, cy + 13, -12, 3, 14.5, 3); s.aim = {x: s.x, y: cy + 5, z: s.z, what: 'the church'};
     } else if (s.type === 'dam') {
       const len = s.width + 50, base = WATER_Y - 10, hgt = s.crest - base, g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = -s.ang; siteGroup.add(g);
       const conc = M(0xb7b5ac, .9, .02);
       put(new THREE.BoxGeometry(len, hgt, 9).translate(0, hgt / 2, 0), conc, 0, base, 0, 0, .3, g);                    // dam wall
+      tgt(s, s.x, s.z, -s.ang, 0, (base + s.crest) / 2 + .6, 0, len / 2, (s.crest - base) / 2 + 1.8, 5.5); s.aim = {x: s.x, y: s.crest - 3, z: s.z, what: 'the dam wall'};
       put(new THREE.BoxGeometry(len, 1.2, 11).translate(0, .6, 0), M(0x5b5d5e, .8), 0, s.crest, 0, 0, .3, g);          // crest road
       for (const sx of [-1, 1]) { put(B(7, 6, 7), M(0xd2cdbf, .85), sx * (len / 2 - 6), s.crest, 0, 0, .42, g); put(new THREE.BoxGeometry(len - 16, 1, .6).translate(0, .5, 0), conc, 0, s.crest + 1.2, sx * 5, 0, .3, g); }   // parapets
       for (let k = -2; k <= 2; k++) put(new THREE.BoxGeometry(6, hgt * .9, 2).translate(0, hgt * .45, 0), M(0x9c9a92, .9), k * len / 7, base, 5.5, 0, .3, g);   // buttresses / spillway piers
     } else if (s.type === 'radar') {
       const y = terrainHeight(s.x, s.z), g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = rnd() * TAU; siteGroup.add(g);
-      const grey = M(0x8a9089, .8, .2), white = M(0xf1f1ee, .45, .05);
+      const grey = M(0x8a9089, .8, .2), white = M(0xf1f1ee, .45, .05), gr = g.rotation.y;
+      tgt(s, s.x, s.z, gr, 0, y + 6, -6, 6.6, 9, 6.6); tgt(s, s.x, s.z, gr, -10, y + 1.5, 4, 8, 3, 4.5); tgt(s, s.x, s.z, gr, 8, y + 1, 8, 4.5, 2.5, 3.5);
+      { const c = s.targets[0].c; s.aim = {x: c.x, y: y + 7, z: c.z, what: 'the radar station'}; }
       put(B(16, 5, 9), grey, -10, -1, 4, 0, .45, g); put(B(9, 4, 7), grey, 8, -1, 8, 0, .45, g);
       put(new THREE.CylinderGeometry(4.5, 5, 7, 16).translate(0, 3.5, 0), grey, 0, -1, -6, 0, .4, g);
       put(new THREE.SphereGeometry(6.5, 20, 14), white, 0, 8.5, -6, 0, .38, g);                                          // radome
@@ -805,6 +813,8 @@ const siteGroup = new THREE.Group(); scene.add(siteGroup);
     } else if (s.type === 'base') {
       const y = FLAT[0].y, ang = rnd() * TAU, g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = ang; siteGroup.add(g);
       const olive = M(0x5d6448, .85, .1), grey = M(0x7b7f78, .85, .1), dark = M(0x2d3134, .7, .3), apron = M(0x4b4f50, .95);
+      tgt(s, s.x, s.z, ang, -60, y + 5.5, 0, 71, 6, 15); tgt(s, s.x, s.z, ang, 90, y + 9.5, -10, 4.5, 9.5, 4.5); tgt(s, s.x, s.z, ang, 57, y + 2.5, -70, 29, 2.5, 15);
+      { const c = s.targets[0].c; s.aim = {x: c.x, y: y + 5, z: c.z, what: 'the hangars'}; s.fieldPadAt = {lx: 110, lz: 62, rot: ang}; }
       put(new THREE.BoxGeometry(420, .3, 70).translate(0, .15, 0), apron, 0, 0, 40, 0, .3, g);                            // apron / taxiway
       for (let k = 0; k < 3; k++) { const hg = new THREE.CylinderGeometry(11, 11, 30, 18, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2);
         put(hg, olive, -120 + k * 60, 0, 0, 0, .42, g); }                                                                     // hangars (arched)
@@ -1571,7 +1581,7 @@ function drawMap() {
     for (const s of SITES) {
       const [sx, sz] = worldToMap(s.x, s.z), on = s === tgt, col = on ? '#ff8a6a' : 'rgba(205,220,232,.75)';
       if (on) { ctx.setLineDash([3, 4]); ctx.strokeStyle = 'rgba(255,138,106,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx, sz, FAR_R * k, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(255,90,60,.18)'; ctx.strokeStyle = '#ff8a6a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sz, STRIKE_R * k, 0, TAU); ctx.fill(); ctx.stroke(); }
+        ctx.fillStyle = 'rgba(255,90,60,.25)'; ctx.strokeStyle = '#ff8a6a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sz, 9, 0, TAU); ctx.fill(); ctx.stroke(); }
       ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.3;
       if (s.type === 'village') for (const [ox, oz] of [[-3, 1], [2, -2], [3, 3]]) ctx.fillRect(sx + ox - 1.6, sz + oz - 1.6, 3.2, 3.2);
       else if (s.type === 'dam') { ctx.beginPath(); ctx.moveTo(sx - Math.cos(s.ang) * 6, sz - Math.sin(s.ang) * 6); ctx.lineTo(sx + Math.cos(s.ang) * 6, sz + Math.sin(s.ang) * 6); ctx.lineWidth = 3; ctx.stroke(); }
@@ -1584,7 +1594,7 @@ function drawMap() {
     ctx.setLineDash([2, 4]); ctx.strokeStyle = 'rgba(122,255,202,.45)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(dx3, dz3); ctx.lineTo(hx, hz); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = '#0a1824'; ctx.strokeStyle = '#7affca'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hx, hz, 7, 0, TAU); ctx.fill(); ctx.stroke();
     ctx.fillStyle = '#7affca'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.fillText('⌂', hx, hz + 3.5);
-    ctx.font = 'bold 8px ui-monospace,monospace'; ctx.fillText('HOME · ' + dkm.toFixed(1) + ' km', hx, hz + 17); ctx.textAlign = 'left'; }
+    ctx.font = 'bold 8px ui-monospace,monospace'; ctx.fillText((game.mode === 'mission' ? 'PAD · ' : 'HOME · ') + dkm.toFixed(1) + ' km', hx, hz + 17); ctx.textAlign = 'left'; }
   // 5. Tracks. Live (on radar) = solid; off radar = dead-reckoned estimate with uncertainty circle.
   //    Unclassified = grey fuzzy blip (not selectable). Classified = guess + confidence (may be wrong).
   const drawMapContact = c => {
@@ -1825,7 +1835,7 @@ $('terminateTrackBtn').addEventListener('click', () => {
 });
 $('launchBtn').addEventListener('click', () => {
   if (state.launchStage !== 'parked') return;
-  missionLog('start'); state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = terrainHeight(0, 0) + DRONE_REST_H; state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
+  missionLog('start'); state.launchStage = 'takeoff'; state.takeoffT = 0; state.pos.y = restY(state.pos.x, state.pos.z); state.vel.set(0,0,0); state.cruiseSpeed = 0; state.modeBlend = 1; snapPrev();
   $('launchBtn').disabled = true; $('launchOverlay').style.display = 'none';
   $('flightState').textContent = 'VERTICAL TAKEOFF'; toast('Launch · vertical climb');
 });
@@ -2043,8 +2053,8 @@ function scoutBand(s) {
 }
 function chooseScoutWaypoint(s) {
   if (s.raid) {   // mission raider: next leg of its attack run (dog-leg → initial point → the site)
-    s.raid.leg = Math.min(s.raid.leg + 1, s.raid.legs.length - 1); const p = s.raid.legs[s.raid.leg];
-    s.waypoint = new THREE.Vector3(p.x, terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = 1e9; return;
+    s.raid.leg = Math.min(s.raid.leg + 1, s.raid.legs.length - 1); const p = s.raid.legs[s.raid.leg], last = s.raid.leg === s.raid.legs.length - 1;
+    s.waypoint = new THREE.Vector3(p.x, last && s.raid.aim ? s.raid.aim.y : terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = 1e9; return;
   }
   const from = s.pos, [lo, hi] = scoutBand(s);
   for (let tries = 0; tries < 28; tries++) {
@@ -2078,26 +2088,34 @@ function stepScout(s, h) {
     let peak = -5; for (let k = 0; k <= 12; k++) { const t = k / 12 * look; peak = Math.max(peak, terrainHeight(s.pos.x + wx*t, s.pos.z + wz*t)); }
     const [lo] = scoutBand(s);   // hold the band's height above the terrain along the route (low flyers hug it)
     s.routeY = Math.min(900, Math.max(s.waypoint.y, peak + Math.max(40, lo * .8), terrainHeight(s.waypoint.x, s.waypoint.z) + lo));
+    const A = s.raid && s.raid.aim, dA = A ? Math.hypot(A.x - s.pos.x, A.z - s.pos.z) : 1e9;
+    s.terminal = !!A && s.raid.leg === s.raid.legs.length - 1 && dA < 2200;
+    if (s.terminal) {   // raider's attack dive: a ~4° glide onto the aim point, clearing the ground on the way (not the last 120 m)
+      let pk = -1e9; for (let k = 0; k <= 16; k++) { const f = k / 16, dd = dA * (1 - f); if (dd < 120) break; pk = Math.max(pk, terrainHeight(s.pos.x + (A.x - s.pos.x) * f, s.pos.z + (A.z - s.pos.z) * f)); }
+      s.glideFloor = pk + 12; s.routeY = Math.max(A.y + dA * .07, s.glideFloor);
+    }
   }
+  if (s.terminal) { const A = s.raid.aim; s.routeY = Math.max(A.y + Math.hypot(A.x - s.pos.x, A.z - s.pos.z) * .07, s.glideFloor ?? -1e9); }
   const ms = s.speed;   // fly at the class's listed speed (light 151, heavy 306, jet 331 km/h)
   const hx = s.waypoint.x - s.pos.x, hz = s.waypoint.z - s.pos.z, hl = Math.hypot(hx, hz) || 1;
-  const altWave = Math.sin(state.time * .18 + s.curiosity * 6.28) * 18; // gentle altitude breathing
+  const altWave = s.terminal ? 0 : Math.sin(state.time * .18 + s.curiosity * 6.28) * 18; // gentle altitude breathing (not in an attack dive)
   // Fixed-wing kinematics: constant airspeed, heading changes only through a coordinated turn.
   // Max 30° bank (standard for small fixed-wing UAVs), roll rate ~20°/s, climb/descent ≤ ~8°.
   if (s.hdg === undefined) s.hdg = Math.atan2(-s.vel.x, -s.vel.z);
   s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -2 * h, 2 * h);
-  const maxBank = s.returning ? .78 : .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
+  const maxBank = s.returning ? .78 : s.terminal ? .7 : .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
   let bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
   const av = s.avoid && state.time < s.avoid.until ? s.avoid : null; if (av) bankCmd = clamp(av.bank, -maxBank, maxBank);   // traffic avoidance
   s.bank = moveToward(s.bank || 0, bankCmd, .35 * h);
   s.turnRate = 9.81 * Math.tan(s.bank) / Math.max(20, s.spd);
   s.hdg += s.turnRate * h;
-  const vyMax = s.spd * .14, vy = clamp(av ? av.vy : (s.routeY + altWave - s.pos.y) * .12, -vyMax, vyMax);
-  s.vy = moveToward(s.vy || 0, vy, 2 * h);
+  // (attack dive: follow the ~4° glide — its descent rate as feed-forward + a tight height loop, so it really hits)
+  const vyMax = s.spd * (s.terminal ? .22 : .14), vy = clamp(av ? av.vy : s.terminal ? (s.routeY - s.pos.y) * .6 - s.spd * .07 : (s.routeY + altWave - s.pos.y) * .12, -vyMax, vyMax);
+  s.vy = moveToward(s.vy || 0, vy, (s.terminal ? 6 : 2) * h);
   s.vel.set(-Math.sin(s.hdg) * s.spd + wind.x, s.vy + wind.y * .6, -Math.cos(s.hdg) * s.spd + wind.z);   // ground velocity
   s.pos.addScaledVector(s.vel, h);
   s.pos.x = clamp(s.pos.x, -ARENA - 400, ARENA + 400); s.pos.z = clamp(s.pos.z, -ARENA - 400, ARENA + 400);   // invisible backstop
-  const gh = terrainHeight(s.pos.x, s.pos.z); if (s.pos.y < gh + 35) { s.pos.y = lerp(s.pos.y, gh + 35, .05); s.vy = Math.max(s.vy || 0, 4); } if (s.pos.y > 950) s.pos.y = lerp(s.pos.y, 900, .05);
+  const gh = terrainHeight(s.pos.x, s.pos.z), floorH = s.terminal ? 3 : 35; if (s.pos.y < gh + floorH) { s.pos.y = lerp(s.pos.y, gh + floorH, .05); s.vy = Math.max(s.vy || 0, 4); } if (s.pos.y > 950) s.pos.y = lerp(s.pos.y, 900, .05);
   s.yaw = s.hdg; s.roll = s.bank;
   s.pitch = damp(s.pitch, Math.asin(clamp((s.vy || 0) / Math.max(1, s.spd), -.3, .3)), 3, h);   // nose on the flight path
   s.trailTimer -= h;
@@ -2577,6 +2595,11 @@ function attackGuidance(t, G) {
   const a = state.attack, p = state.pos, tv = t.vel, Vt = Math.hypot(tv.x, tv.z);
   let hx = -Math.sin(t.yaw || 0), hz = -Math.cos(t.yaw || 0); if (Vt > 1) { hx = tv.x / Vt; hz = tv.z / Vt; }
   const rx = t.pos.x - p.x, ry = t.pos.y - p.y, rz = t.pos.z - p.z, R = Math.max(1, Math.hypot(rx, rz)), R3 = Math.hypot(R, ry);
+  // Defend missions: a target flying at the defended site is cut off — collision course from anywhere in its front
+  // half, at full speed — instead of chased from behind (an 85 m/s heavy can't be caught from behind before it arrives).
+  const S0 = game.mode === 'mission' && game.m ? game.m.site : null;
+  const run = S0 && Vt > 1 ? (hx * (S0.x - t.pos.x) + hz * (S0.z - t.pos.z)) / (Math.hypot(S0.x - t.pos.x, S0.z - t.pos.z) || 1) : 0;
+  const cutoff = run > .8;
   const behind = (hx * rx + hz * rz) / R;               // +1: drone sits right on the target's tail, -1: in front of it
   const fwdx = -Math.sin(state.rot.y), fwdz = -Math.cos(state.rot.y), facing = (fwdx * rx + fwdz * rz) / R;
   if (!a.side) {                                         // vertical side once per engagement: mostly from above
@@ -2590,13 +2613,8 @@ function attackGuidance(t, G) {
   // Fast targets (≳ 80 m/s, e.g. the 92 m/s jet): passing beside it and turning in behind costs ~1.2 km — at the edge of
   // radar range, with only ~19 m/s of closure left — so a roughly head-on geometry is taken as a head-on attack.
   const fastT = smoothstep(80, 92, Vt);
-  // Defend missions: a target flying at the defended site is cut off — collision course from anywhere in its front
-  // half, at full speed — instead of chased from behind (an 85 m/s heavy can't be caught from behind before it arrives).
-  const S0 = game.mode === 'mission' && game.m ? game.m.site : null;
-  const run = S0 && Vt > 1 ? (hx * (S0.x - t.pos.x) + hz * (S0.z - t.pos.z)) / (Math.hypot(S0.x - t.pos.x, S0.z - t.pos.z) || 1) : 0;
-  const cutoff = run > .8;
   if (a.phase === 'headon') { if (cutoff ? !(behind < .1 && tc > 0) : !(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) a.phase = ''; }
-  else if (cutoff && behind < -.2 && tc > 0 && R < 4000) { a.phase = 'headon'; radioMessage('CUT-OFF · COLLISION COURSE'); }
+  else if (cutoff && behind < .1 && tc > 0) { a.phase = 'headon'; radioMessage('CUT-OFF · COLLISION COURSE'); }   // any range: head for its path to the site, never its tail
   else if (behind < -.9 + .15 * fastT && facing > .95 - .1 * fastT && tc > 0 && tc < 15 + 5 * fastT && miss < 30 + 120 * fastT && R > 200 && R < 1400 + 300 * fastT) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   if (a.phase === 'headon') {
@@ -2889,7 +2907,7 @@ function drawDebriefMap(m) {
 // ── Return to base ──
 // Battery needed to get home and land: fly home at efficient cruise (ground speed into the current wind), then ~30 s of
 // approach, transition to hover and vertical descent at hover power, plus a 15 % safety margin. Recomputed every second.
-const PAD = {x:0, z:0}, LAND_POWER = 950, LAND_TIME = 65, RTB_MARGIN = 1.15;
+const PAD = {x:0, z:0, deck:null, half:PAD_HALF}, LAND_POWER = 950, LAND_TIME = 65, RTB_MARGIN = 1.15;
 function rtbRequired() {
   const dx = PAD.x - state.pos.x, dz = PAD.z - state.pos.z, d = Math.hypot(dx, dz);
   const head = d > 1 ? -(wind.x * dx + wind.z * dz) / d : 0, gs = Math.max(20, V_CRUISE - head);
@@ -2970,10 +2988,15 @@ function stepPowerLoss(h) {
     state.returning = true; state.returnTimer = 2.8; state.returnReason = 'battery';
   }
 }
+// Pad deck height (home pad: .52 m above the levelled ground; a mission field pad: its own deck) and the drone's
+// resting height on its fins — on the pad, or on bare ground after an off-pad landing.
+const padDeckY = () => PAD.deck ?? terrainHeight(PAD.x, PAD.z) + .52;
+const padRestY = () => padDeckY() + 2.05 * DRONE_SCALE;
+const restY = (x, z) => Math.max(Math.abs(x - PAD.x), Math.abs(z - PAD.z)) < PAD.half + .3 ? padRestY() : terrainHeight(x, z) + DRONE_REST_H;
 function resetToPad(reason) {
   if (state.mission && !state.mission.end) state.mission.end = [state.pos.x, state.pos.z];   // where the sortie ended (before moving to the pad)
   state.returning = false; state.crashed = false; state.batteryDead = false;
-  if (reason === 'landed') state.pos.y = terrainHeight(0, 0) + DRONE_REST_H; else state.pos.set(0, terrainHeight(0,0) + DRONE_REST_H, 0);   // landed: stays where it touched down
+  if (reason === 'landed') state.pos.y = restY(state.pos.x, state.pos.z); else state.pos.set(PAD.x, padRestY(), PAD.z);   // landed: stays where it touched down
   state.vel.set(0,0,0); state.altCmd = state.pos.y; state.tiltX = state.tiltZ = 0; state.rtbAlt = null; state.landAim = null; state.userAlt = null; state.nudging = false; state.altNudge = false;
   state.cruiseSpeed = 0; state.turnCmd = 0; state.searchWp = null; state.ignoredTargets.clear();
   state.aiTarget = null; state.pursuitMode = false; state.manualWaypointActive = false; mapWaypoint = null;
@@ -3016,7 +3039,7 @@ function physicsStep(h) {
     }
     return;
   }
-  if (state.launchStage === 'parked') { state.vel.set(0,0,0); state.pos.y = terrainHeight(state.pos.x, state.pos.z) + DRONE_REST_H; state.hover = true; state.modeBlend = 1; return; }
+  if (state.launchStage === 'parked') { state.vel.set(0,0,0); state.pos.y = restY(state.pos.x, state.pos.z); state.hover = true; state.modeBlend = 1; return; }
   if (state.launchStage === 'takeoff') {
     // ~8 s sequence: 0–2.5 s straight vertical climb, 2.5–7.5 s gradual pitch-over into forward flight.
     const t = state.takeoffT = (state.takeoffT || 0) + h;
@@ -3030,7 +3053,7 @@ function physicsStep(h) {
     state.rot.x = damp(state.rot.x, .12 * smoothstep(3, 7.5, t), 2, h);   // slight nose-up while climbing out
     state.pos.addScaledVector(state.vel, h);
     const gnd = terrainHeight(state.pos.x, state.pos.z);
-    if (state.pos.y < gnd + DRONE_REST_H) { state.pos.y = gnd + DRONE_REST_H; state.vel.y = Math.max(0, state.vel.y); }
+    { const ry = restY(state.pos.x, state.pos.z); if (state.pos.y < ry) { state.pos.y = ry; state.vel.y = Math.max(0, state.vel.y); } }
     drainBattery(h, 700 + state.vel.y * 45);   // hover lift is expensive
     if (t >= 8) {
       state.launchStage = 'active'; state.aiActivated = true;
@@ -3051,7 +3074,7 @@ function physicsStep(h) {
   //    hover as speed bleeds off, and it yaws into its direction of travel while moving. ──
   if (state.rtb === 'landing' && state.pursuitMode && state.aiTarget) { goAround('PURSUIT ORDERED · LANDING ABORTED · GO-AROUND'); return; }
   if (state.rtb === 'landing') {
-    const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + DRONE_REST_H;
+    const t = state.landT = (state.landT || 0) + h, padY = padRestY();
     if (!state.landAim) { state.landAim = {x:PAD.x + (Math.random() - .5) * 1, z:PAD.z + (Math.random() - .5) * 1}; state.landV0 = Math.max(15, Math.hypot(state.vel.x, state.vel.z)); state.landFloat = 5 + Math.random() * 7; state.landHover = false; state.landDesc = false; state.hoverT = 0; }
     const ex = state.landAim.x - state.pos.x, ez = state.landAim.z - state.pos.z, dH = Math.hypot(ex, ez);
     const hs = Math.hypot(state.vel.x, state.vel.z), agl = state.pos.y - padY;
@@ -3096,7 +3119,7 @@ function physicsStep(h) {
     if (agl <= .25) {
       const off = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z);
       state.rtb = false; state.landAim = null; state.tiltX = state.tiltZ = 0;
-      const onPad = Math.max(Math.abs(state.pos.x - PAD.x), Math.abs(state.pos.z - PAD.z)) < PAD_HALF; state.lastTouchdown = {off, onPad};
+      const onPad = Math.max(Math.abs(state.pos.x - PAD.x), Math.abs(state.pos.z - PAD.z)) < PAD.half; state.lastTouchdown = {off, onPad};
       radioMessage('TOUCHDOWN · ' + (onPad ? off.toFixed(1) + ' m from centre' : 'OFF THE PAD · ' + off.toFixed(0) + ' m') + ' · RECHARGING');
       missionLog('landed'); resetToPad('landed');
     }
@@ -3841,7 +3864,7 @@ function animate(now) {
 // Start screen → Sandbox (the free-play game as before) or Missions (defend a site against a scout raid).
 // The world is identical in both. Switching mode / retrying reloads the page (via sessionStorage 'dl_start'), so
 // every mission starts from a clean world. Best stars + score per mission and difficulty: localStorage 'dl_missions'.
-const STRIKE_R = 300, FAR_R = 1500;
+const STRIKE_R = 300, FAR_R = 1500;   // STRIKE_R: only the distance-bonus baseline now (losing = a raider hitting the structure)
 const MISSIONS = [
   {id:'village', site:'Bergtal', kind:'VALLEY VILLAGE', text:'Bergtal lies low in a valley {where}. Raiders will follow the valleys around it to stay under your radar until late — expect them to pop up close.'},
   {id:'dam', site:'Grauwand Dam', kind:'DAM', text:'Grauwand Dam holds back the lake {where}. Scouts have a long, open run over the water: see them early, stop them early.'},
@@ -3851,10 +3874,10 @@ const MISSIONS = [
 const DIFFS = {
   easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   arriveFirst:240, gap:[150, 190], pairs:false, kinds:['light', 'heavy', 'light'], warn:'dir',
           weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with direction'},
-  normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', arriveFirst:210, gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'fast'], warn:'inbound',
+  normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', arriveFirst:210, gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound',
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
-  hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3200, scoutDiff:'normal',   arriveFirst:180, gap:[60, 95], pairs:true, kinds:['fast', 'light', 'heavy', 'fast', 'light', 'heavy', 'fast'], warn:'none',
-          weather:['MIST', 'RAIN', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
+  hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3800, scoutDiff:'normal',   arriveFirst:210, gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none',
+          weather:['MIST', 'HIGH CLOUD', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
 };
 const RAID_BAND = {light:[45, 90], fast:[110, 180], heavy:[130, 220]};   // AGL during the raid: propeller scouts sneak low through valleys; jets (thirsty down low) and heavies fly higher
 const siteByName = n => SITES.find(s => s.name === n);
@@ -3894,6 +3917,44 @@ for (const b of $('gmDiff').children) b.onclick = () => { gmDiff = b.dataset.d; 
 try { gmDiff = localStorage.getItem('dl_diff') || 'normal'; } catch (e) {}
 $('menuBtn').onclick = () => { if (state.launchStage === 'active' && !confirm('Leave this flight and go to the main menu?')) return; restartInto(null); };
 
+
+// ── Field pad: in a mission you operate from a small portable pad at the defended site (like a real deployment) —
+//    a 5 m folding landing mat on adjustable legs, equipment cases, a charger, a tripod antenna and the spare drones.
+//    Placed on the flattest dry spot near the site, clear of its buildings (FOB: on the apron). PAD moves there. ──
+function placeFieldPad(S0) {
+  const keep = (x, z) => (S0.targets || []).every(T => Math.hypot(T.c.x - x, T.c.z - z) > Math.hypot(T.h[0], T.h[2]) + 18);
+  const slopeAt = (x, z) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-3.5, -3.5], [3.5, -3.5], [3.5, 3.5], [-3.5, 3.5], [0, 0]]) { const y = terrainHeight(x + a, z + b); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [hi - lo, lo, hi]; };
+  let best = null;
+  if (S0.fieldPadAt) { const f = S0.fieldPadAt; best = {x: S0.x + f.lx * Math.cos(f.rot) + f.lz * Math.sin(f.rot), z: S0.z - f.lx * Math.sin(f.rot) + f.lz * Math.cos(f.rot)}; }
+  else for (let r = 40; r <= Math.max(60, S0.clear - 15); r += 15) for (let k = 0; k < 24; k++) {
+    const a = k / 24 * TAU, x = S0.x + Math.cos(a) * r, z = S0.z + Math.sin(a) * r, [sl, lo] = slopeAt(x, z);
+    if (lo < WATER_Y + 1.5 || !keep(x, z)) continue;
+    const sc = sl + r * .01; if (!best || sc < best.sc) best = {x, z, sc};
+  }
+  if (!best) best = {x: S0.x + 60, z: S0.z};
+  const [, lo, hi] = slopeAt(best.x, best.z), deck = hi + .35 + (S0.type === 'base' ? .3 : 0), g = new THREE.Group(); g.position.set(best.x, 0, best.z); scene.add(g);
+  const add = (geo, material, x, y, z, heat = .35) => { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); g.add(m); th(m, heat); return m; };
+  const mat5 = mat(0x3b4a3f, .9, .05), frame = mat(0x9aa0a4, .5, .6), white = mat(0xe9eef2, .6, .1), yel = mat(0xe8c14a, .6, .1), olive = mat(0x55603f, .85, .1);
+  add(new THREE.BoxGeometry(5, .08, 5), mat5, 0, deck - .04, 0, .38);                                        // landing mat
+  for (const [a, b] of [[-2.3, -2.3], [2.3, -2.3], [2.3, 2.3], [-2.3, 2.3]]) { const gy = terrainHeight(best.x + a, best.z + b), hgt = deck - gy;   // adjustable legs
+    add(new THREE.CylinderGeometry(.05, .07, hgt + .3, 6).translate(0, (hgt + .3) / 2 - .3, 0), frame, a, gy, b, .3); }
+  for (const [w, d, x, z] of [[5, .12, 0, -2.44], [5, .12, 0, 2.44], [.12, 5, -2.44, 0], [.12, 5, 2.44, 0]]) add(new THREE.BoxGeometry(w, .02, d), yel, x, deck + .01, z, .35);   // border
+  { const ring = add(new THREE.RingGeometry(1.35, 1.5, 40).rotateX(-Math.PI / 2), white, 0, deck + .015, 0, .35);
+    add(new THREE.BoxGeometry(.18, .02, 1.1), white, -.4, deck + .015, 0); add(new THREE.BoxGeometry(.18, .02, 1.1), white, .4, deck + .015, 0); add(new THREE.BoxGeometry(.8, .02, .18), white, 0, deck + .015, 0); }
+  const gy = x => terrainHeight(best.x + x[0], best.z + x[1]);
+  add(new THREE.BoxGeometry(1.2, .55, .6).translate(0, .275, 0), olive, -4.2, gy([-4.2, -1]), -1, .4);        // transport cases
+  add(new THREE.BoxGeometry(1.0, .5, .55).translate(0, .25, 0), olive, -4.1, gy([-4.1, .2]), .2, .4);
+  add(new THREE.BoxGeometry(.8, .45, .5).translate(0, .225, 0), mat(0x2b2f33, .6, .3), 4.1, gy([4.1, -1.2]), -1.2, .55);   // charger
+  add(new THREE.BoxGeometry(.9, .6, .6).translate(0, .3, 0), mat(0xb44a2a, .7, .2), 4.3, gy([4.3, 1.4]), 1.4, .6);          // generator
+  { const ax = -3.8, az = 3.6, y0 = gy([ax, az]);                                                               // tripod antenna
+    for (let k = 0; k < 3; k++) { const a = k / 3 * TAU; strut(g, [ax + Math.cos(a) * .7, y0, az + Math.sin(a) * .7], [ax, y0 + 1.6, az], .025, frame); }
+    add(new THREE.CylinderGeometry(.02, .02, 2.2, 5).translate(0, 1.1, 0), mat(0x22262a, .5, .4), ax, y0 + 1.6, az, .3); }
+  // spare drones stand on small plates in a row beside the mat
+  spareDrones.forEach((d, i) => { const x = -2 + (i % 3) * 1.6, z = -4.2 - Math.floor(i / 3) * 1.6, y0 = gy([x, z]);
+    add(new THREE.BoxGeometry(1, .12, 1).translate(0, .06, 0), frame, x, y0, z, .3); d.position.set(best.x + x, y0 + .12 + 2.05 * DRONE_SCALE, best.z + z); });
+  PAD.x = best.x; PAD.z = best.z; PAD.deck = deck; PAD.half = 2.5;
+  return g;
+}
 // ── Mission start ──
 function setMissionEnv(D) {
   const pick = a => a[Math.floor(Math.random() * a.length)], wx = pick(D.weather), hour = pick(D.hours), w = D.wind[0] + Math.random() * (D.wind[1] - D.wind[0]);
@@ -3913,6 +3974,7 @@ function startMission(id, diff, opts = {}) {
     for (let r = 150; r <= 900; r += 150) for (let k = 0; k < 16; k++) { const x = site.x + Math.cos(k / 16 * TAU) * r, z = site.z + Math.sin(k / 16 * TAU) * r, h = terrainHeight(x, z); if (h > best.h + 5) best = {x, z, h}; }
     game.m.radar = {x: best.x, z: best.z, y: Math.max(best.h, site.type === 'dam' ? site.crest : 0) + 30}; }
   setMissionEnv(D); state.replenishTimer = 20;
+  placeFieldPad(site);
   resetToPad('manual'); setSpareDrones(D.drones - 1); state.civilianIncidents = 0; state.tagCount = 0;
   $('gmBriefKind').textContent = 'MISSION · ' + def.kind + ' · ' + D.label;
   $('gmBriefTitle').textContent = 'DEFEND ' + def.site.toUpperCase();
@@ -3920,7 +3982,7 @@ function startMission(id, diff, opts = {}) {
   $('gmBriefTable').innerHTML = `<tr><td>Raid</td><td>${D.scouts} scouts, arriving one by one${D.pairs ? ' (sometimes in pairs)' : ''}</td></tr>
     <tr><td>Drones</td><td>${D.drones}: one per scout + ${D.drones - D.scouts} spare${D.drones - D.scouts === 1 ? '' : 's'} (every ram uses a drone)</td></tr><tr><td>Early warning</td><td>${D.warnText}</td></tr>
     <tr><td>Conditions</td><td>${state.weatherMode} · wind ${(+$('envWind').value).toFixed(0)} m/s · ${String(Math.floor(+$('envTime').value)).padStart(2, '0')}:00</td></tr>
-    <tr><td>Fails if</td><td>any scout gets within ${STRIKE_R} m of the site, or you run out of drones</td></tr>`;
+    <tr><td>Fails if</td><td>a scout crashes into ${site.aim ? site.aim.what : 'the site'}, or you run out of drones</td></tr><tr><td>You launch from</td><td>a portable field pad at ${site.name}</td></tr>`;
   updateMissionLaunchCard();
   if (opts.skipBrief) beginMission(); else { state.paused = true; gmShow('gmBrief'); }
 }
@@ -3948,9 +4010,10 @@ function planRaider(kind, ang) {
   const l1 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400, 3800].map(r => ring(aE + side * o, r))));
   const a1 = Math.atan2(l1.z - S0.z, l1.x - S0.x), l2 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400].map(r => ring(a1 + side * o, r))));
   const a2 = Math.atan2(l2.z - S0.z, l2.x - S0.x), ip = lowestOf([-.45, -.2, 0, .2, .45].map(o => ring(a2 + o, 2400)));
+  const A = S0.aim || {x: S0.x, y: terrainHeight(S0.x, S0.z) + 5, z: S0.z};
   const D = game.m.D, speed = Math.min(SCOUT_SPEC[kind].speed * (D.scoutDiff === 'easy' ? .82 : D.scoutDiff === 'hard' ? 1.15 : 1), 101);
   const travel = (Math.hypot(l1.x - ex, l1.z - ez) + Math.hypot(l2.x - l1.x, l2.z - l1.z) + Math.hypot(ip.x - l2.x, ip.z - l2.z)) * 1.12 / speed;   // +12 % for turns
-  return {kind, ex, ez, ang, legs:[l1, l2, ip, {x: S0.x, z: S0.z}], travel};
+  return {kind, ex, ez, ang, legs:[l1, l2, ip, {x: A.x, z: A.z}], aim: A, travel};
 }
 function planRaid(m) {
   const D = m.D, plan = []; let arrive = D.arriveFirst, i = 0;
@@ -3964,33 +4027,53 @@ function planRaid(m) {
 function spawnRaider(p) {
   const m = game.m, S0 = m.site, D = m.D, band = RAID_BAND[p.kind], y = terrainHeight(p.ex, p.ez) + band[1];
   const s = createScout(p.kind, D.scoutDiff, new THREE.Vector3(p.ex, y, p.ez));
-  s.band = band; s.raid = {legs:p.legs, leg:-1}; chooseScoutWaypoint(s);
+  s.band = band; s.raid = {legs:p.legs, leg:-1, aim:p.aim}; chooseScoutWaypoint(s);
   const l1 = p.legs[0]; s.hdg = Math.atan2(-(l1.x - p.ex), -(l1.z - p.ez)); s.yaw = s.hdg; s.vel.set(-Math.sin(s.hdg) * s.speed, 0, -Math.cos(s.hdg) * s.speed);
   m.raid.push(s); m.spawned++;
   const L = Math.hypot(p.ex - S0.x, p.ez - S0.z), brg = (Math.atan2(p.ex - S0.x, -(p.ez - S0.z)) * 180 / Math.PI + 360) % 360;
-  if (D.warn === 'dir') { radioMessage('RAID WARNING · CONTACT INBOUND FROM THE ' + compass(brg) + ' · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase()); playSfx('chime'); }
-  else if (D.warn === 'inbound') { radioMessage('RAID WARNING · CONTACT INBOUND'); playSfx('chime'); }
+  if (D.warn === 'dir') { radioMessage('RAID WARNING · CONTACT INBOUND FROM THE ' + compass(brg) + ' · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase());
+    raidBanner('⚠ RAID WARNING', 'CONTACT INBOUND FROM THE ' + compass(brg) + ' · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase()); }
+  else if (D.warn === 'inbound') { radioMessage('RAID WARNING · CONTACT INBOUND'); raidBanner('⚠ RAID WARNING', 'CONTACT INBOUND'); }
   return s;
+}
+// Big raid-warning banner (top centre, ~8 s, pulses + alarm) — the radio line stays in the log as well.
+let raidWarnT = null;
+function raidBanner(title, text) {
+  const el = $('raidWarn'); el.innerHTML = title + '<small>' + text + '</small>'; el.style.opacity = 1; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  playSfx('alarm'); clearTimeout(raidWarnT); raidWarnT = setTimeout(() => { el.style.opacity = 0; raidWarnT = setTimeout(() => el.classList.remove('show'), 650); }, 8000);
 }
 function missionTick(h) {
   const m = game.m; if (!m || !m.running || m.result) return;
   m.t += h;
   while (m.spawned < m.total && m.t >= m.plan[m.spawned].spawnT) spawnRaider(m.plan[m.spawned]);
   countRaidDowns(m);
-  for (const s of m.raid) if (!s.raidDone && hDist(s.pos, m.site) < STRIKE_R) { siteStrike(s); return; }
+  for (const s of m.raid) if (!s.raidDone && !s.destroyed && hDist(s.pos, m.site) < 700 && raiderHitsSite(s, m.site, h)) { siteStrike(s); return; }
   if (m.downed >= m.total) finishMission(true, 'All ' + m.total + ' scouts stopped before they reached ' + m.site.name + '.');
 }
 function countRaidDowns(m) {
   for (const s of m.raid) if (!s.raidDone && s.destroyed) { s.raidDone = true; s.downDist = hDist(s.pos, m.site); m.downed++;
     logEvent('RAID · SCOUT DOWN ' + (s.downDist / 1000).toFixed(1) + ' KM FROM ' + m.site.name.toUpperCase() + ' · ' + m.downed + '/' + m.total, 'ok'); }
 }
+// The mission is only lost when a raider actually flies into the defended structure: its hit boxes against the site's
+// target boxes (oriented-box test, sub-stepped like the mid-air check) — so a last-second ram still saves the site.
+function raiderHitsSite(s, S0, h) {
+  if (!S0.targets) return hDist(s.pos, S0) < 60;
+  const B = obbAxes(s), p = new THREE.Vector3(), cb = new THREE.Vector3(), steps = Math.max(1, Math.ceil(s.vel.length() * h / .25));
+  for (const T of S0.targets) {
+    if (Math.hypot(T.c.x - s.pos.x, T.c.z - s.pos.z) > Math.hypot(T.h[0], T.h[2]) + 25) continue;
+    const A = [new THREE.Vector3(Math.cos(T.yaw), 0, -Math.sin(T.yaw)), new THREE.Vector3(0, 1, 0), new THREE.Vector3(Math.sin(T.yaw), 0, Math.cos(T.yaw))];
+    for (let k = 1; k <= steps; k++) { p.lerpVectors(s.prev, s.pos, k / steps);
+      for (const y of s.hit) { cb.copy(p).addScaledVector(B[0], y[0]).addScaledVector(B[1], y[1]).addScaledVector(B[2], y[2]); if (obbOverlap(T.c, A, T.h, cb, B, [y[3], y[4], y[5]])) return true; } }
+  }
+  return false;
+}
 function siteStrike(s) {
-  const m = game.m, S0 = m.site, y = terrainHeight(S0.x, S0.z) + (S0.type === 'dam' ? S0.crest - terrainHeight(S0.x, S0.z) : 8);
+  const m = game.m, S0 = m.site;
   s.raidDone = true; s.destroyed = true; s.removeAt = state.time + .5; s.group.visible = false; if (s.trail) s.trail.visible = false;
   if (state.aiTarget === s) { if (state.pursuitMode) endPursuit('TARGET REACHED THE SITE'); state.aiTarget = null; }
-  explodeAt(new THREE.Vector3(S0.x, y, S0.z), 4.5, s.vel, 0x4a4440); setTimeout(() => explodeAt(new THREE.Vector3(S0.x + 25, y, S0.z - 15), 3, null, 0x4a4440), 450);
+  const P = s.pos.clone(); explodeAt(P, 4.5, s.vel, 0x4a4440); setTimeout(() => explodeAt(P.clone().add(new THREE.Vector3(6, 3, -4)), 3, null, 0x4a4440), 450);
   radioMessage('SITE HIT · ' + S0.name.toUpperCase() + ' · MISSION FAILED');
-  finishMission(false, 'A ' + s.spec.label.toLowerCase() + ' reached ' + S0.name + '.');
+  finishMission(false, 'A ' + s.spec.label.toLowerCase() + ' crashed into ' + (S0.aim ? S0.aim.what : S0.name) + ' at ' + S0.name + '.');
 }
 function finishMission(win, reason) { const m = game.m; if (!m || m.result) return; m.result = {win, reason, at: m.t, showAt: performance.now() + (win ? 2500 : 3500)}; }
 // called at the end of resetToPad in mission mode: an intercept / crash / empty battery uses up that drone
