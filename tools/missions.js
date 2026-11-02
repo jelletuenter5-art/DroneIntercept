@@ -46,7 +46,7 @@ const { args, buildTestPage, openGame } = require('./lib');
             if (x.identified && !x._id) x._id = [+m.t.toFixed(0), +(d / 1000).toFixed(1), x.guess];
             if (S.aiTarget === x && S.pursuitMode && !x._pu) x._pu = [+m.t.toFixed(0), +(d / 1000).toFixed(1)];
             if (!x._end && (x.raidDone)) x._end = [+m.t.toFixed(0), +(d / 1000).toFixed(1)]; }
-          if (globalThis.__trace && k % 240 === 0 && m.t > __trace[0] && m.t < __trace[1]) __trace[2].push([Math.round(m.t), S.launchStage, S.pursuitMode ? 'PURSUIT' : '-', S.aiTarget ? (S.aiTarget.kind || S.aiTarget.type) : null, S.rtb || '-', Math.round(S.battery * 100), [...document.querySelectorAll('.ev')].slice(-2).map(e => e.textContent.slice(5, 70)).join(' | ')]);
+          if (globalThis.__trace && k % 240 === 0 && m.t > __trace[0] && m.t < __trace[1]) __trace[2].push([Math.round(m.t), S.launchStage, S.pursuitMode ? 'PURSUIT' : '-', S.aiTarget ? (S.aiTarget.kind || S.aiTarget.type) : null, S.rtb || '-', Math.round(S.battery * 100), S.aiTarget ? 'R=' + Math.round(S.pos.distanceTo(S.aiTarget.pos)) + ' dy=' + Math.round(S.aiTarget.pos.y - S.pos.y) + ' tAgl=' + Math.round(S.aiTarget.pos.y - T.terrainHeight(S.aiTarget.pos.x, S.aiTarget.pos.z)) + ' ph=' + S.attack.phase : '', [...document.querySelectorAll('.ev')].slice(-2).map(e => e.textContent.slice(5, 70)).join(' | ')]);
           if (m.result) break;
         }
         if (!m.result) return null;

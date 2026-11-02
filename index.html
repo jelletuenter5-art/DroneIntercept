@@ -186,7 +186,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
 .gmBigStars{font-size:44px;letter-spacing:.12em;color:#2a3d4c;margin:6px 0}.gmBigStars i{font-style:normal;color:#ffd35a;text-shadow:0 0 18px #ffbf3f88}
 .gmRules{margin:8px 0 0;padding-left:18px;color:#b9cad9}.gmRules li{margin:3px 0}
 @media (max-width:640px){.gmModes,.gmList{grid-template-columns:1fr}}
-#raidWarn{display:none;position:absolute;left:50%;top:96px;transform:translateX(-50%);z-index:14;pointer-events:none;padding:10px 22px;border-radius:9px;background:#3a0c10ee;border:1.5px solid #ff6b6b;color:#ffe2e2;font:800 15px ui-monospace,monospace;letter-spacing:.12em;text-align:center;box-shadow:0 8px 30px #000b;transition:opacity .6s}#raidWarn small{display:block;font:700 11px ui-monospace,monospace;color:#ffb3a8;letter-spacing:.08em;margin-top:3px}#raidWarn.show{display:block;animation:rwPulse 1s ease-in-out 3}@keyframes rwPulse{50%{box-shadow:0 0 0 6px #ff6b6b55,0 8px 30px #000b}}
+#raidWarn{display:none;position:absolute;left:50%;top:96px;transform:translateX(-50%);z-index:14;pointer-events:auto;min-width:340px;padding:10px 22px;border-radius:9px;background:#3a0c10ee;border:1.5px solid #ff6b6b;color:#ffe2e2;font:800 15px ui-monospace,monospace;letter-spacing:.12em;text-align:center;box-shadow:0 8px 30px #000b;transition:opacity .6s}#raidWarn small{display:block;font:700 11px ui-monospace,monospace;color:#ffb3a8;letter-spacing:.06em;margin-top:3px}#raidWarn small+small{opacity:.6;font-weight:600}#raidWarn button{position:absolute;right:6px;top:5px;padding:1px 7px;font:700 12px system-ui;background:#5a1a1f;border:1px solid #ff8a8a;color:#ffe2e2;border-radius:5px;cursor:pointer}#raidWarn.show{display:block;animation:rwPulse 1s ease-in-out 3}@keyframes rwPulse{50%{box-shadow:0 0 0 6px #ff6b6b55,0 8px 30px #000b}}
 </style>
 </head>
 <body>
@@ -1667,24 +1667,25 @@ function drawMap() {
   }
 
   // 7b. Compass rose (north = map up) with the drone's heading on the ring
-  { const R = 30, [bx, by] = worldToMap(ARENA, -ARENA), cx = bx - R - 20, cy = by + R + 22, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
+  { const R = 38, [bx, by] = worldToMap(ARENA, -ARENA), cx = bx - R - 24, cy = by + R + 26, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
     ctx.save(); ctx.translate(cx, cy);
     ctx.fillStyle = 'rgba(8,18,28,.72)'; ctx.strokeStyle = 'rgba(122,255,202,.35)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill(); ctx.stroke();
-    for (let i = 0; i < 36; i++) { const a = i / 36 * TAU, l = i % 9 === 0 ? 6 : i % 3 === 0 ? 3.5 : 2;
-      ctx.strokeStyle = i % 9 === 0 ? 'rgba(200,240,255,.7)' : 'rgba(160,200,220,.3)';
+    for (let i = 0; i < 36; i++) { const a = i / 36 * TAU, l = i % 9 === 0 ? 6 : i % 3 === 0 ? 4.5 : 2;   // ticks every 10°, major every 30°
+      ctx.strokeStyle = i % 9 === 0 ? 'rgba(200,240,255,.75)' : i % 3 === 0 ? 'rgba(180,215,235,.55)' : 'rgba(160,200,220,.3)';
       ctx.beginPath(); ctx.moveTo(Math.sin(a) * (R - l), -Math.cos(a) * (R - l)); ctx.lineTo(Math.sin(a) * R, -Math.cos(a) * R); ctx.stroke(); }
     // needle: north half accent, south half muted
     ctx.fillStyle = '#ff6b5e'; ctx.beginPath(); ctx.moveTo(0, -R + 8); ctx.lineTo(4, 0); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(200,220,235,.55)'; ctx.beginPath(); ctx.moveTo(0, R - 8); ctx.lineTo(4, 0); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#0a1824'; ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, TAU); ctx.fill();
     ctx.font = 'bold 8px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    for (const [t, a] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]]) { const r = a * Math.PI / 180;
-      ctx.fillStyle = t === 'N' ? '#ff8a7e' : 'rgba(200,225,240,.8)'; ctx.fillText(t, Math.sin(r) * (R + 8), -Math.cos(r) * (R + 8)); }
+    ctx.font = 'bold 7px ui-monospace,monospace';
+    for (let a = 0; a < 360; a += 30) { const r = a * Math.PI / 180;   // bearings 0, 30, 60 … 330 outside the ring
+      ctx.fillStyle = a === 0 ? '#ff8a7e' : a % 90 === 0 ? 'rgba(215,235,248,.9)' : 'rgba(170,205,225,.7)'; ctx.fillText(String(a), Math.sin(r) * (R + 9), -Math.cos(r) * (R + 9)); }
     // drone heading marker on the ring
     const hr = hdg * Math.PI / 180; ctx.fillStyle = '#7affca';
     ctx.beginPath(); ctx.moveTo(Math.sin(hr) * (R - 1), -Math.cos(hr) * (R - 1)); ctx.lineTo(Math.sin(hr + .13) * (R + 5), -Math.cos(hr + .13) * (R + 5)); ctx.lineTo(Math.sin(hr - .13) * (R + 5), -Math.cos(hr - .13) * (R + 5)); ctx.closePath(); ctx.fill();
-    ctx.font = '8px ui-monospace,monospace'; ctx.fillStyle = 'rgba(122,255,202,.85)'; ctx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 0, R + 19);
+    ctx.font = '8px ui-monospace,monospace'; ctx.fillStyle = 'rgba(122,255,202,.85)'; ctx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 0, R + 21);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.restore(); }
   // 8. Status label
   const lbl = $('mapCoordLabel');
@@ -2038,6 +2039,8 @@ function updateRoutePeak() {
   let peak = terrainHeight(state.pos.x, state.pos.z);
   for (let k = 1; k <= 20; k++) { const d = k / 20 * len; peak = Math.max(peak, terrainHeight(state.pos.x + fx*d, state.pos.z + fz*d)); }
   state.routePeak = peak;
+  // smoothed for the height-safety law: rises quickly with the ground ahead, relaxes slowly (no jumps → no pitch flicker)
+  const rp = state.routePeakS ?? peak; state.routePeakS = peak > rp ? lerp(rp, peak, .6) : lerp(rp, peak, .12);
 }
 function closureFor(r) {
   return r > 900 ? 78 : r > 400 ? MU.mapLinear(r, 400, 900, 58, 78) : r > 180 ? MU.mapLinear(r, 180, 400, 38, 58) : r > 80 ? MU.mapLinear(r, 80, 180, 22, 38) : r > 32 ? MU.mapLinear(r, 32, 80, 12, 22) : 8;
@@ -2617,6 +2620,9 @@ function attackGuidance(t, G) {
   else if (cutoff && behind < .1 && tc > 0) { a.phase = 'headon'; radioMessage('CUT-OFF · COLLISION COURSE'); }   // any range: head for its path to the site, never its tail
   else if (behind < -.9 + .15 * fastT && facing > .95 - .1 * fastT && tc > 0 && tc < 15 + 5 * fastT && miss < 30 + 120 * fastT && R > 200 && R < 1400 + 300 * fastT) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
+  { // close in on a low (or diving) target: come down to its height instead of hanging at the cruise terrain margin
+    const tAgl = t.pos.y - terrainHeight(t.pos.x, t.pos.z), low = 1 - smoothstep(300, 800, R3);
+    G.minClear = lerp(45, clamp(tAgl - 2, 4, 45), low); G.clear = lerp(40, clamp(tAgl - 2, 4, 40), low); }
   if (a.phase === 'headon') {
     const vH = cutoff ? V_DASH : Math.max(V_CRUISE, state.cruiseSpeed), tg = interceptTime(rx, ry, rz, tv, vH);
     // Height: its current altitude + copy its climb rate once (the vertical law adds G.vy·ff) and close the gap well
@@ -3135,7 +3141,7 @@ function physicsStep(h) {
   const px = state.pos.x, pz = state.pos.z;
   let range = Infinity;
   // Guidance output: aim point, arrival altitude, desired airspeed, bank limit, terminal tracking flag
-  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null; G_.tGo = 0; G_.nudgeRate = null; G_.vsCmd = null;
+  const G_ = guide; G_.speed = V_CRUISE; G_.bank = BANK_CRUISE; G_.terminal = false; G_.clear = 90; G_.track = false; G_.ff = 0; G_.vy = 0; G_.look = Infinity; G_.rateCmd = null; G_.tGo = 0; G_.nudgeRate = null; G_.vsCmd = null; G_.minClear = 45;
   if (state.rtb === 'enroute') {
     // Home: one smooth altitude profile — clear the highest terrain on the remaining route (re-planned 1×/s, the goal
     // eased so it never steps) and the approach glide path near the pad; climbs/descents follow a fixed time
@@ -3268,8 +3274,11 @@ function physicsStep(h) {
     vs = (goalY - state.pos.y) / tGo;
     { const e = Math.abs(goalY - state.pos.y); if (e < 6) vs *= .5 + .5 * e / 6; }   // soft dead-band: no bobbing around the cruise altitude (continuous, so no hunting)
   }
-  const minY = state.routePeak + 45;                       // short-range terrain safety (lookahead along heading)
-  if (state.pos.y < minY) vs = Math.max(vs, (minY + 20 - state.pos.y) * .8);
+  // short-range terrain safety (lookahead along heading). Continuous: the push-up fades in from 4 m above to 16 m below the
+  // safety height instead of switching on at a hard edge (that switch made the drone flicker over ridges).
+  // In a close pursuit of a low target the safety height comes down towards the target's own height (G_.minClear).
+  const minY = (state.routePeakS ?? state.routePeak) + (G_.minClear ?? 45);
+  vs = lerp(vs, Math.max(vs, (minY + 20 - state.pos.y) * .8), smoothstep(minY + 4, minY - 16, state.pos.y));
   const gLim = G_.track ? .7 : 1;                        // pursuit allows ~31°/37° climb/dive and quicker pitch
   let gammaCmd = clamp(Math.asin(clamp(vs / V, -1, 1)), GAMMA_DN / gLim, GAMMA_UP / gLim);
   // Energy-aware climb: when slow, only climb as steeply as the spare thrust can sustain (don't trade into a stall).
@@ -3873,7 +3882,7 @@ const MISSIONS = [
 ];
 const DIFFS = {
   easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   arriveFirst:240, gap:[150, 190], pairs:false, kinds:['light', 'heavy', 'light'], warn:'dir',
-          weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with direction'},
+          weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance'},
   normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', arriveFirst:210, gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound',
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
   hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3800, scoutDiff:'normal',   arriveFirst:210, gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none',
@@ -4031,17 +4040,22 @@ function spawnRaider(p) {
   const l1 = p.legs[0]; s.hdg = Math.atan2(-(l1.x - p.ex), -(l1.z - p.ez)); s.yaw = s.hdg; s.vel.set(-Math.sin(s.hdg) * s.speed, 0, -Math.cos(s.hdg) * s.speed);
   m.raid.push(s); m.spawned++;
   const L = Math.hypot(p.ex - S0.x, p.ez - S0.z), brg = (Math.atan2(p.ex - S0.x, -(p.ez - S0.z)) * 180 / Math.PI + 360) % 360;
-  if (D.warn === 'dir') { radioMessage('RAID WARNING · CONTACT INBOUND FROM THE ' + compass(brg) + ' · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase());
-    raidBanner('⚠ RAID WARNING', 'CONTACT INBOUND FROM THE ' + compass(brg) + ' · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase()); }
-  else if (D.warn === 'inbound') { radioMessage('RAID WARNING · CONTACT INBOUND'); raidBanner('⚠ RAID WARNING', 'CONTACT INBOUND'); }
+  const brgTxt = 'BEARING ' + String(Math.round(brg) % 360).padStart(3, '0') + '° (' + compass(brg) + ') FROM ' + S0.name.toUpperCase() + ' · ' + (L / 1000).toFixed(1) + ' KM';
+  const mt = Math.floor(m.t), clock = Math.floor(mt / 60) + ':' + String(mt % 60).padStart(2, '0');
+  if (D.warn === 'dir') { radioMessage('RAID WARNING · CONTACT INBOUND · ' + brgTxt); raidBanner('⚠ RAID WARNING', clock + ' · CONTACT INBOUND · ' + brgTxt); }
+  else if (D.warn === 'inbound') { radioMessage('RAID WARNING · CONTACT INBOUND'); raidBanner('⚠ RAID WARNING', clock + ' · CONTACT INBOUND'); }
   return s;
 }
-// Big raid-warning banner (top centre, ~8 s, pulses + alarm) — the radio line stays in the log as well.
-let raidWarnT = null;
+// Raid-warning banner (top centre, pulses + alarm). Stays up until the mission ends or the operator closes it (✕);
+// further warnings are added on top (newest first, last 4 kept). The radio line also goes into the log.
+const raidWarnings = [];
 function raidBanner(title, text) {
-  const el = $('raidWarn'); el.innerHTML = title + '<small>' + text + '</small>'; el.style.opacity = 1; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  playSfx('alarm'); clearTimeout(raidWarnT); raidWarnT = setTimeout(() => { el.style.opacity = 0; raidWarnT = setTimeout(() => el.classList.remove('show'), 650); }, 8000);
+  raidWarnings.unshift(text); raidWarnings.length = Math.min(raidWarnings.length, 4);
+  const el = $('raidWarn'); el.innerHTML = '<button title="Close">✕</button>' + title + raidWarnings.map(w => '<small>' + w + '</small>').join('');
+  el.querySelector('button').onclick = closeRaidBanner;
+  el.style.opacity = 1; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); playSfx('alarm');
 }
+function closeRaidBanner() { raidWarnings.length = 0; $('raidWarn').classList.remove('show'); }
 function missionTick(h) {
   const m = game.m; if (!m || !m.running || m.result) return;
   m.t += h;
@@ -4075,7 +4089,7 @@ function siteStrike(s) {
   radioMessage('SITE HIT · ' + S0.name.toUpperCase() + ' · MISSION FAILED');
   finishMission(false, 'A ' + s.spec.label.toLowerCase() + ' crashed into ' + (S0.aim ? S0.aim.what : S0.name) + ' at ' + S0.name + '.');
 }
-function finishMission(win, reason) { const m = game.m; if (!m || m.result) return; m.result = {win, reason, at: m.t, showAt: performance.now() + (win ? 2500 : 3500)}; }
+function finishMission(win, reason) { const m = game.m; if (!m || m.result) return; closeRaidBanner(); m.result = {win, reason, at: m.t, showAt: performance.now() + (win ? 2500 : 3500)}; }
 // called at the end of resetToPad in mission mode: an intercept / crash / empty battery uses up that drone
 function missionAfterReset(reason) {
   const m = game.m; if (!m) return;
