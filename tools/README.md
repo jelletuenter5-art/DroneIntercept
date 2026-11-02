@@ -27,6 +27,7 @@ test copy doesn't depend on the CDN).
 | `node bench.js` | Pursuit benchmark: 30 deterministic chases (10 per scout type, 0.9–2.2 km out, often beyond radar). Hits, time, battery, weave detections, near-miss passes. | 3–6 min |
 | `node landing.js` | Return-to-base from 3.5 km, 8 runs each at 0/8/13 m/s wind: on/off pad, distance from centre, landing time. | 3–5 min |
 | `node traffic.js` | 30 simulated minutes of civil traffic: bank, turn radius, pitch, climb rate, airliner course changes, light-aircraft coverage and lowest height. | ~2 min |
+| `node separation.js` | Mid-air avoidance & collisions: 40 collision-course encounters (every type pair, head-on/crossing/overtake) must be avoided; an unavoidable head-on must explode both; a 95-scout crowd (collisions, stuck circling, NaNs, ms per step); 24 scouts converging on one point, with and without avoidance. `--crowd --minutes --area --band --noavoid` | ~4 min |
 | `node shots.js` | Close-ups of every aircraft model and the drone → `out/models.png` + one PNG per view. | ~1 min |
 | `npm test` | Quick set: syntax + smoke + 15-chase benchmark + 12 landings. | ~5 min |
 

@@ -1846,11 +1846,12 @@ function stepScout(s, h) {
   if (s.hdg === undefined) s.hdg = Math.atan2(-s.vel.x, -s.vel.z);
   s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -2 * h, 2 * h);
   const maxBank = s.returning ? .78 : .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
-  const bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
+  let bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
+  const av = s.avoid && state.time < s.avoid.until ? s.avoid : null; if (av) bankCmd = clamp(av.bank, -maxBank, maxBank);   // traffic avoidance
   s.bank = moveToward(s.bank || 0, bankCmd, .35 * h);
   s.turnRate = 9.81 * Math.tan(s.bank) / Math.max(20, s.spd);
   s.hdg += s.turnRate * h;
-  const vyMax = s.spd * .14, vy = clamp((s.routeY + altWave - s.pos.y) * .12, -vyMax, vyMax);
+  const vyMax = s.spd * .14, vy = clamp(av ? av.vy : (s.routeY + altWave - s.pos.y) * .12, -vyMax, vyMax);
   s.vy = moveToward(s.vy || 0, vy, 2 * h);
   s.vel.set(-Math.sin(s.hdg) * s.spd + wind.x, s.vy + wind.y * .6, -Math.cos(s.hdg) * s.spd + wind.z);   // ground velocity
   s.pos.addScaledVector(s.vel, h);
@@ -1882,13 +1883,14 @@ function stepPlane(a, h) {
     if (a.baseHdg === undefined) { a.baseHdg = a.hdg; a.tgtHdg = a.hdg; a.turnT = 15 + Math.random() * 35; }
     a.turnT -= h;
     if (a.turnT <= 0) { a.turnT = 30 + Math.random() * 45; a.tgtHdg = a.baseHdg + (Math.random() * 2 - 1) * .61; }
-    const bankCmd = clamp(wrapAngle(a.tgtHdg - a.hdg) * 1.3, -.44, .44);
+    const av = a.avoid && state.time < a.avoid.until ? a.avoid : null;   // traffic avoidance (TCAS-like): turn + climb/descend
+    const bankCmd = av ? clamp(av.bank, -.44, .44) : clamp(wrapAngle(a.tgtHdg - a.hdg) * 1.3, -.44, .44);
     a.bank = moveToward(a.bank || 0, bankCmd, .05 * h);
     a.hdg += 9.81 * Math.tan(a.bank) / a.speed * h;
     a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
     a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
     a.altPhase += h * .06; const ty = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 250, 800);
-    a.vy = moveToward(a.vy || 0, clamp((ty - a.pos.y) * .15, -8, 8), 1.5 * h); a.pos.y += a.vy * h; a.vel.y = a.vy;   // ≤ 8 m/s (~1600 ft/min)
+    a.vy = moveToward(a.vy || 0, av ? av.vy : clamp((ty - a.pos.y) * .15, -8, 8), 1.5 * h); a.pos.y += a.vy * h; a.vel.y = a.vy;   // ≤ 8 m/s (~1600 ft/min)
     a.pitch = damp(a.pitch || 0, .04 + Math.atan2(a.vel.y, a.speed), 1.5, h);   // ~2° nose-up cruise attitude + climb/descent
     if (Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z)) > ARENA + 1800 && a.pos.x * a.vel.x + a.pos.z * a.vel.z > 0) a.gone = true;
     return;
@@ -1910,7 +1912,9 @@ function stepPlane(a, h) {
   if (!leaving) a.turningIn = false;
   const bankLim = (a.maxBank || .44) * (a.returning ? 1.35 : 1);
   const want = Math.atan2(-(a.goal.x - a.pos.x), -(a.goal.z - a.pos.z)), maxRate = 9.81 * Math.tan(bankLim) / a.speed;
-  a.turn = moveToward(a.turn || 0, clamp(wrapAngle(want - a.hdg) * .4, -maxRate, maxRate), maxRate * .3 * h);
+  const av = a.avoid && state.time < a.avoid.until ? a.avoid : null;   // traffic avoidance
+  const turnCmd = av ? clamp(9.81 * Math.tan(av.bank) / a.speed, -maxRate, maxRate) : clamp(wrapAngle(want - a.hdg) * .4, -maxRate, maxRate);
+  a.turn = moveToward(a.turn || 0, turnCmd, maxRate * .3 * h);
   a.hdg += a.turn * h; a.bank = Math.atan(a.turn * a.speed / 9.81);
   a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
   a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
@@ -1922,14 +1926,109 @@ function stepPlane(a, h) {
     let gnd = terrainHeight(a.pos.x, a.pos.z); for (const d of [300, 600, 900, 1200]) gnd = Math.max(gnd, terrainHeight(a.pos.x + fx * d, a.pos.z + fz * d));
     targetY = gnd + a.agl + Math.sin(a.altPhase) * a.altAmp; vyMax = a.pos.y < terrainHeight(a.pos.x, a.pos.z) + 50 ? 6 : 3.5; vyMin = -4.5;
   } else targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);                                // airliner: 200–600 m
-  a.vy = moveToward(a.vy || 0, clamp((targetY - a.pos.y) * .2, vyMin, vyMax), 1.2 * h); a.pos.y += a.vy * h; a.vel.y = a.vy;
+  a.vy = moveToward(a.vy || 0, clamp(av ? av.vy : (targetY - a.pos.y) * .2, vyMin, vyMax), 1.2 * h); a.pos.y += a.vy * h; a.vel.y = a.vy;
   { const gl = terrainHeight(a.pos.x, a.pos.z) + 30; if (a.pos.y < gl) { a.pos.y = gl; a.vy = a.vel.y = Math.max(a.vy, 0); } }   // never into the ground
   a.pitch = damp(a.pitch || 0, (a.type === 'cessna' ? .03 : .04) + Math.atan2(a.vel.y, a.speed), 1.5, h);   // nose follows the climb/descent
+}
+// ── Mid-air: traffic avoidance + collisions between aircraft (scouts, airliners, light aircraft; not birds) ──
+// Avoidance (4 Hz): each aircraft looks for the single most urgent conflict ahead (closest point of approach within
+// its look-ahead closer than both airframes + a margin) and, like a pilot / TCAS, turns away from the side the other
+// one will pass on (right if head-on) and climbs if it is the higher one, descends if lower. One conflict at a time
+// and limited bank/climb — so pairs pass each other safely, but a crowd (e.g. 100 scouts in one area) can't untangle
+// itself and some will collide, as they would in reality.
+// Collisions (every physics step): bounding-sphere broadphase, then the real hit boxes as oriented boxes (separating
+// axis test), sub-stepped between the previous and current positions so fast head-on pairs can't pass through each
+// other between steps. Both aircraft explode (with their momentum) and are removed; the operator gets a log line.
+const AVOID = {scout:{look:12, margin:35, bank:.45, vy:6}, cessna:{look:18, margin:60, bank:.45, vy:3.5}, plane:{look:28, margin:120, bank:.38, vy:8}};
+const _sepV = new THREE.Vector3(), _sepQ = new THREE.Quaternion(), _sepE = new THREE.Euler(0, 0, 0, 'YXZ');
+let sepTimer = 0;
+const airframeRadius = o => o.hitR || (o.hitR = Math.max(...o.hit.map(b => Math.hypot(b[0], b[1], b[2]) + Math.hypot(b[3], b[4], b[5]))));
+const groundVel = (o, out) => o.isScout ? out.copy(o.vel) : out.set(o.vel.x + wind.x, o.vel.y, o.vel.z + wind.z);
+function obbAxes(o) {
+  _sepQ.setFromEuler(_sepE.set(o.pitch || 0, o.yaw || 0, o.isScout ? (o.roll || 0) : (o.bank || 0)));
+  return [new THREE.Vector3(1, 0, 0).applyQuaternion(_sepQ), new THREE.Vector3(0, 1, 0).applyQuaternion(_sepQ), new THREE.Vector3(0, 0, 1).applyQuaternion(_sepQ)];
+}
+// Separating-axis test for two oriented boxes (centres ca/cb, unit axes A/B, half extents ha/hb).
+function obbOverlap(ca, A, ha, cb, B, hb) {
+  const T = new THREE.Vector3().subVectors(cb, ca), t = [T.dot(A[0]), T.dot(A[1]), T.dot(A[2])], R = [[], [], []], AR = [[], [], []];
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { R[i][j] = A[i].dot(B[j]); AR[i][j] = Math.abs(R[i][j]) + 1e-6; }
+  for (let i = 0; i < 3; i++) if (Math.abs(t[i]) > ha[i] + hb[0] * AR[i][0] + hb[1] * AR[i][1] + hb[2] * AR[i][2]) return false;
+  for (let j = 0; j < 3; j++) if (Math.abs(t[0] * R[0][j] + t[1] * R[1][j] + t[2] * R[2][j]) > ha[0] * AR[0][j] + ha[1] * AR[1][j] + ha[2] * AR[2][j] + hb[j]) return false;
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
+    const i1 = (i + 1) % 3, i2 = (i + 2) % 3, j1 = (j + 1) % 3, j2 = (j + 2) % 3;
+    const ra = ha[i1] * AR[i2][j] + ha[i2] * AR[i1][j], rb = hb[j1] * AR[i][j2] + hb[j2] * AR[i][j1];
+    if (Math.abs(t[i2] * R[i1][j] - t[i1] * R[i2][j]) > ra + rb) return false;
+  }
+  return true;
+}
+function airframesTouch(a, b, h) {
+  const va = groundVel(a, new THREE.Vector3()), vb = groundVel(b, new THREE.Vector3());
+  const steps = Math.min(12, Math.max(1, Math.ceil(va.distanceTo(vb) * h / .25)));   // ≤ 25 cm relative motion per sub-step
+  const A = obbAxes(a), B = obbAxes(b), pa = new THREE.Vector3(), pb = new THREE.Vector3(), ca = new THREE.Vector3(), cb = new THREE.Vector3();
+  for (let k = 1; k <= steps; k++) {
+    const f = k / steps; pa.lerpVectors(a.prev, a.pos, f); pb.lerpVectors(b.prev, b.pos, f);
+    for (const x of a.hit) { ca.copy(pa).addScaledVector(A[0], x[0]).addScaledVector(A[1], x[1]).addScaledVector(A[2], x[2]);
+      for (const y of b.hit) { cb.copy(pb).addScaledVector(B[0], y[0]).addScaledVector(B[1], y[1]).addScaledVector(B[2], y[2]);
+        if (obbOverlap(ca, A, [x[3], x[4], x[5]], cb, B, [y[3], y[4], y[5]])) return true; } }
+  }
+  return false;
+}
+function midAirCollision(a, b) {
+  const name = o => o.isScout ? o.spec.label : CLS_NAME[truthClass(o)];
+  for (const o of [a, b]) {
+    const sc = o.type === 'plane' ? 6 : o.type === 'cessna' ? 2.6 : o.kind === 'heavy' ? 2.4 : 1.4;
+    explodeAt(o.pos.clone(), sc, groundVel(o, new THREE.Vector3()), o.type === 'plane' ? 0xeef0f0 : o.type === 'cessna' ? 0xe6eaee : 0x4a5563);
+    if (state.aiTarget === o) { if (state.pursuitMode) endPursuit('TARGET DESTROYED · mid-air collision'); state.aiTarget = null; }
+    o.group.visible = false; if (o.imp) o.imp.quad.visible = false;
+    if (o.isScout) { o.destroyed = true; o.removeAt = state.time + .5; if (o.trail) o.trail.visible = false; }
+    else { o.removed = true; o.gone = true; }
+  }
+  const d = (state.pos.distanceTo(a.pos) / 1000).toFixed(1);
+  logEvent('MID-AIR COLLISION · ' + name(a) + ' × ' + name(b) + ' · ' + d + ' km away', 'warn');
+}
+function trafficSeparation(h) {
+  const list = []; for (const s of scouts) if (!s.destroyed) list.push(s); for (const a of ambientActors) if (a.hit && !a.gone) list.push(a);
+  for (const o of list) if (o.bornAt === undefined) o.bornAt = state.time;
+  // collisions
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i]; if (a.destroyed || a.gone) continue;
+    for (let j = i + 1; j < list.length; j++) {
+      const b = list[j]; if (b.destroyed || b.gone) continue;
+      if (state.time - a.bornAt < 1.5 || state.time - b.bornAt < 1.5) continue;   // spawn grace: never explode the moment something appears
+      const reach = airframeRadius(a) + airframeRadius(b) + 4;
+      if (Math.abs(a.pos.x - b.pos.x) > reach || Math.abs(a.pos.z - b.pos.z) > reach || Math.abs(a.pos.y - b.pos.y) > reach) continue;
+      if (airframesTouch(a, b, h)) { midAirCollision(a, b); break; }
+    }
+  }
+  // avoidance (4 Hz)
+  sepTimer -= h; if (sepTimer > 0) return; sepTimer = .25;
+  const va = new THREE.Vector3(), vb = new THREE.Vector3(), r = new THREE.Vector3(), v = new THREE.Vector3();
+  for (const a of list) {
+    if (a.destroyed || a.gone) continue;
+    const P = AVOID[a.isScout ? 'scout' : a.type]; groundVel(a, va);
+    let best = null, bestT = P.look;
+    for (const b of list) {
+      if (b === a || b.destroyed || b.gone) continue;
+      r.subVectors(b.pos, a.pos); if (r.lengthSq() > 5000 * 5000) continue;
+      v.subVectors(groundVel(b, vb), va); const vv = v.lengthSq(); if (vv < 1) continue;
+      const tc = -r.dot(v) / vv; if (tc <= 0 || tc > bestT) continue;
+      const need = airframeRadius(a) + airframeRadius(b) + Math.max(P.margin, AVOID[b.isScout ? 'scout' : b.type].margin);
+      const mx = r.x + v.x * tc, my = r.y + v.y * tc, mz = r.z + v.z * tc;
+      if (Math.hypot(mx, my, mz) < need) { best = {b, mx, my, mz}; bestT = tc; }
+    }
+    if (!best) continue;
+    // turn away from the side it will pass on (right if head-on); higher one climbs, lower one descends
+    const hx = -Math.sin(a.yaw || 0), hz = -Math.cos(a.yaw || 0), side = hx * best.mz - hz * best.mx;   // > 0: passes on our right
+    const turnRight = Math.abs(side) < 5 ? true : side < 0;
+    const up = Math.abs(best.my) > 3 ? best.my < 0 : (a.pos.y >= best.b.pos.y);
+    a.avoid = {bank: turnRight ? -P.bank : P.bank, vy: up ? P.vy : -P.vy, until: state.time + 1, with: best.b};
+  }
 }
 function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
   for (const a of ambientActors) { a.prev.copy(a.pos); if (a.type === 'birds') stepBird(a, h); else stepPlane(a, h); }
   for (const a of ambientActors.filter(x => x.gone)) removeAmbient(a);
+  trafficSeparation(h);
   updateFlares(h);
   // Random traffic: every 15-45 s something new appears 1.6-2.6 km from the drone (usually outside radar range).
   // No announcement — the radar has to find it.
