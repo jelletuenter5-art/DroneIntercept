@@ -168,6 +168,24 @@ html,body,#app{width:100%;height:100%;min-height:0}
   #bottom{grid-template-columns:1fr 1fr;overflow:auto}
 }
 
+/* ── Game modes: start screen, mission list, briefing, result ── */
+.gm{position:fixed;inset:0;z-index:2000;display:none;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#06121dcc,#020609f2);font:13px/1.45 system-ui,sans-serif;color:#dcecf6}
+.gm.show{display:flex}.gmCard{width:min(860px,94vw);max-height:92vh;overflow:auto;background:linear-gradient(160deg,#0f1f2d,#08131d);border:1px solid #3d6680;border-radius:14px;box-shadow:0 30px 80px #000c;padding:20px 22px}
+.gmCard h1{margin:0;font:800 26px system-ui;letter-spacing:.12em;color:#fff}.gmCard h1 small{display:block;color:#7affca;font:700 10.5px ui-monospace,monospace;letter-spacing:.24em;margin-bottom:4px}
+.gmCard h2{margin:0 0 4px;font:800 20px system-ui;letter-spacing:.06em;color:#fff}.gmSub{color:#8fb3c8;margin:2px 0 14px}
+.gmModes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}.gmMode{text-align:left;padding:16px;border-radius:12px;background:#0d2232;border:1px solid #2f5a72;cursor:pointer;color:#dcecf6}
+.gmMode:hover{border-color:#7affca;background:#10293b}.gmMode b{display:block;font:800 16px system-ui;letter-spacing:.06em;color:#fff;margin-bottom:4px}.gmMode span{color:#9fbdd0;font-size:12px}
+.gmDiff{display:flex;gap:6px;margin:6px 0 14px}.gmDiff button{flex:1;padding:8px;border-radius:8px;background:#0d1e2b;border:1px solid #2c4256;color:#9fb8cc;font:700 12px system-ui;letter-spacing:.06em}
+.gmDiff button.on{background:#17416a;border-color:#7affca;color:#fff}
+.gmList{display:grid;grid-template-columns:1fr 1fr;gap:12px}.gmMis{padding:13px 14px;border-radius:12px;background:#0b1c29;border:1px solid #23394a;display:flex;flex-direction:column;gap:6px}
+.gmMis b{font:800 15px system-ui;color:#fff;letter-spacing:.04em}.gmMis em{font-style:normal;color:#7affca;font:700 10px ui-monospace,monospace;letter-spacing:.16em}.gmMis p{margin:0;color:#9fbdd0;font-size:12px;flex:1}
+.gmStars{font:12px ui-monospace,monospace;color:#6f8ea4}.gmStars i{font-style:normal;color:#ffd35a}
+.gmBtn{padding:9px 18px;border-radius:8px;background:#0f3a2b;border:1px solid #2f9c76;color:#b9ffe3;font:800 12px system-ui;letter-spacing:.08em;cursor:pointer}.gmBtn:hover{background:#174d38}
+.gmBtn.sec{background:#0d1e2b;border-color:#3a778e;color:#9dc7db}.gmRow{display:flex;gap:10px;align-items:center;margin-top:16px}.gmRow .sp{flex:1}
+.gmTable{width:100%;border-collapse:collapse;margin:10px 0}.gmTable td{padding:5px 0;border-top:1px solid #1b2e3d}.gmTable td:last-child{text-align:right;color:#fff;font-weight:700}
+.gmBigStars{font-size:44px;letter-spacing:.12em;color:#2a3d4c;margin:6px 0}.gmBigStars i{font-style:normal;color:#ffd35a;text-shadow:0 0 18px #ffbf3f88}
+.gmRules{margin:8px 0 0;padding-left:18px;color:#b9cad9}.gmRules li{margin:3px 0}
+@media (max-width:640px){.gmModes,.gmList{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -180,7 +198,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <div class="brand"><span>VTOL</span> DRONE LAB</div>
   <div class="status"><span class="dot"></span><span id="simStatus">SIM RUNNING</span><span id="thermalBadge">· THERMAL</span><span class="wide" id="weatherHud">DAY / CLEAR</span></div>
   <div class="tb">
-    <button id="homeBtn" class="home" disabled title="Return to base now (B)">⌂ Home</button><button id="cameraBtn" title="Cycle camera view (C)">Behind</button><button id="thermalBtn" title="Thermal sensor (T)">Thermal</button>
+    <button id="menuBtn" title="Main menu (sandbox / missions)">☰ Menu</button><button id="homeBtn" class="home" disabled title="Return to base now (B)">⌂ Home</button><button id="cameraBtn" title="Cycle camera view (C)">Behind</button><button id="thermalBtn" title="Thermal sensor (T)">Thermal</button>
     <button id="recordBtn" title="Record telemetry (CSV on stop)">● Rec</button><button id="replayBtn" disabled title="Replay last impact">⟲ Replay</button>
     <button id="pauseBtn" title="Pause / resume (Space)">Pause</button><button id="settingsBtn" title="Settings & controls (H)">⚙</button>
   </div>
@@ -257,7 +275,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
           <tr><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
-          <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (also ⌂ Home in the header) · press again en route to cancel</td></tr>
+          <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (also ⌂ Home in the header) · press again en route to cancel · during the landing: go around (abort and fly on)</td></tr>
           <tr><th colspan="2">Gimbal camera</th></tr>
           <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td>Aim (or drag inside the camera window)</td></tr>
           <tr><td><kbd>+</kbd><kbd>−</kbd> / wheel</td><td>Zoom 1–30×</td></tr>
@@ -355,6 +373,37 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <button id="assistedBtn" type="button"></button><button id="rcBtn" type="button"></button>
   <canvas id="graph" width="320" height="90"></canvas>
 </div>
+<div id="gmStart" class="gm"><div class="gmCard">
+  <h1><small>ALPINE DRONE LAB</small>INTERCEPTOR OPERATIONS</h1>
+  <div class="gmSub">Choose how you want to fly.</div>
+  <div class="gmModes">
+    <button class="gmMode" id="gmSandbox"><b>SANDBOX</b><span>Free play: traffic and scouts keep appearing, spawn anything, fly as long as you like.</span></button>
+    <button class="gmMode" id="gmMissions"><b>MISSIONS</b><span>Defend a site against a scout raid. Zero tolerance: if one scout gets through, the mission fails.</span></button>
+  </div>
+</div></div>
+<div id="gmList" class="gm"><div class="gmCard">
+  <h2>MISSIONS · DEFEND</h2><div class="gmSub">One scout reaching the site fails the mission. ★ completed · ★★ no drone lost to a crash or empty battery · ★★★ every scout stopped more than 1.5 km from the site.</div>
+  <div class="gmDiff" id="gmDiff"><button data-d="easy">EASY</button><button data-d="normal">NORMAL</button><button data-d="hard">HARD</button></div>
+  <div class="gmList" id="gmMissionList"></div>
+  <div class="gmRow"><button class="gmBtn sec" id="gmListBack">← Back</button><span class="sp"></span></div>
+</div></div>
+<div id="gmBrief" class="gm"><div class="gmCard">
+  <h1><small id="gmBriefKind">MISSION</small><span id="gmBriefTitle">DEFEND</span></h1>
+  <div class="gmSub" id="gmBriefText"></div>
+  <table class="gmTable" id="gmBriefTable"></table>
+  <ul class="gmRules"><li>Scouts arrive one by one from the edge of the map and use valleys and low height to hide from your radar.</li>
+    <li>Identify contacts (radar, camera, thermal, gimbal), then pick a scout on the map (M) to pursue and ram it.</li>
+    <li>Each ram, crash or empty battery uses a drone; the next one waits on your pad. The raid keeps coming while you relaunch.</li>
+    <li>Your autopilot patrols around the defended site when it has nothing to investigate. Don't hit civil traffic.</li></ul>
+  <div class="gmRow"><button class="gmBtn sec" id="gmBriefBack">← Missions</button><span class="sp"></span><button class="gmBtn" id="gmBriefGo">BEGIN MISSION ▶</button></div>
+</div></div>
+<div id="gmResult" class="gm"><div class="gmCard">
+  <h1><small id="gmResKind">MISSION</small><span id="gmResTitle">COMPLETE</span></h1>
+  <div class="gmSub" id="gmResReason"></div>
+  <div class="gmBigStars" id="gmResStars"></div>
+  <table class="gmTable" id="gmResTable"></table>
+  <div class="gmRow"><button class="gmBtn sec" id="gmResMenu">Missions</button><button class="gmBtn sec" id="gmResSandbox">Sandbox</button><span class="sp"></span><button class="gmBtn" id="gmResRetry">↻ Retry</button></div>
+</div></div>
 <script>
 // Diagnose the common case where the HTML opens but the browser cannot create WebGL.
 window.addEventListener('DOMContentLoaded', function(){
@@ -476,7 +525,7 @@ function vnoise(x, z) {
 }
 function fbm(x, z, oct) { let s = 0, a = .5, f = 1, n = 0; for (let i = 0; i < oct; i++) { s += a * vnoise(x*f, z*f); n += a; f *= 2.03; a *= .5; } return s / n; }
 const PEAKS = [[-330,-250,260,300,145],[360,-470,310,260,175],[-30,440,360,260,105]];
-function terrainHeight(x, z) {
+function terrainNatural(x, z) {
   const ridge = Math.sin(x*.004 + Math.sin(z*.003)*1.6) * Math.cos(z*.0042) * 48;
   const rolling = Math.sin(x*.013 + z*.009)*8 + Math.cos(z*.017 - x*.006)*5;
   const broad = fbm(x*.0017 + 31.7, z*.0017 - 12.4, 5);
@@ -487,6 +536,57 @@ function terrainHeight(x, z) {
   h += smoothstep(ARENA - 250, ARENA + 750, edge) * 150 * (.65 + fbm(x*.004 + 3, z*.004 - 8, 3) * .7);
   if (h < 4) h = 4 - (4 - h) * .24;                                         // soft floor: shallow lake basins
   return PAD_H + (h - PAD_H) * smoothstep(60, 240, Math.hypot(x, z));    // flat launch area
+}
+// ───────────────────────── Sites (one world for sandbox and every mission) ─────────────────────────
+// Found once by a deterministic search over the (deterministic) natural terrain — so the map is identical every
+// time with nothing stored: 3 valley villages, 2 dams across lake narrows, 2 ridge radar stations and 1 forward
+// military base (its ground is flattened, like the home pad). Trees and rocks keep clear of them (`nearSite`).
+const SITES = [], FLAT = [];
+(function placeSites() {
+  const H = terrainNatural, cells = [], far = (p, d) => SITES.every(s => Math.hypot(s.x - p.x, s.z - p.z) > d);
+  for (let x = -(ARENA - 800); x <= ARENA - 800; x += 120) for (let z = -(ARENA - 800); z <= ARENA - 800; z += 120) {
+    const h = H(x, z); let ring = 0, rmin = 1e9, rmax = -1e9, slope = 0;
+    for (let k = 0; k < 8; k++) { const a = k / 8 * TAU, y = H(x + Math.cos(a) * 450, z + Math.sin(a) * 450); ring += y / 8; rmin = Math.min(rmin, y); rmax = Math.max(rmax, y); }
+    for (const [dx, dz] of [[60, 0], [-60, 0], [0, 60], [0, -60]]) slope = Math.max(slope, Math.abs(H(x + dx, z + dz) - h));
+    cells.push({x, z, h, ring, rmin, rmax, slope, home: Math.hypot(x, z)});
+  }
+  const add = (type, names, list, sep, extra) => { for (const p of list) { if (SITES.filter(s => s.type === type).length >= names.length) break;
+    if (!far(p, sep)) continue; SITES.push(Object.assign({type, name:names[SITES.filter(s => s.type === type).length], x:p.x, z:p.z}, extra ? extra(p) : {})); } };
+  const flatness = p => { let lo = 1e9, hi = -1e9; for (let k = 0; k < 12; k++) for (const r of [120, 260]) { const a = k / 12 * TAU, y = H(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r); lo = Math.min(lo, y); hi = Math.max(hi, y); } return hi - lo; };
+  // forward military base: 2.3-3.5 km from home, dry and as flat as possible over ~500 m
+  add('base', ['FOB Kestrel'], cells.filter(p => p.home > 2200 && p.home < 3600 && p.h > WATER_Y + 6 && p.h < 110 && p.slope < 9)
+    .map(p => Object.assign(p, {fl: flatness(p)})).sort((a, b) => a.fl - b.fl), 1500);
+  // ridge radar stations: prominent high points away from home
+  add('radar', ['Hochgrat Radar', 'Felsnase Radar'], cells.filter(p => p.home > 1500 && p.h > 60 && p.h - p.ring > 22 && p.slope < 14)
+    .sort((a, b) => (b.h - b.ring + b.h * .2) - (a.h - a.ring + a.h * .2)), 2000);
+  // valley villages: gentle ground in a valley (surroundings well above), not in a lake
+  add('village', ['Bergtal', 'Altwil', 'Seeboden'], cells.filter(p => p.home > 1000 && p.h > WATER_Y + 5 && p.h < 80 && p.slope < 7 && p.ring - p.h > 8)
+    .sort((a, b) => ((b.ring - b.h) - b.slope * 3) - ((a.ring - a.h) - a.slope * 3)), 1400);
+  // dams: across the narrowest lake narrows (water at the centre, steep banks on both sides 60-260 m apart)
+  const dams = [];
+  for (let x = -(ARENA - 900); x <= ARENA - 900; x += 60) for (let z = -(ARENA - 900); z <= ARENA - 900; z += 60) {
+    if (H(x, z) > WATER_Y - .3 || Math.hypot(x, z) < 1000) continue;
+    for (let k = 0; k < 12; k++) {
+      const a = k / 12 * Math.PI, cx = Math.cos(a), cz = Math.sin(a); let d1 = 0, d2 = 0;
+      for (let d = 10; d <= 200 && !d1; d += 10) if (H(x + cx * d, z + cz * d) > WATER_Y + 6) d1 = d;
+      for (let d = 10; d <= 200 && !d2; d += 10) if (H(x - cx * d, z - cz * d) > WATER_Y + 6) d2 = d;
+      if (!d1 || !d2 || d1 + d2 < 60 || d1 + d2 > 260) continue;
+      const b1 = H(x + cx * (d1 + 40), z + cz * (d1 + 40)), b2 = H(x - cx * (d2 + 40), z - cz * (d2 + 40));
+      if (Math.min(b1, b2) < WATER_Y + 14) continue;
+      const mx = x + cx * (d1 - d2) / 2, mz = z + cz * (d1 - d2) / 2;
+      dams.push({x: mx, z: mz, h: WATER_Y, width: d1 + d2, ang: a, crest: clamp(Math.min(b1, b2) - 3, WATER_Y + 10, WATER_Y + 32), score: -(d1 + d2) + Math.min(b1, b2) * .5});
+    }
+  }
+  add('dam', ['Grauwand Dam', 'Klarsee Dam'], dams.sort((a, b) => b.score - a.score), 1400, p => ({width: p.width, ang: p.ang, crest: p.crest}));
+  for (const s of SITES) s.clear = {village: 230, dam: 130, radar: 100, base: 430}[s.type];
+  const b = SITES.find(s => s.type === 'base'); if (b) FLAT.push({x: b.x, z: b.z, y: Math.max(WATER_Y + 6, H(b.x, b.z)), r0: 300, r1: 520});
+})();
+const nearSite = (x, z, pad = 0) => SITES.some(s => (x - s.x) ** 2 + (z - s.z) ** 2 < (s.clear + pad) ** 2);
+// Terrain with the forward base levelled (blends back to natural ground between r0 and r1).
+function terrainHeight(x, z) {
+  let h = terrainNatural(x, z);
+  for (const f of FLAT) { const d = Math.hypot(x - f.x, z - f.z); if (d < f.r1) h = lerp(f.y, h, smoothstep(f.r0, f.r1, d)); }
+  return h;
 }
 const forestField = (x, z) => smoothstep(.46, .62, fbm(x*.0055 + 5.5, z*.0055 + 9.3, 3));
 
@@ -540,7 +640,7 @@ let seed = 7823; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; re
   const trees = [[], [], [], []];
   for (let a = 0; a < 92000 && trees.reduce((n, t) => n + t.length, 0) < 14000; a++) {
     const x = (rnd() - .5) * (2 * ARENA + 400), z = (rnd() - .5) * (2 * ARENA + 400);
-    if (Math.hypot(x, z) < 130) continue;
+    if (Math.hypot(x, z) < 130 || nearSite(x, z)) continue;
     const f = forestField(x, z); if (f < .05 || rnd() > f * .9 + .04) continue;
     const y = terrainHeight(x, z); if (y < WATER_Y + 1.6 || y > 88) continue;
     if (Math.abs(terrainHeight(x + 7, z) - y) + Math.abs(terrainHeight(x, z + 7) - y) > 7.5) continue;
@@ -563,7 +663,7 @@ let seed = 7823; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; re
   const rockGeo = new THREE.IcosahedronGeometry(1, 0), rocks = [];
   for (let a = 0; a < 18000 && rocks.length < 900; a++) {
     const x = (rnd() - .5) * (2 * ARENA + 200), z = (rnd() - .5) * (2 * ARENA + 200), y = terrainHeight(x, z);
-    if (Math.hypot(x, z) < 130 || y < WATER_Y + 1) continue;
+    if (Math.hypot(x, z) < 130 || y < WATER_Y + 1 || nearSite(x, z)) continue;
     const sl = Math.abs(terrainHeight(x + 6, z) - y) + Math.abs(terrainHeight(x, z + 6) - y);
     if (sl > 3 || y > 60 || rnd() < .5) rocks.push({x, y, z, s:1.5 + rnd() * 5, r:rnd() * TAU});
   }
@@ -651,6 +751,79 @@ th(box(launchPad, [6.5,.08,6.5], mat(0x536b78,.5,.55), [0, launchPadY+.48, 0]), 
 for (const sx of [-1,1]) for (const sz of [-1,1]) th(box(launchPad, [.1,.1,.75], mat(0x7dffcb,.4,.5), [sx*2.95, launchPadY+.55, sz*2.95], [0, Math.PI/4, 0]), .5);
 { const ring = new THREE.Mesh(new THREE.RingGeometry(1.98, 2.18, 48).rotateX(-Math.PI / 2), mat(0xe9eef2, .6, .1)); ring.position.y = launchPadY + .54; launchPad.add(ring); th(ring, .35);
   const hm = mat(0xe9eef2, .6, .1); th(box(launchPad, [.25,.06,1.53], hm, [-.57, launchPadY+.54, 0]), .35); th(box(launchPad, [.25,.06,1.53], hm, [.57, launchPadY+.54, 0]), .35); th(box(launchPad, [.9,.06,.25], hm, [0, launchPadY+.54, 0]), .35); }
+
+// ───────────────────────── Site models (villages, dams, radar stations, forward base) ─────────────────────────
+// Kept cheap: all village houses are instanced (2 wall colours + 3 roof colours = 5 draw calls for every house on
+// the map); the other sites are a few dozen simple meshes each. Deterministic (own seeded random), so every
+// mission and the sandbox share exactly the same world.
+const siteGroup = new THREE.Group(); scene.add(siteGroup);
+(function buildSiteModels() {
+  let seed = 9173; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+  const M = (c, r = .8, m = .05) => mat(c, r, m);
+  const put = (geo, material, x, y, z, ry = 0, heat = .3, parent = siteGroup) => { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.rotation.y = ry; parent.add(m); th(m, heat); return m; };
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d).translate(0, h / 2, 0);
+  // roof prism: footprint x,z ∈ [-.5,.5], ridge along z at y = 1
+  const roofGeo = (() => { const v = [-.5,0,-.5, .5,0,-.5, 0,1,-.5,  .5,0,.5, -.5,0,.5, 0,1,.5,  -.5,0,-.5, 0,1,-.5, 0,1,.5, -.5,0,-.5, 0,1,.5, -.5,0,.5,
+    .5,0,-.5, .5,0,.5, 0,1,.5, .5,0,-.5, 0,1,.5, 0,1,-.5]; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.computeVertexNormals(); return g; })();
+  const wallGeo = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
+  const walls = [[], []], roofs = [[], [], []], d = new THREE.Object3D();
+  const footing = (x, z, w, l, ry) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+    const px = x + Math.cos(ry) * a * w / 2 + Math.sin(ry) * b * l / 2, pz = z - Math.sin(ry) * a * w / 2 + Math.cos(ry) * b * l / 2, y = terrainHeight(px, pz); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [lo - .6, hi]; };
+  for (const s of SITES) {
+    if (s.type === 'village') {
+      const axis = rnd() * Math.PI, houses = [];
+      for (let k = 0; k < 400 && houses.length < 18; k++) {
+        const r = 20 + Math.sqrt(rnd()) * 170, a = rnd() * TAU, x = s.x + Math.cos(a) * r, z = s.z + Math.sin(a) * r, y = terrainHeight(x, z);
+        if (y < WATER_Y + 1.5 || Math.abs(terrainHeight(x + 7, z) - y) + Math.abs(terrainHeight(x, z + 7) - y) > 4) continue;
+        if (houses.some(h => Math.hypot(h.x - x, h.z - z) < 19)) continue;
+        const w = 7 + rnd() * 4, l = 8 + rnd() * 5, ht = rnd() < .4 ? 6 + rnd() * 1.5 : 3.6 + rnd() * 1.2, ry = axis + Math.floor(rnd() * 4) * Math.PI / 2 + (rnd() - .5) * .25;
+        const [lo, hi] = footing(x, z, w, l, ry); houses.push({x, z});
+        d.position.set(x, lo, z); d.rotation.set(0, ry, 0); d.scale.set(w, hi + ht - lo, l); d.updateMatrix(); walls[houses.length % 2].push(d.matrix.clone());
+        d.position.set(x, hi + ht, z); d.scale.set(w + .8, 2.6 + w * .18, l + .8); d.updateMatrix(); roofs[Math.floor(rnd() * 3)].push(d.matrix.clone());
+      }
+      // church: nave + tower + spire near the centre
+      const cy = terrainHeight(s.x, s.z), cr = axis, g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = cr; siteGroup.add(g);
+      const white = M(0xe9e4d6, .9), roofM = M(0x6e3a2c, .85);
+      put(B(10, cy + 9 - (cy - 1.5), 20), white, 0, cy - 1.5, 0, 0, .4, g); put(roofGeo, roofM, 0, cy + 7.5, 0, 0, .35, g).scale.set(11, 4.5, 21);
+      put(B(5.5, 20, 5.5), white, 0, cy - 1.5, -12, 0, .4, g); put(new THREE.ConeGeometry(4.2, 9, 4).translate(0, 4.5, 0), M(0x3f4a48, .6, .3), 0, cy + 18.5, -12, Math.PI / 4, .35, g);
+    } else if (s.type === 'dam') {
+      const len = s.width + 50, base = WATER_Y - 10, hgt = s.crest - base, g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = -s.ang; siteGroup.add(g);
+      const conc = M(0xb7b5ac, .9, .02);
+      put(new THREE.BoxGeometry(len, hgt, 9).translate(0, hgt / 2, 0), conc, 0, base, 0, 0, .3, g);                    // dam wall
+      put(new THREE.BoxGeometry(len, 1.2, 11).translate(0, .6, 0), M(0x5b5d5e, .8), 0, s.crest, 0, 0, .3, g);          // crest road
+      for (const sx of [-1, 1]) { put(B(7, 6, 7), M(0xd2cdbf, .85), sx * (len / 2 - 6), s.crest, 0, 0, .42, g); put(new THREE.BoxGeometry(len - 16, 1, .6).translate(0, .5, 0), conc, 0, s.crest + 1.2, sx * 5, 0, .3, g); }   // parapets
+      for (let k = -2; k <= 2; k++) put(new THREE.BoxGeometry(6, hgt * .9, 2).translate(0, hgt * .45, 0), M(0x9c9a92, .9), k * len / 7, base, 5.5, 0, .3, g);   // buttresses / spillway piers
+    } else if (s.type === 'radar') {
+      const y = terrainHeight(s.x, s.z), g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = rnd() * TAU; siteGroup.add(g);
+      const grey = M(0x8a9089, .8, .2), white = M(0xf1f1ee, .45, .05);
+      put(B(16, 5, 9), grey, -10, -1, 4, 0, .45, g); put(B(9, 4, 7), grey, 8, -1, 8, 0, .45, g);
+      put(new THREE.CylinderGeometry(4.5, 5, 7, 16).translate(0, 3.5, 0), grey, 0, -1, -6, 0, .4, g);
+      put(new THREE.SphereGeometry(6.5, 20, 14), white, 0, 8.5, -6, 0, .38, g);                                          // radome
+      put(new THREE.CylinderGeometry(.35, .6, 30, 6).translate(0, 15, 0), M(0xb34a3a, .6, .3), 12, -1, -8, 0, .3, g);      // mast
+      const dish = put(new THREE.CylinderGeometry(2.6, 2.6, .3, 18), white, 12, 24, -8, 0, .3, g); dish.rotation.set(Math.PI / 2.3, 0, 0);
+      for (let k = 0; k < 4; k++) put(B(.15, 2, 40), M(0x9aa0a4, .6, .6), [-20, 20, 0, 0][k], -.5, [0, 0, -20, 20][k], k < 2 ? 0 : Math.PI / 2, .25, g);   // fence
+    } else if (s.type === 'base') {
+      const y = FLAT[0].y, ang = rnd() * TAU, g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = ang; siteGroup.add(g);
+      const olive = M(0x5d6448, .85, .1), grey = M(0x7b7f78, .85, .1), dark = M(0x2d3134, .7, .3), apron = M(0x4b4f50, .95);
+      put(new THREE.BoxGeometry(420, .3, 70).translate(0, .15, 0), apron, 0, 0, 40, 0, .3, g);                            // apron / taxiway
+      for (let k = 0; k < 3; k++) { const hg = new THREE.CylinderGeometry(11, 11, 30, 18, 1, false, 0, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2);
+        put(hg, olive, -120 + k * 60, 0, 0, 0, .42, g); }                                                                     // hangars (arched)
+      put(B(7, 15, 7), grey, 90, 0, -10, 0, .45, g); put(B(9, 4, 9), dark, 90, 15, -10, 0, .5, g);                         // control tower + cab
+      for (let k = 0; k < 4; k++) put(B(24, 4.5, 9), grey, 40 + (k % 2) * 34, 0, -60 - Math.floor(k / 2) * 20, 0, .45, g);   // barracks
+      for (const px of [150, 185]) { put(new THREE.BoxGeometry(18, .4, 18).translate(0, .2, 0), dark, px, 0, 40, 0, .3, g);
+        put(new THREE.BoxGeometry(1.4, .1, 8).translate(0, .45, 0), M(0xe9eef2, .6), px - 2.5, 0, 40, 0, .35, g); put(new THREE.BoxGeometry(1.4, .1, 8).translate(0, .45, 0), M(0xe9eef2, .6), px + 2.5, 0, 40, 0, .35, g);
+        put(new THREE.BoxGeometry(5, .1, 1.4).translate(0, .45, 0), M(0xe9eef2, .6), px, 0, 40, 0, .35, g); }            // helipads
+      for (let k = 0; k < 3; k++) put(new THREE.CylinderGeometry(4, 4, 7, 14).translate(0, 3.5, 0), M(0xa3a59a, .6, .3), -160 + k * 11, 0, -50, 0, .35, g);   // fuel tanks
+      for (let k = 0; k < 7; k++) put(B(3, 2.6, 7), olive, -60 + k * 9, 0, 55 + (k % 2) * 3, 0, .5, g);                    // vehicles
+      put(new THREE.SphereGeometry(6, 18, 12), M(0xeeeeea, .5), 140, 3, -70, 0, .38, g); put(new THREE.CylinderGeometry(4, 4.5, 4, 14).translate(0, 2, 0), grey, 140, 0, -70, 0, .4, g);   // radar dome
+      for (const [fx, fz, len, rot] of [[0, -110, 440, 0], [0, 110, 440, 0], [-220, 0, 220, Math.PI / 2], [220, 0, 220, Math.PI / 2]])
+        put(B(len, 2, .25), M(0x8e9396, .6, .5), fx, 0, fz, rot, .25, g);                                                   // perimeter fence
+    }
+  }
+  const wallMats = [M(0xe8e2d4, .92), M(0xd6c39b, .92)], roofMats = [M(0x8c3a2b, .85), M(0x5b4636, .85), M(0x55595e, .7, .2)];
+  const inst = (geo, material, list, heat) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, material, list.length); list.forEach((m, i) => im.setMatrixAt(i, m)); scene.add(im); th(im, heat); };
+  walls.forEach((l, i) => inst(wallGeo, wallMats[i], l, .44)); roofs.forEach((l, i) => inst(roofGeo, roofMats[i], l, .38));
+})();
 const craft = new THREE.Group(); scene.add(craft);
 // Bullet-shaped tail-sitter: ogive fuselage, four swept arms with nose-facing motors, four tail fins.
 // Modelled in design units and scaled by DRONE_SCALE to its real size — a ~3.8 kg, 6S / 57 Wh interceptor (what the
@@ -687,6 +860,41 @@ box(camGimbal, [.2,.14,.2], darkMat, [0,0,0]).userData.th = .45;
 cylinder(camGimbal, .06,.08,.08, blueMat, [0,-.02,-.12], [Math.PI/2,0,0]);
 craftInner.scale.setScalar(DRONE_SCALE);
 registerGroup(craft, .34); registerGroup(craftInner, .34);
+// ── Home base: hangar, ops cabin, comms mast, windsock, charging cabinets and the spare drones on their stands ──
+// (all ≤ 12 m high and ≥ 9 m from the pad, so take-off and the landing approach stay clear)
+const spareDrones = []; let windsock = null;
+(function buildHomeBase() {
+  const y0 = terrainHeight(0, 0), g = new THREE.Group(); g.position.y = y0; scene.add(g);
+  const put = (geo, material, x, y, z, ry = 0, heat = .35) => { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.rotation.y = ry; g.add(m); th(m, heat); return m; };
+  const B = (w, h, d) => new THREE.BoxGeometry(w, h, d).translate(0, h / 2, 0);
+  const olive = mat(0x59604a, .85, .1), grey = mat(0x7d8288, .8, .2), dark = mat(0x23282d, .6, .4), concrete = mat(0x6b7276, .9, .05);
+  // hangar (arched, open towards the pad) on a concrete slab
+  put(B(16, .2, 20), concrete, -22, 0, 14, .5, .35);
+  put(new THREE.CylinderGeometry(5.5, 5.5, 14, 16, 1, true, 0, Math.PI).rotateZ(Math.PI / 2).rotateY(Math.PI / 2), olive, -22, 0, 14, .5, .42).material.side = THREE.DoubleSide;
+  // operations cabin (container) with a window strip + air-conditioning unit
+  put(B(7, 2.7, 2.6), grey, 17, 0, 9, -.3, .5); put(B(5, .7, .05), mat(0x1b2a38, .2, .6), 17 - Math.sin(-.3) * 1.33, 1.4, 9 - Math.cos(-.3) * 1.33, -.3, .45);
+  put(B(1, .8, .7), mat(0xc9ccc9, .6, .3), 19.5, 2.7, 9.6, -.3, .55);
+  // comms mast with a dish and a whip antenna
+  put(new THREE.CylinderGeometry(.18, .3, 12, 8).translate(0, 6, 0), mat(0xb8bcbd, .5, .6), 21, 0, -17, 0, .3);
+  const dish = put(new THREE.CylinderGeometry(1.1, 1.1, .15, 16), mat(0xe6e8e6, .5, .2), 21, 10.2, -16.5, 0, .3); dish.rotation.x = 1.2;
+  put(new THREE.CylinderGeometry(.03, .03, 4, 5).translate(0, 2, 0), dark, 21, 12, -17, 0, .3);
+  // windsock (shows the real wind)
+  put(new THREE.CylinderGeometry(.06, .08, 6, 6).translate(0, 3, 0), mat(0xd9dcdc, .5, .5), -15, 0, -14, 0, .3);
+  windsock = new THREE.Mesh(new THREE.CylinderGeometry(.35, .14, 2.4, 10, 1, true).rotateZ(Math.PI / 2).translate(1.2, 0, 0), mat(0xff7a1a, .7, .05));
+  windsock.material.side = THREE.DoubleSide; windsock.position.set(-15, y0 + 5.7, -14); scene.add(windsock); th(windsock, .3);
+  // charging cabinets + cable by the pad
+  for (const z of [-1.2, 1.2]) put(B(.9, 1.6, .6), mat(0xd6d8d4, .6, .2), 6.3, 0, z, Math.PI / 2, .55);
+  // spare-drone stands: the drones stand nose-up on their fins, like the one on the pad
+  for (let k = 0; k < 6; k++) {
+    const sx = -9 - (k % 3) * 2.2, sz = 5 + Math.floor(k / 3) * 2.4;
+    put(B(1.6, .25, 1.6), concrete, sx, 0, sz, 0, .35);
+    const d = craftInner.clone(); d.rotation.set(Math.PI / 2, 0, 0); d.position.set(sx, y0 + .25 + 2.05 * DRONE_SCALE, sz);
+    scene.add(d); registerGroup(d, .34); spareDrones.push(d);
+  }
+  setSpareDrones(3);
+})();
+function setSpareDrones(n) { spareDrones.forEach((d, i) => d.visible = i < n); }
+
 
 // ───────────────────────── Aircraft geometry helpers ─────────────────────────
 // All aircraft are built in real metres at scale 1: nose towards −Z, +X = right wing, +Y = up.
@@ -1092,6 +1300,7 @@ createLightPlane(-900, 1300); createLightPlane(1600, 600); createLightPlane(-220
 createBirdFlock(-2600, 1900, 9, 300); createBirdFlock(2800, 2400, 8, 280); createBirdFlock(2300, -2900, 10, 320);
 
 // ───────────────────────── State ─────────────────────────
+const game = {mode:'sandbox', m:null};   // 'sandbox' | 'mission' (see Game modes)
 const state = {pos:new THREE.Vector3(0, PAD_H + DRONE_REST_H, 0), prevPos:new THREE.Vector3(0, PAD_H + DRONE_REST_H, 0), vel:new THREE.Vector3(), rot:new THREE.Euler(0,0,0,'YXZ'), prevYaw:0, prevPitch:0, prevRoll:0,
   ang:new THREE.Vector3(), battery:1, energyWh:180, time:0, paused:false, slow:false, recording:false, history:[], hover:false, assisted:true, thermal:false, freeCam:false, tagCount:0,
   wind:0, gust:0, mass:3.8, thrust:0, wingFactor:1, powerFactor:1, camPan:0, camTilt:-8, altCmd:24, modeBlend:0, night:false, dayClock:0,
@@ -1356,6 +1565,20 @@ function drawMap() {
     ctx.fillStyle = 'rgba(80,220,200,.05)'; ctx.strokeStyle = 'rgba(80,220,200,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.arc(cx3, cz3, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
+  // 4a. Sites (villages, dams, radar stations, forward base); in a mission the defended one with its strike and
+  //     1.5 km rings
+  { const k = MAP_SIZE / MAP_WORLD, tgt = game.mode === 'mission' && game.m ? game.m.site : null;
+    for (const s of SITES) {
+      const [sx, sz] = worldToMap(s.x, s.z), on = s === tgt, col = on ? '#ff8a6a' : 'rgba(205,220,232,.75)';
+      if (on) { ctx.setLineDash([3, 4]); ctx.strokeStyle = 'rgba(255,138,106,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx, sz, FAR_R * k, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,90,60,.18)'; ctx.strokeStyle = '#ff8a6a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sz, STRIKE_R * k, 0, TAU); ctx.fill(); ctx.stroke(); }
+      ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.3;
+      if (s.type === 'village') for (const [ox, oz] of [[-3, 1], [2, -2], [3, 3]]) ctx.fillRect(sx + ox - 1.6, sz + oz - 1.6, 3.2, 3.2);
+      else if (s.type === 'dam') { ctx.beginPath(); ctx.moveTo(sx - Math.cos(s.ang) * 6, sz - Math.sin(s.ang) * 6); ctx.lineTo(sx + Math.cos(s.ang) * 6, sz + Math.sin(s.ang) * 6); ctx.lineWidth = 3; ctx.stroke(); }
+      else if (s.type === 'radar') { ctx.beginPath(); ctx.arc(sx, sz, 3.5, Math.PI, TAU); ctx.fill(); ctx.fillRect(sx - 4, sz, 8, 2); }
+      else { ctx.strokeRect(sx - 5, sz - 4, 10, 8); ctx.beginPath(); ctx.moveTo(sx - 5, sz - 4); ctx.lineTo(sx + 5, sz + 4); ctx.stroke(); }
+      ctx.font = (on ? 'bold ' : '') + '8px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText(s.name.toUpperCase(), sx, sz + 13); ctx.textAlign = 'left';
+    } }
   // 4b. Home / landing pad with a dashed line and distance from the drone
   { const [hx, hz] = worldToMap(PAD.x, PAD.z), [dx3, dz3] = worldToMap(state.pos.x, state.pos.z), dkm = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000;
     ctx.setLineDash([2, 4]); ctx.strokeStyle = 'rgba(122,255,202,.45)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(dx3, dz3); ctx.lineTo(hx, hz); ctx.stroke(); ctx.setLineDash([]);
@@ -1708,6 +1931,15 @@ function hasLOS(c) {
 function scoreContact(c, fx, fz, mode) {
   const dx = c.pos.x - state.pos.x, dy = c.pos.y - state.pos.y, dz = c.pos.z - state.pos.z, dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
   if (!c.detected || dist < 1) return -1;            // only what the radar currently shows
+  if (game.mode === 'mission' && game.m) {
+    // Defend missions: rank by threat to the site from the radar track (never the truth) — close to the site and
+    // heading for it first, then how far the drone has to fly.
+    const S0 = game.m.site, e = c.trk && !c.trk.lost ? c.trk : c.pos, ex = e.x - S0.x, ez = e.z - S0.z, dS = Math.hypot(ex, ez) || 1;
+    const closing = c.trk ? -(ex * (c.trk.vx || 0) + ez * (c.trk.vz || 0)) / dS : 0;
+    let s = 1.2 * (1 - clamp(dS / 4500, 0, 1)) + .5 * clamp(closing / 50, -1, 1) + .3 * (1 - clamp(dist / 5000, 0, 1)) + c.curiosity * .05;
+    if (c.isScout && c.identified) s += .22;
+    return Math.max(0, s);
+  }
   const det = radarRange();
   const hd = Math.hypot(dx, dz) || 1, align = ((fx*dx + fz*dz) / hd + 1) / 2, prox = 1 - dist / det;
   let s = align * .38 + prox * .34 + c.sig * .10 + c.curiosity * .10;
@@ -1766,7 +1998,7 @@ function aiThink() {
   }
   list.sort((a, b) => b.sc - a.sc);
   let chosen = null;
-  for (const e of list) if (hasLOS(e.c)) { chosen = e; break; }
+  for (const e of list) if (hasLOS(e.c) || game.mode === 'mission') { chosen = e; break; }   // missions: go for it even if a ridge hides it from the drone (the site radar sees it)
   if (cur) {
     const curScore = scoreContact(cur, fx, fz, mode);
     if (chosen && chosen.c !== cur && chosen.sc > curScore + .22) cur = chosen.c;
@@ -1777,6 +2009,11 @@ function aiThink() {
   }
 }
 function pickSearchWaypoint() {
+  if (game.mode === 'mission' && game.m) {   // missions: patrol a ring 0.9-2.4 km around the defended site
+    const S0 = game.m.site;
+    for (let tries = 0; tries < 20; tries++) { const a = Math.random() * TAU, r = 900 + Math.random() * 1500, x = clamp(S0.x + Math.cos(a) * r, -(ARENA - 500), ARENA - 500), z = clamp(S0.z + Math.sin(a) * r, -(ARENA - 500), ARENA - 500);
+      if (Math.hypot(x - state.pos.x, z - state.pos.z) < 700) continue; state.searchWp = new THREE.Vector3(x, 0, z); state.searchTimer = 30; return; }
+  }
   for (let tries = 0; tries < 16; tries++) {
     const a = state.rot.y + (Math.random() - .5) * 2.4, d = 1100 + Math.random() * 1400;
     const x = clamp(state.pos.x - Math.sin(a) * d, -(ARENA - 500), ARENA - 500), z = clamp(state.pos.z - Math.cos(a) * d, -(ARENA - 500), ARENA - 500);
@@ -1805,6 +2042,10 @@ function scoutBand(s) {
   return s.band;
 }
 function chooseScoutWaypoint(s) {
+  if (s.raid) {   // mission raider: next leg of its attack run (dog-leg → initial point → the site)
+    s.raid.leg = Math.min(s.raid.leg + 1, s.raid.legs.length - 1); const p = s.raid.legs[s.raid.leg];
+    s.waypoint = new THREE.Vector3(p.x, terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = 1e9; return;
+  }
   const from = s.pos, [lo, hi] = scoutBand(s);
   for (let tries = 0; tries < 28; tries++) {
     const x = clamp(from.x + (Math.random() - .5) * 3000, -(ARENA - 500), ARENA - 500), z = clamp(from.z + (Math.random() - .5) * 3000, -(ARENA - 500), ARENA - 500);
@@ -1823,7 +2064,7 @@ function stepScout(s, h) {
   const out = Math.max(Math.abs(s.pos.x), Math.abs(s.pos.z));
   if (out > ARENA - 250 && !s.returning) {                 // crossed: random point well inside, turn back briskly
     s.returning = true; s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 60;
-  } else if (!s.returning && Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.max(Math.abs(s.waypoint.x), Math.abs(s.waypoint.z)) > ARENA * .6) {
+  } else if (!s.returning && !s.raid && Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.max(Math.abs(s.waypoint.x), Math.abs(s.waypoint.z)) > ARENA * .6) {
     s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 40;   // about to reach it → head back in
   }
   if (s.returning && out < ARENA - 600) s.returning = false;
@@ -2029,6 +2270,7 @@ function updateWorld(h) {
   for (const a of ambientActors) { a.prev.copy(a.pos); if (a.type === 'birds') stepBird(a, h); else stepPlane(a, h); }
   for (const a of ambientActors.filter(x => x.gone)) removeAmbient(a);
   trafficSeparation(h);
+  if (game.mode === 'mission') missionTick(h);
   updateFlares(h);
   // Random traffic: every 15-45 s something new appears 1.6-2.6 km from the drone (usually outside radar range).
   // No announcement — the radar has to find it.
@@ -2084,7 +2326,7 @@ function updateFlares(h) {
 function flareGlare(p) { let g = 0; for (const f of flares) if (f.age > 0 && f.age < f.life) g += Math.max(0, 1 - f.pos.distanceTo(p) / 220) * .35; return Math.min(1, g); }
 function spawnRandomTraffic() {
   const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length, nC = ambientActors.filter(x => x.type === 'cessna').length;
-  const opts = []; if (nS < 6) opts.push('scout', 'scout'); if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane'); if (nC < 4) opts.push('cessna');
+  const opts = []; if (nS < 6 && game.mode !== 'mission') opts.push('scout', 'scout');   // missions: only the raid's scouts if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane'); if (nC < 4) opts.push('cessna');
   if (!opts.length) return;
   const kind = opts[Math.floor(Math.random() * opts.length)];
   for (let tries = 0; tries < 12; tries++) {
@@ -2201,6 +2443,18 @@ function classifyTick(c, d) {
 const RCS = {light:.6, heavy:.85, fast:.7, plane:1.4, birds:.45, cessna:.65};
 const RADAR_SWEEP = 1.0;                                     // one antenna sweep per second
 const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.41;
+// Mission site surveillance radar (on a 30 m mast on the highest ground within ~900 m of the defended site — the hill
+// overlooking a valley village): range per difficulty (DIFFS.siteRadar, for a
+// jet-sized target; scaled by radar cross-section and weather like the drone's), terrain-masked from the mast.
+// Its plots feed the same tracks as the drone's radar. Returns the range to the contact, or -1 if not seen.
+function siteRadarSees(c) {
+  const m = game.m; if (game.mode !== 'mission' || !m || !m.D.siteRadar) return -1;
+  const R = m.radar, d = Math.hypot(c.pos.x - R.x, c.pos.z - R.z, c.pos.y - R.y);
+  if (d > Math.min(6000, m.D.siteRadar * radarRange() / 1500 * RCS[truthClass(c)] / .7)) return -1;
+  const dx = c.pos.x - R.x, dy = c.pos.y - R.y, dz = c.pos.z - R.z, n = clamp(Math.ceil(Math.hypot(dx, dz) / 120), 4, 40);
+  for (let i = 1; i < n; i++) { const f = i / n; if (terrainHeight(R.x + dx * f, R.z + dz * f) + 6 > R.y + dy * f) return -1; }
+  return d;
+}
 function radarDetectRange(c) { return Math.min(2400, radarRange() * RCS[truthClass(c)]); }
 function radarScan(h) {
   state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = SCAN_DT;
@@ -2214,12 +2468,12 @@ function radarScan(h) {
     // Camera / thermal identification: needs line of sight and a visible image (independent of the radar).
     if (on && los) classifyTick(c, d);
     if (!sweep) continue;
-    const det = on && los && d < radarDetectRange(c);
+    const dSite = siteRadarSees(c), det = (on && los && d < radarDetectRange(c)) || dSite >= 0;
     c.detected = det;
     if (det) {
       if (!c.trk || c.trk.lost) { c.trk = {}; if (c.identified) radioMessage('TRACK REACQUIRED · ' + CLS_SHORT[c.guess]); if (state.time - (audio.pingT || -9) > .6) { playSfx('ping'); audio.pingT = state.time; } }
       // A radar plot: noisy position (≈6 m + 1.5 % of range), rough velocity, turn rate from successive plots.
-      const n = 6 + d * .015, vn = 1 + .04 * Math.hypot(c.vel.x, c.vel.z);
+      const n = 6 + (dSite >= 0 && !(on && los && d < radarDetectRange(c)) ? dSite : d) * .015, vn = 1 + .04 * Math.hypot(c.vel.x, c.vel.z);
       Object.assign(c.trk, {x:c.pos.x + gauss() * n, y:c.pos.y + gauss() * n * .5, z:c.pos.z + gauss() * n,
         vx:c.vel.x + gauss() * vn, vy:c.vel.y, vz:c.vel.z + gauss() * vn, w:c.turnRate || 0, seen:state.time, lost:false, covered:0, noise:n});
     } else if (c.trk && !c.trk.lost) {
@@ -2336,15 +2590,21 @@ function attackGuidance(t, G) {
   // Fast targets (≳ 80 m/s, e.g. the 92 m/s jet): passing beside it and turning in behind costs ~1.2 km — at the edge of
   // radar range, with only ~19 m/s of closure left — so a roughly head-on geometry is taken as a head-on attack.
   const fastT = smoothstep(80, 92, Vt);
-  if (a.phase === 'headon') { if (!(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) a.phase = ''; }
+  // Defend missions: a target flying at the defended site is cut off — collision course from anywhere in its front
+  // half, at full speed — instead of chased from behind (an 85 m/s heavy can't be caught from behind before it arrives).
+  const S0 = game.mode === 'mission' && game.m ? game.m.site : null;
+  const run = S0 && Vt > 1 ? (hx * (S0.x - t.pos.x) + hz * (S0.z - t.pos.z)) / (Math.hypot(S0.x - t.pos.x, S0.z - t.pos.z) || 1) : 0;
+  const cutoff = run > .8;
+  if (a.phase === 'headon') { if (cutoff ? !(behind < .1 && tc > 0) : !(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) a.phase = ''; }
+  else if (cutoff && behind < -.2 && tc > 0 && R < 4000) { a.phase = 'headon'; radioMessage('CUT-OFF · COLLISION COURSE'); }
   else if (behind < -.9 + .15 * fastT && facing > .95 - .1 * fastT && tc > 0 && tc < 15 + 5 * fastT && miss < 30 + 120 * fastT && R > 200 && R < 1400 + 300 * fastT) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   if (a.phase === 'headon') {
-    const tg = interceptTime(rx, ry, rz, tv, Math.max(V_CRUISE, state.cruiseSpeed));
+    const vH = cutoff ? V_DASH : Math.max(V_CRUISE, state.cruiseSpeed), tg = interceptTime(rx, ry, rz, tv, vH);
     // Height: its current altitude + copy its climb rate once (the vertical law adds G.vy·ff) and close the gap well
     // before contact. (Aiming at its *future* altitude as well counted its climb twice → ~9 m misses above/below.)
     G.aim.set(t.pos.x + tv.x * tg, 0, t.pos.z + tv.z * tg); G.alt = t.pos.y;
-    G.speed = Math.max(V_CRUISE, state.cruiseSpeed); G.tau = clamp(tg * .35, .4, 1.2); G.ff = 1; G.terminal = R3 < 250;
+    G.speed = vH; G.tau = clamp(tg * .35, .4, 1.2); G.ff = 1; G.terminal = R3 < 250;
     if (R3 < 900) {   // last stretch: proportional navigation nulls the line-of-sight rotation → metre-level miss distance
       const R2 = rx * rx + rz * rz, losRate = (rz * vx - rx * vz) / Math.max(1, R2), Vc = Math.max(2, -(rx * vx + rz * vz) / R);
       G.rateCmd = 4 * Vc * losRate / Math.max(V_MIN, state.cruiseSpeed); G.aim.set(t.pos.x, 0, t.pos.z);
@@ -2660,15 +2920,24 @@ function acceptRtb() {
 }
 // Header ⌂ Home button / key B: go home any time while there is battery left; press again en route to cancel.
 function canGoHome() { return state.launchStage === 'active' && !state.batteryDead && !state.crashed && !state.returning && !replay.active; }
+// Go-around: abort the landing and climb out of the hover back into forward flight (the take-off transition,
+// entered part-way: no vertical climb, straight into the pitch-over). Pursuit order or ⌂ during the landing.
+function goAround(msg) {
+  state.rtb = false; state.landAim = null; state.tiltX = state.tiltZ = 0; state.rtbAlt = null; state.searchWp = null; state.searchTimer = 0;
+  state.launchStage = 'takeoff'; state.takeoffT = 1.5; state.cruiseSpeed = Math.hypot(state.vel.x, state.vel.z);
+  if (state.cruiseSpeed > 3) state.rot.y = Math.atan2(-state.vel.x, -state.vel.z);
+  radioMessage(msg); $('flightState').textContent = 'GO-AROUND · CLIMBING OUT';
+}
 function homeButton() {
+  if (state.rtb === 'landing' && state.launchStage === 'active' && !state.batteryDead && !state.crashed) { goAround('LANDING ABORTED · GO-AROUND'); return; }
   if (!canGoHome()) return;
   if (!state.rtb) acceptRtb();
   else if (state.rtb === 'enroute') { state.rtb = false; state.searchWp = null; state.searchTimer = 0; state.aiThink = 0; radioMessage('RETURN TO BASE CANCELLED · RESUMING SEARCH'); }
 }
 function updateHomeBtn() {
-  const b = $('homeBtn'), ok = canGoHome() && state.rtb !== 'landing';
+  const b = $('homeBtn'), ok = canGoHome();
   b.disabled = !ok; b.classList.toggle('on', !!state.rtb);
-  const t = state.rtb === 'landing' ? '⌂ Landing' : state.rtb ? '✕ Cancel RTB' : '⌂ Home';
+  const t = state.rtb === 'landing' ? '✕ Go around' : state.rtb ? '✕ Cancel RTB' : '⌂ Home';
   if (b.textContent !== t) b.textContent = t;
 }
 function startBatteryFailure() {
@@ -2721,6 +2990,7 @@ function resetToPad(reason) {
   $('launchHint').textContent = reason === 'battery' ? 'Aircraft lost after power loss. Fresh battery fitted — launch when ready.' : 'Targets intercepted: ' + state.tagCount + '. Launch for next sortie.';
   $('launchSequence').textContent = 'PAD STANDBY · AWAITING LAUNCH'; $('flightState').textContent = 'ON PAD';
   updatePauseButtons();
+  if (game.mode === 'mission') { state.mission = null; missionAfterReset(reason); return; }   // missions: no per-sortie debrief, drones are counted
   if (reason === 'landed' || reason === 'intercept' || reason === 'battery') showDebrief(reason); else state.mission = null;
 }
 // ───────────────────────── Flight physics ─────────────────────────
@@ -2737,6 +3007,7 @@ function physicsStep(h) {
   if (state.crashed) {
     state.crashTimer -= h;
     if (state.crashTimer <= 0) {
+      if (game.mode === 'mission') { resetToPad('crash'); return; }   // missions: a crashed drone is lost, the next one waits on the pad
       state.crashed = false; craft.visible = true;
       state.pos.set(0, terrainHeight(0,0) + 190, 0); state.vel.set(0,0,0); state.aiTarget = null; state.cruiseSpeed = V_CRUISE * .8; state.gamma = 0; state.bank = 0; state.searchAltFor = null; state.altCmd = state.pos.y + 80; state.turnCmd = 0; state.searchWp = null;
       state.rot.set(0, (Math.random() - .5) * 1.15, 0); state.hover = false; state.modeBlend = 0; state.launchStage = 'active'; state.aiActivated = true; state.aiActivationTime = state.time; snapPrev();
@@ -2778,6 +3049,7 @@ function physicsStep(h) {
   //    It descends once settled — or after 10 s of hovering regardless — and keeps correcting on the way down. The
   //    whole thing takes ~45-60 s. The airframe tilts towards its acceleration (thrust vector), nose comes up into
   //    hover as speed bleeds off, and it yaws into its direction of travel while moving. ──
+  if (state.rtb === 'landing' && state.pursuitMode && state.aiTarget) { goAround('PURSUIT ORDERED · LANDING ABORTED · GO-AROUND'); return; }
   if (state.rtb === 'landing') {
     const t = state.landT = (state.landT || 0) + h, padY = terrainHeight(PAD.x, PAD.z) + DRONE_REST_H;
     if (!state.landAim) { state.landAim = {x:PAD.x + (Math.random() - .5) * 1, z:PAD.z + (Math.random() - .5) * 1}; state.landV0 = Math.max(15, Math.hypot(state.vel.x, state.vel.z)); state.landFloat = 5 + Math.random() * 7; state.landHover = false; state.landDesc = false; state.hoverT = 0; }
@@ -2914,7 +3186,7 @@ function physicsStep(h) {
       if (nz) state.nudgeT = state.time; }
     G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.userAlt ?? state.searchAlt; G_.clear = 120;
     { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
-      G_.speed = V_CRUISE + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind
+      G_.speed = (game.mode === 'mission' ? 50 : V_CRUISE) + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind; missions: economical ~50 m/s patrol loiter (≈2× endurance)
   }
   // Keep inside the play area.
   // Keep inside the play area (mountain wall beyond ~2.6 km). A chase may run closer to the wall.
@@ -3228,6 +3500,7 @@ function updateVisuals(alpha, rdt) {
   // hover: the whole airframe (thrust axis) leans towards its horizontal acceleration, about a world axis
   { const tx = state.tiltX || 0, tz = state.tiltZ || 0, ta = Math.hypot(tx, tz);
     if (ta > 1e-3) { _tiltQ.setFromAxisAngle(_tiltAx.set(tz / ta, 0, -tx / ta), Math.atan(ta / 9.81)); craft.quaternion.premultiply(_tiltQ); } }
+  if (windsock) { const ws = Math.hypot(wind.x, wind.z); windsock.rotation.set(0, Math.atan2(-wind.z, wind.x), -1.25 * (1 - smoothstep(1, 9, ws)) + Math.sin(state.time * 3.1) * .04 * smoothstep(2, 10, ws)); }   // points downwind, droops in calm air
   rotorSpin = damp(rotorSpin, (state.launchStage === 'parked' || state.batteryDead) ? 0 : 38, 2, rdt);
   for (let i = 0; i < liftRotors.length; i++) liftRotors[i].rotation.z += (rotorSpin * (i % 2 ? -1 : 1) + (i % 2) * 2) * rdt;
   camGimbal.rotation.set(THREE.MathUtils.degToRad(state.camTilt), THREE.MathUtils.degToRad(state.camPan), 0);
@@ -3480,6 +3753,11 @@ function updateHud(rdt) {
   // Identified = classified and still tracked; "threat" by the system's own guess (which can be wrong).
   const threats = scouts.filter(s => !s.destroyed && !s.tagged), live = [...threats, ...ambientActors].filter(c => c.identified && hasTrack(c));
   const idThreats = live.filter(c => c.userMark ? c.userMark === 'threat' : isThreatClass(c.guess)).length, inc = state.civilianIncidents || 0;
+  if (game.mode === 'mission' && game.m) { const m = game.m, left = m.dronesTotal - m.dronesUsed, tt = Math.floor(m.t);
+    $('missionState').textContent = 'DEFEND ' + m.site.name.toUpperCase();
+    $('targetStatus').innerHTML = `<span>RAID DOWN</span><b>${m.downed} / ${m.total}</b><span>INBOUND</span><b class="${m.raid.some(s => !s.raidDone) ? 'hot' : ''}">${m.raid.filter(s => !s.raidDone).length}</b>` +
+      `<span>DRONES LEFT</span><b class="${left <= 1 ? 'hot' : ''}">${left}</b><span>MISSION TIME</span><b>${Math.floor(tt / 60)}:${String(tt % 60).padStart(2, '0')}</b>` + (inc ? `<span style="color:#ff8a7a">CIVILIAN INCIDENTS</span><b class="hot">${inc}</b>` : '');
+  } else
   $('targetStatus').innerHTML = `<span>POTENTIAL THREATS</span><b class="${idThreats ? 'hot' : ''}">${idThreats}</b><span>TOTAL IDENTIFIED OBJECTS</span><b>${live.length}</b>` +
     (inc ? `<span style="color:#ff8a7a">CIVILIAN INCIDENTS</span><b class="hot">${inc}</b>` : '');
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
@@ -3552,12 +3830,226 @@ function animate(now) {
     while (accumulator >= dt && steps < 12) { physicsStep(dt); accumulator -= dt; steps++; }
     if (steps >= 12) accumulator = 0; alpha = accumulator / dt;
   }
+  missionUiTick();
   // replay runs on true wall-clock time, so a heavy frame never slows it down
   if (replay.active) { updateEnvironment(0); stepReplay(rawDt); updateAircraftLights(); renderer.render(scene, camera); return; }
   updateEnvironment(rdt); updateVisuals(alpha, rdt); updateCamera(rdt);
   updateContactViews(); updateAircraftLights();
   updateAudio(rdt); renderer.render(scene, camera); drawGlare($('glare'), camera); renderZoomView(rdt); if (zv.open) drawGlare($('zvGlare'), zoomCam); updateHud(rdt); drawRadar(); if (mapOpen) drawMap();
 }
+// ───────────────────────── Game modes: Sandbox & Missions ─────────────────────────
+// Start screen → Sandbox (the free-play game as before) or Missions (defend a site against a scout raid).
+// The world is identical in both. Switching mode / retrying reloads the page (via sessionStorage 'dl_start'), so
+// every mission starts from a clean world. Best stars + score per mission and difficulty: localStorage 'dl_missions'.
+const STRIKE_R = 300, FAR_R = 1500;
+const MISSIONS = [
+  {id:'village', site:'Bergtal', kind:'VALLEY VILLAGE', text:'Bergtal lies low in a valley {where}. Raiders will follow the valleys around it to stay under your radar until late — expect them to pop up close.'},
+  {id:'dam', site:'Grauwand Dam', kind:'DAM', text:'Grauwand Dam holds back the lake {where}. Scouts have a long, open run over the water: see them early, stop them early.'},
+  {id:'radar', site:'Hochgrat Radar', kind:'RIDGE RADAR STATION', text:'Hochgrat Radar sits on a ridge {where}. Scouts climb up from the valleys below and stay terrain-masked until the last moment.'},
+  {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'FOB Kestrel is a forward base {where} — a long flight out from your pad, so every relaunch costs precious time.'}
+];
+const DIFFS = {
+  easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   arriveFirst:240, gap:[150, 190], pairs:false, kinds:['light', 'heavy', 'light'], warn:'dir',
+          weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with direction'},
+  normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', arriveFirst:210, gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'fast'], warn:'inbound',
+          weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
+  hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3200, scoutDiff:'normal',   arriveFirst:180, gap:[60, 95], pairs:true, kinds:['fast', 'light', 'heavy', 'fast', 'light', 'heavy', 'fast'], warn:'none',
+          weather:['MIST', 'RAIN', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
+};
+const RAID_BAND = {light:[45, 90], fast:[110, 180], heavy:[130, 220]};   // AGL during the raid: propeller scouts sneak low through valleys; jets (thirsty down low) and heavies fly higher
+const siteByName = n => SITES.find(s => s.name === n);
+const COMPASS_WORDS = {N:'north', NE:'north-east', E:'east', SE:'south-east', S:'south', SW:'south-west', W:'west', NW:'north-west'};
+// '1.4 km south-east of your pad' — from the real site position (north = map up = −Z)
+function whereText(m) { const s = siteByName(m.site); if (!s) return ''; const brg = (Math.atan2(s.x, -s.z) * 180 / Math.PI + 360) % 360;
+  return (Math.hypot(s.x, s.z) / 1000).toFixed(1) + ' km ' + COMPASS_WORDS[compass(brg)] + ' of your pad'; }
+const missionText = m => m.text.replace('{where}', whereText(m));
+const hDist = (p, s) => Math.hypot(p.x - s.x, p.z - s.z);
+function loadBest() { try { return JSON.parse(localStorage.getItem('dl_missions') || '{}'); } catch (e) { return {}; } }
+function saveBest(id, diff, stars, score) {
+  try { const b = loadBest(); b[id] = b[id] || {}; const o = b[id][diff];
+    if (!o || stars > o.stars || (stars === o.stars && score > o.score)) { b[id][diff] = {stars, score}; localStorage.setItem('dl_missions', JSON.stringify(b)); return true; } } catch (e) {}
+  return false;
+}
+const starStr = n => '<i>' + '★'.repeat(n) + '</i>' + '☆'.repeat(3 - n);
+function gmShow(id) { for (const x of ['gmStart', 'gmList', 'gmBrief', 'gmResult']) $(x).classList.toggle('show', x === id); }
+function restartInto(req) { try { if (req) sessionStorage.setItem('dl_start', JSON.stringify(req)); else sessionStorage.removeItem('dl_start'); } catch (e) {} location.reload(); }
+
+// ── Mission list ──
+let gmDiff = 'normal';
+function renderMissionList() {
+  const best = loadBest();
+  for (const b of $('gmDiff').children) b.classList.toggle('on', b.dataset.d === gmDiff);
+  $('gmMissionList').innerHTML = MISSIONS.map(m => {
+    const s = siteByName(m.site), r = best[m.id] || {}, km = s ? (Math.hypot(s.x, s.z) / 1000).toFixed(1) : '?';
+    const row = ['easy', 'normal', 'hard'].map(d => `${DIFFS[d].label[0]} ${starStr(r[d] ? r[d].stars : 0)}`).join('  ');
+    return `<div class="gmMis"><em>${m.kind} · ${km} KM FROM PAD</em><b>DEFEND ${m.site.toUpperCase()}</b><p>${missionText(m)}</p>
+      <div class="gmStars">${row}${r[gmDiff] ? ' · best ' + r[gmDiff].score : ''}</div><div><button class="gmBtn" data-m="${m.id}">Start · ${DIFFS[gmDiff].label}</button></div></div>`;
+  }).join('');
+  for (const b of $('gmMissionList').querySelectorAll('button[data-m]')) b.onclick = () => restartInto({mode:'mission', id:b.dataset.m, diff:gmDiff});
+}
+$('gmSandbox').onclick = () => { gmShow(null); game.mode = 'sandbox'; };
+$('gmMissions').onclick = () => { renderMissionList(); gmShow('gmList'); };
+$('gmListBack').onclick = () => gmShow('gmStart');
+for (const b of $('gmDiff').children) b.onclick = () => { gmDiff = b.dataset.d; try { localStorage.setItem('dl_diff', gmDiff); } catch (e) {} renderMissionList(); };
+try { gmDiff = localStorage.getItem('dl_diff') || 'normal'; } catch (e) {}
+$('menuBtn').onclick = () => { if (state.launchStage === 'active' && !confirm('Leave this flight and go to the main menu?')) return; restartInto(null); };
+
+// ── Mission start ──
+function setMissionEnv(D) {
+  const pick = a => a[Math.floor(Math.random() * a.length)], wx = pick(D.weather), hour = pick(D.hours), w = D.wind[0] + Math.random() * (D.wind[1] - D.wind[0]);
+  $('envWeather').value = wx; $('envWindAuto').checked = false; $('envWind').value = w.toFixed(1); $('envDir').value = Math.round(Math.random() * 359);
+  $('envTimeAuto').checked = false; $('envTime').value = hour; state.dayClock = ((hour - 12) / 24) * TAU;
+  applyEnv(); state.weatherMode = wx; state.weatherTarget = state.weatherStrength = WEATHER_STRENGTH[wx]; windMean = w;
+}
+function startMission(id, diff, opts = {}) {
+  const def = MISSIONS.find(m => m.id === id) || MISSIONS[0], D = DIFFS[diff] || DIFFS.normal, site = siteByName(def.site);
+  if (!site) { toast('Mission site not found'); return; }
+  game.mode = 'mission';
+  for (const s of [...scouts]) removeScout(s);
+  game.m = {def, diffKey: diff in DIFFS ? diff : 'normal', D, site, t:0, running:false, total:D.scouts, spawned:0, raid:[], downed:0,
+    dronesTotal:D.drones, dronesUsed:0, lost:0, result:null, shown:false};
+  planRaid(game.m);
+  { let best = {x: site.x, z: site.z, h: terrainHeight(site.x, site.z)};   // surveillance radar: highest ground within ~900 m
+    for (let r = 150; r <= 900; r += 150) for (let k = 0; k < 16; k++) { const x = site.x + Math.cos(k / 16 * TAU) * r, z = site.z + Math.sin(k / 16 * TAU) * r, h = terrainHeight(x, z); if (h > best.h + 5) best = {x, z, h}; }
+    game.m.radar = {x: best.x, z: best.z, y: Math.max(best.h, site.type === 'dam' ? site.crest : 0) + 30}; }
+  setMissionEnv(D); state.replenishTimer = 20;
+  resetToPad('manual'); setSpareDrones(D.drones - 1); state.civilianIncidents = 0; state.tagCount = 0;
+  $('gmBriefKind').textContent = 'MISSION · ' + def.kind + ' · ' + D.label;
+  $('gmBriefTitle').textContent = 'DEFEND ' + def.site.toUpperCase();
+  $('gmBriefText').textContent = missionText(def);
+  $('gmBriefTable').innerHTML = `<tr><td>Raid</td><td>${D.scouts} scouts, arriving one by one${D.pairs ? ' (sometimes in pairs)' : ''}</td></tr>
+    <tr><td>Drones</td><td>${D.drones}: one per scout + ${D.drones - D.scouts} spare${D.drones - D.scouts === 1 ? '' : 's'} (every ram uses a drone)</td></tr><tr><td>Early warning</td><td>${D.warnText}</td></tr>
+    <tr><td>Conditions</td><td>${state.weatherMode} · wind ${(+$('envWind').value).toFixed(0)} m/s · ${String(Math.floor(+$('envTime').value)).padStart(2, '0')}:00</td></tr>
+    <tr><td>Fails if</td><td>any scout gets within ${STRIKE_R} m of the site, or you run out of drones</td></tr>`;
+  updateMissionLaunchCard();
+  if (opts.skipBrief) beginMission(); else { state.paused = true; gmShow('gmBrief'); }
+}
+function beginMission() { const m = game.m; if (!m) return; gmShow(null); m.running = true; state.paused = false; updatePauseButtons(); radioMessage('MISSION START · DEFEND ' + m.def.site.toUpperCase() + ' · ' + m.total + ' SCOUTS EXPECTED'); }
+$('gmBriefGo').onclick = beginMission;
+$('gmBriefBack').onclick = () => restartInto(null);
+
+// ── Raid: scouts fly realistic attack runs — dog-leg through the lowest ground (valleys), an initial point ~1.8 km
+//    out, then the final run at the site. Low height bands (heavies fly higher). ──
+function lowestOf(cands) { let best = cands[0], bh = 1e9; for (const p of cands) { const h = terrainHeight(p.x, p.z); if (h < bh) { bh = h; best = p; } } return best; }
+// The raid is planned at mission start: each raider gets its route, and its spawn time is worked back from a planned
+// arrival at its initial point (IP) — arrivals spaced by the difficulty's gap — so a slow loitering propeller scout and
+// a fast heavy launched later don't end up arriving together.
+function planRaider(kind, ang) {
+  const S0 = game.m.site, lim = ARENA - 500, lim2 = ARENA - 900;
+  let ex = 0, ez = 0;
+  for (let k = 0; k < 40; k++) {
+    const d = 3600 + Math.random() * 900; ex = clamp(S0.x + Math.cos(ang) * d, -lim, lim); ez = clamp(S0.z + Math.sin(ang) * d, -lim, lim);
+    if (Math.hypot(ex - S0.x, ez - S0.z) > 2600) break; ang = Math.random() * TAU;
+  }
+  const aE = Math.atan2(ez - S0.z, ex - S0.x), side = Math.random() < .5 ? -1 : 1;
+  // loiter / search legs: two points sweeping sideways round the outer ring (3.0-3.8 km out, lowest ground of a few
+  // candidates — valleys), then an initial point ~2.4 km out on the lowest approach, then the run at the site
+  const ring = (a, r) => ({x: clamp(S0.x + Math.cos(a) * r, -lim2, lim2), z: clamp(S0.z + Math.sin(a) * r, -lim2, lim2)});
+  const l1 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400, 3800].map(r => ring(aE + side * o, r))));
+  const a1 = Math.atan2(l1.z - S0.z, l1.x - S0.x), l2 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400].map(r => ring(a1 + side * o, r))));
+  const a2 = Math.atan2(l2.z - S0.z, l2.x - S0.x), ip = lowestOf([-.45, -.2, 0, .2, .45].map(o => ring(a2 + o, 2400)));
+  const D = game.m.D, speed = Math.min(SCOUT_SPEC[kind].speed * (D.scoutDiff === 'easy' ? .82 : D.scoutDiff === 'hard' ? 1.15 : 1), 101);
+  const travel = (Math.hypot(l1.x - ex, l1.z - ez) + Math.hypot(l2.x - l1.x, l2.z - l1.z) + Math.hypot(ip.x - l2.x, ip.z - l2.z)) * 1.12 / speed;   // +12 % for turns
+  return {kind, ex, ez, ang, legs:[l1, l2, ip, {x: S0.x, z: S0.z}], travel};
+}
+function planRaid(m) {
+  const D = m.D, plan = []; let arrive = D.arriveFirst, i = 0;
+  while (plan.length < D.scouts) {
+    const p = planRaider(D.kinds[plan.length % D.kinds.length], Math.random() * TAU); p.spawnT = Math.max(5 + plan.length * 3, arrive - p.travel); plan.push(p);
+    if (D.pairs && plan.length < D.scouts && Math.random() < .5) { const q = planRaider(D.kinds[plan.length % D.kinds.length], p.ang + (Math.random() - .5) * .4); q.spawnT = Math.max(5, arrive + 8 - q.travel); plan.push(q); }
+    arrive += D.gap[0] + Math.random() * (D.gap[1] - D.gap[0]); i++;
+  }
+  m.plan = plan.sort((a, b) => a.spawnT - b.spawnT);
+}
+function spawnRaider(p) {
+  const m = game.m, S0 = m.site, D = m.D, band = RAID_BAND[p.kind], y = terrainHeight(p.ex, p.ez) + band[1];
+  const s = createScout(p.kind, D.scoutDiff, new THREE.Vector3(p.ex, y, p.ez));
+  s.band = band; s.raid = {legs:p.legs, leg:-1}; chooseScoutWaypoint(s);
+  const l1 = p.legs[0]; s.hdg = Math.atan2(-(l1.x - p.ex), -(l1.z - p.ez)); s.yaw = s.hdg; s.vel.set(-Math.sin(s.hdg) * s.speed, 0, -Math.cos(s.hdg) * s.speed);
+  m.raid.push(s); m.spawned++;
+  const L = Math.hypot(p.ex - S0.x, p.ez - S0.z), brg = (Math.atan2(p.ex - S0.x, -(p.ez - S0.z)) * 180 / Math.PI + 360) % 360;
+  if (D.warn === 'dir') { radioMessage('RAID WARNING · CONTACT INBOUND FROM THE ' + compass(brg) + ' · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase()); playSfx('chime'); }
+  else if (D.warn === 'inbound') { radioMessage('RAID WARNING · CONTACT INBOUND'); playSfx('chime'); }
+  return s;
+}
+function missionTick(h) {
+  const m = game.m; if (!m || !m.running || m.result) return;
+  m.t += h;
+  while (m.spawned < m.total && m.t >= m.plan[m.spawned].spawnT) spawnRaider(m.plan[m.spawned]);
+  countRaidDowns(m);
+  for (const s of m.raid) if (!s.raidDone && hDist(s.pos, m.site) < STRIKE_R) { siteStrike(s); return; }
+  if (m.downed >= m.total) finishMission(true, 'All ' + m.total + ' scouts stopped before they reached ' + m.site.name + '.');
+}
+function countRaidDowns(m) {
+  for (const s of m.raid) if (!s.raidDone && s.destroyed) { s.raidDone = true; s.downDist = hDist(s.pos, m.site); m.downed++;
+    logEvent('RAID · SCOUT DOWN ' + (s.downDist / 1000).toFixed(1) + ' KM FROM ' + m.site.name.toUpperCase() + ' · ' + m.downed + '/' + m.total, 'ok'); }
+}
+function siteStrike(s) {
+  const m = game.m, S0 = m.site, y = terrainHeight(S0.x, S0.z) + (S0.type === 'dam' ? S0.crest - terrainHeight(S0.x, S0.z) : 8);
+  s.raidDone = true; s.destroyed = true; s.removeAt = state.time + .5; s.group.visible = false; if (s.trail) s.trail.visible = false;
+  if (state.aiTarget === s) { if (state.pursuitMode) endPursuit('TARGET REACHED THE SITE'); state.aiTarget = null; }
+  explodeAt(new THREE.Vector3(S0.x, y, S0.z), 4.5, s.vel, 0x4a4440); setTimeout(() => explodeAt(new THREE.Vector3(S0.x + 25, y, S0.z - 15), 3, null, 0x4a4440), 450);
+  radioMessage('SITE HIT · ' + S0.name.toUpperCase() + ' · MISSION FAILED');
+  finishMission(false, 'A ' + s.spec.label.toLowerCase() + ' reached ' + S0.name + '.');
+}
+function finishMission(win, reason) { const m = game.m; if (!m || m.result) return; m.result = {win, reason, at: m.t, showAt: performance.now() + (win ? 2500 : 3500)}; }
+// called at the end of resetToPad in mission mode: an intercept / crash / empty battery uses up that drone
+function missionAfterReset(reason) {
+  const m = game.m; if (!m) return;
+  countRaidDowns(m); if (!m.result && m.downed >= m.total) finishMission(true, 'All ' + m.total + ' scouts stopped before they reached ' + m.site.name + '.');
+  if (reason === 'intercept' || reason === 'battery' || reason === 'crash') { m.dronesUsed++; if (reason !== 'intercept') m.lost++;
+    logEvent('DRONE ' + (reason === 'intercept' ? 'EXPENDED' : 'LOST') + ' · ' + Math.max(0, m.dronesTotal - m.dronesUsed) + ' LEFT', reason === 'intercept' ? 'ok' : 'warn'); }
+  const left = m.dronesTotal - m.dronesUsed; setSpareDrones(Math.max(0, left - 1));
+  if (!m.result && left <= 0 && m.downed < m.total) { radioMessage('NO DRONES LEFT · MISSION FAILED'); finishMission(false, 'You ran out of drones with ' + (m.total - m.downed) + ' scout' + (m.total - m.downed > 1 ? 's' : '') + ' still to stop.'); }
+  updateMissionLaunchCard();
+}
+function updateMissionLaunchCard() {
+  const m = game.m; if (!m) return; const left = m.dronesTotal - m.dronesUsed;
+  $('launchTitle').textContent = left > 0 ? 'DRONE ' + (m.dronesUsed + 1) + ' OF ' + m.dronesTotal + ' · READY ON PAD' : 'NO DRONES LEFT';
+  $('launchHint').textContent = 'Defend ' + m.site.name + ' · raid ' + m.downed + '/' + m.total + ' down · ' + m.raid.filter(s => !s.raidDone).length + ' inbound. Launch when ready.';
+  $('launchBtn').disabled = left <= 0 || !!m.result;
+}
+function missionScore() {
+  const m = game.m, win = !!(m.result && m.result.win), downs = m.raid.filter(s => s.downDist !== undefined), left = m.dronesTotal - m.dronesUsed;
+  const wrong = ambientActors.filter(a => a.userMark === 'threat').length, inc = state.civilianIncidents || 0;
+  const far = downs.length === m.total && downs.every(s => s.downDist > FAR_R);
+  const rows = [['Scouts stopped', downs.length + ' / ' + m.total, downs.length * 500],
+    ['Distance bonus (stopped far from the site)', downs.length ? 'closest ' + (Math.min(...downs.map(s => s.downDist)) / 1000).toFixed(1) + ' km' : '—', Math.round(downs.reduce((a, s) => a + clamp((s.downDist - STRIKE_R) / 2.4, 0, 500), 0))],
+    ['Mission completed', win ? 'yes' : 'no', win ? 1000 : 0], ['Drones left', win ? left + ' of ' + m.dronesTotal : '—', win ? left * 250 : 0],
+    ['Drones lost (crash / battery)', String(m.lost), -m.lost * 200], ['Civilian incidents', String(inc), -inc * 750], ['Civil traffic flagged as threat', String(wrong), -wrong * 150]];
+  const base = rows.reduce((a, r) => a + r[2], 0), score = Math.max(0, Math.round(base * m.D.mult));
+  const stars = win ? 1 + (m.lost === 0 ? 1 : 0) + (far ? 1 : 0) : 0;
+  return {rows, score, stars, far, win};
+}
+function showMissionResult() {
+  const m = game.m, r = missionScore(); m.shown = true; state.paused = true; updatePauseButtons();
+  const newBest = r.win ? saveBest(m.def.id, m.diffKey, r.stars, r.score) : false;
+  $('gmResKind').textContent = 'DEFEND ' + m.site.name.toUpperCase() + ' · ' + m.D.label;
+  $('gmResTitle').textContent = r.win ? 'MISSION COMPLETE' : 'MISSION FAILED'; $('gmResTitle').style.color = r.win ? '#7affca' : '#ff8a7a';
+  $('gmResReason').textContent = m.result.reason + ' Time ' + Math.floor(m.result.at / 60) + ':' + String(Math.floor(m.result.at % 60)).padStart(2, '0') + '.';
+  $('gmResStars').innerHTML = starStr(r.stars);
+  $('gmResTable').innerHTML = r.rows.map(x => `<tr><td>${x[0]} <small style="color:#7f9bb0">${x[1]}</small></td><td>${x[2] > 0 ? '+' : ''}${x[2]}</td></tr>`).join('') +
+    `<tr><td>★★ No drone lost to a crash or empty battery</td><td>${m.lost === 0 && r.win ? '✓' : '✗'}</td></tr><tr><td>★★★ Every scout stopped > ${FAR_R / 1000} km from the site</td><td>${r.far && r.win ? '✓' : '✗'}</td></tr>` +
+    `<tr><td><b>SCORE</b> <small style="color:#7f9bb0">× ${m.D.mult} (${m.D.label.toLowerCase()})${newBest ? ' · NEW BEST' : ''}</small></td><td style="font-size:18px">${r.score}</td></tr>`;
+  gmShow('gmResult'); playSfx(r.win ? 'chime' : 'alarm');
+}
+$('gmResRetry').onclick = () => { const m = game.m; restartInto({mode:'mission', id:m.def.id, diff:m.diffKey}); };
+$('gmResMenu').onclick = () => restartInto({mode:'menu'});
+$('gmResSandbox').onclick = () => restartInto({mode:'sandbox'});
+function missionUiTick() {
+  const m = game.m; if (!m || !m.result || m.shown) return;
+  if (!replay.active && performance.now() > m.result.showAt && !state.returning) showMissionResult();
+}
+// ── Boot: menu, or straight into the requested mode (after Retry / Missions / Sandbox) ──
+{
+  let req = null; try { req = JSON.parse(sessionStorage.getItem('dl_start') || 'null'); sessionStorage.removeItem('dl_start'); } catch (e) {}
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('mode') === 'sandbox') { /* tools / direct link: straight into sandbox */ }
+  else if (req && req.mode === 'mission') startMission(req.id, req.diff);
+  else if (req && req.mode === 'menu') { renderMissionList(); gmShow('gmList'); }
+  else if (!(req && req.mode === 'sandbox')) gmShow('gmStart');
+}
+
 requestAnimationFrame(animate);
 
 </script>

@@ -28,6 +28,7 @@ test copy doesn't depend on the CDN).
 | `node landing.js` | Return-to-base from 3.5 km, 8 runs each at 0/8/13 m/s wind: on/off pad, distance from centre, landing time. | 3–5 min |
 | `node traffic.js` | 30 simulated minutes of civil traffic: bank, turn radius, pitch, climb rate, airliner course changes, light-aircraft coverage and lowest height. | ~2 min |
 | `node separation.js` | Mid-air avoidance & collisions: 40 collision-course encounters (every type pair, head-on/crossing/overtake) must be avoided; an unavoidable head-on must explode both; a 95-scout crowd (collisions, stuck circling, NaNs, ms per step); 24 scouts converging on one point, with and without avoidance. `--crowd --minutes --area --band --noavoid` | ~4 min |
+| `node missions.js` | Mission playtest: an auto-player plays every mission × difficulty (launches, patrols, works the gimbal, pursues identified threats, returns home / goes around) and reports win/loss, stars, score, drones. `--diffs easy --missions dam --verbose` (per-scout detection/identification/pursuit times), `--trace 150-240` (state every 2 s), `--gimbal off`. | ~10 min per difficulty |
 | `node shots.js` | Close-ups of every aircraft model and the drone → `out/models.png` + one PNG per view. | ~1 min |
 | `npm test` | Quick set: syntax + smoke + 15-chase benchmark + 12 landings. | ~5 min |
 
@@ -53,6 +54,7 @@ random numbers. Note that the outcome of chase *i* also depends on the chases be
   0–2 near-miss passes). A miss can also be a radar *track loss* (target off radar, estimate dropped). Aim for
   ≥ 25/30 and few weave detections.
 - Landing: 24/24 on the 6.5 m pad, within ~0.6 / 1.4 / 1.8 m of centre at 0 / 8 / 13 m/s wind.
+- Missions (auto-player): Easy 4/4, Normal 3/4, Hard 1/4 won.
 - Traffic: airliners ≤ 25° bank (≥ 2.8 km turn radius), course changes ≤ 35°, climb ≤ 8 m/s; light aircraft 30° bank
   (~600 m radius), pitch ≤ 5°, climb ≤ 4.5 m/s, roam most of the map.
 

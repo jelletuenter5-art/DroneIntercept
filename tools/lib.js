@@ -27,7 +27,7 @@ function args(defaults = {}) {
 const EXPOSE = ['THREE', 'state', 'scouts', 'ambientActors', 'createScout', 'removeScout', 'identifyContact', 'physicsStep', 'SCOUT_SPEC',
   'PAD', 'PAD_HALF', 'acceptRtb', 'env', 'wind', 'createPassengerPlane', 'createLightPlane', 'spawnTransitAirliner', 'removeAmbient',
   'camera', 'renderer', 'scene', 'resetToPad', 'endPursuit', 'terrainHeight', 'craft', 'replay', 'V_DASH', 'V_CRUISE', 'LIGHT_LAYOUT',
-  'zv', 'markCur', 'DRONE_SCALE', 'logEvent', 'AVOID'];
+  'zv', 'markCur', 'DRONE_SCALE', 'logEvent', 'AVOID', 'SITES', 'FLAT', 'terrainNatural', 'game', 'startMission', 'beginMission', 'MISSIONS', 'DIFFS', 'spawnRaider', 'planRaid', 'missionScore', 'showMissionResult', 'isThreatClass', 'hasTrack', 'sensorQuality', 'losPoint', 'blurAmount', 'classifyTick', 'setThermal'];
 
 // Test copy of the game: local three.js if available, seeded Math.random (?seed=N), optional replay suppression
 // (window.__noReplay) and the internals on window.__t. `ref` = a git ref to build an older version for comparison.
@@ -64,7 +64,7 @@ function serve() {
 
 // Launch Chromium (software GL works headless) and open the test page. noRaf: stop the render loop so the physics
 // is the only user of the seeded random numbers → reproducible runs.
-async function openGame(file, { seed = 12345, noRaf = false, noReplay = true, viewport = { width: 1000, height: 600 } } = {}) {
+async function openGame(file, { seed = 12345, noRaf = false, noReplay = true, viewport = { width: 1000, height: 600 }, mode = 'sandbox' } = {}) {
   const exe = process.env.CHROMIUM_PATH || undefined;   // e.g. a system Chrome if Playwright's own browser isn't installed
   const browser = await playwright().chromium.launch({ executablePath: exe, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const server = await serve();
@@ -72,7 +72,7 @@ async function openGame(file, { seed = 12345, noRaf = false, noReplay = true, vi
   const errors = [];
   page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.addInitScript(({ noRaf, noReplay }) => { if (noReplay) window.__noReplay = true; if (noRaf) window.requestAnimationFrame = () => 0; }, { noRaf, noReplay });
-  await page.goto(server.url + file + '?seed=' + seed);
+  await page.goto(server.url + file + '?seed=' + seed + (mode ? '&mode=' + mode : ''));
   await page.waitForFunction(() => window.__t && window.__t.state, null, { timeout: 240000 });   // generous: terrain/forest generation is slow under software GL or when several tests run in parallel
   return { browser, page, errors, close: async () => { await browser.close(); server.close(); } };
 }
