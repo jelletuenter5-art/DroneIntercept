@@ -27,7 +27,7 @@ function args(defaults = {}) {
 const EXPOSE = ['THREE', 'state', 'scouts', 'ambientActors', 'createScout', 'removeScout', 'identifyContact', 'physicsStep', 'SCOUT_SPEC',
   'PAD', 'PAD_HALF', 'acceptRtb', 'env', 'wind', 'createPassengerPlane', 'createLightPlane', 'spawnTransitAirliner', 'removeAmbient',
   'camera', 'renderer', 'scene', 'resetToPad', 'endPursuit', 'terrainHeight', 'craft', 'replay', 'V_DASH', 'V_CRUISE', 'LIGHT_LAYOUT',
-  'zv', 'markCur', 'DRONE_SCALE', 'logEvent', 'AVOID', 'SITES', 'FLAT', 'terrainNatural', 'game', 'startMission', 'beginMission', 'placeFieldPad', 'PAD', 'restY', 'raidBanner', 'guide', 'groundY', 'meshHeight', 'ground', 'MISSIONS', 'DIFFS', 'spawnRaider', 'planRaid', 'missionScore', 'showMissionResult', 'isThreatClass', 'hasTrack', 'sensorQuality', 'losPoint', 'blurAmount', 'classifyTick', 'setThermal'];
+  'zv', 'markCur', 'DRONE_SCALE', 'logEvent', 'AVOID', 'SITES', 'FLAT', 'terrainNatural', 'game', 'startMission', 'beginMission', 'placeFieldPad', 'PAD', 'restY', 'raidBanner', 'guide', 'groundY', 'meshHeight', 'ground', 'MISSIONS', 'DIFFS', 'spawnRaider', 'planRaid', 'missionScore', 'showMissionResult', 'isThreatClass', 'hasTrack', 'sensorQuality', 'losPoint', 'blurAmount', 'classifyTick', 'setThermal', 'ROADS', 'RESERVOIRS', 'isWater', 'missionTick', 'FIRST_RAIDER_T'];
 
 // Test copy of the game: local three.js if available, seeded Math.random (?seed=N), optional replay suppression
 // (window.__noReplay) and the internals on window.__t. `ref` = a git ref to build an older version for comparison.
