@@ -186,7 +186,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
 .gmBigStars{font-size:44px;letter-spacing:.12em;color:#2a3d4c;margin:6px 0}.gmBigStars i{font-style:normal;color:#ffd35a;text-shadow:0 0 18px #ffbf3f88}
 .gmRules{margin:8px 0 0;padding-left:18px;color:#b9cad9}.gmRules li{margin:3px 0}
 @media (max-width:640px){.gmModes,.gmList{grid-template-columns:1fr}}
-#raidWarn{display:none;position:absolute;left:50%;top:96px;transform:translateX(-50%);z-index:14;pointer-events:auto;min-width:340px;padding:10px 22px;border-radius:9px;background:#3a0c10ee;border:1.5px solid #ff6b6b;color:#ffe2e2;font:800 15px ui-monospace,monospace;letter-spacing:.12em;text-align:center;box-shadow:0 8px 30px #000b;transition:opacity .6s}#raidWarn small{display:block;font:700 11px ui-monospace,monospace;color:#ffb3a8;letter-spacing:.06em;margin-top:3px}#raidWarn small+small{opacity:.6;font-weight:600}#raidWarn button{position:absolute;right:6px;top:5px;padding:1px 7px;font:700 12px system-ui;background:#5a1a1f;border:1px solid #ff8a8a;color:#ffe2e2;border-radius:5px;cursor:pointer}#raidWarn.show{display:block;animation:rwPulse 1s ease-in-out 3}@keyframes rwPulse{50%{box-shadow:0 0 0 6px #ff6b6b55,0 8px 30px #000b}}
+#raidWarn{display:none;position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:14;pointer-events:auto;min-width:340px;padding:10px 22px;border-radius:9px;background:#3a0c10ee;border:1.5px solid #ff6b6b;color:#ffe2e2;font:800 15px ui-monospace,monospace;letter-spacing:.12em;text-align:center;box-shadow:0 8px 30px #000b;transition:opacity .6s}#raidWarn small{display:block;font:700 11px ui-monospace,monospace;color:#ffb3a8;letter-spacing:.06em;margin-top:3px}#raidWarn small+small{opacity:.6;font-weight:600}#raidWarn button{position:absolute;right:6px;top:5px;padding:1px 7px;font:700 12px system-ui;background:#5a1a1f;border:1px solid #ff8a8a;color:#ffe2e2;border-radius:5px;cursor:pointer}#raidWarn.show{display:block;animation:rwPulse 1s ease-in-out 3}@keyframes rwPulse{50%{box-shadow:0 0 0 6px #ff6b6b55,0 8px 30px #000b}}
 </style>
 </head>
 <body>
@@ -582,6 +582,15 @@ const SITES = [], FLAT = [];
   for (const s of SITES) s.clear = {village: 230, dam: 130, radar: 100, base: 430}[s.type];
   const b = SITES.find(s => s.type === 'base'); if (b) FLAT.push({x: b.x, z: b.z, y: Math.max(WATER_Y + 6, H(b.x, b.z)), r0: 300, r1: 520});
 })();
+// Height of the *rendered* terrain (the 25 m triangle grid of the terrain mesh) at x,z — in valleys the triangles sit
+// above the exact terrain curve, so things standing on the ground (pads, buildings) use this to not sink in.
+function meshHeight(x, z) {
+  const cell = WORLD / SEG, gx = (x + WORLD / 2) / cell, gz = (z + WORLD / 2) / cell, ix = Math.floor(gx), iz = Math.floor(gz), u = gx - ix, v = gz - iz;
+  const X = i => -WORLD / 2 + i * cell, Z = j => -WORLD / 2 + j * cell;
+  if (u + v <= 1) { const ha = terrainHeight(X(ix), Z(iz)), hb = terrainHeight(X(ix), Z(iz + 1)), hd = terrainHeight(X(ix + 1), Z(iz)); return ha + (hd - ha) * u + (hb - ha) * v; }
+  const hb = terrainHeight(X(ix), Z(iz + 1)), hc = terrainHeight(X(ix + 1), Z(iz + 1)), hd = terrainHeight(X(ix + 1), Z(iz)); return hc + (hb - hc) * (1 - u) + (hd - hc) * (1 - v);
+}
+const groundY = (x, z) => Math.max(meshHeight(x, z), terrainHeight(x, z));   // never below either surface
 const nearSite = (x, z, pad = 0) => SITES.some(s => (x - s.x) ** 2 + (z - s.z) ** 2 < (s.clear + pad) ** 2);
 // Terrain with the forward base levelled (blends back to natural ground between r0 and r1).
 function terrainHeight(x, z) {
@@ -771,7 +780,7 @@ const siteGroup = new THREE.Group(); scene.add(siteGroup);
   // strike targets: the structures a raider must actually hit (world boxes [centre, half extents, yaw]) + its aim point
   const tgt = (s, gx, gz, rot, lx, ly, lz, hx, hy, hz) => { (s.targets = s.targets || []).push({c: new THREE.Vector3(gx + lx * Math.cos(rot) + lz * Math.sin(rot), ly, gz - lx * Math.sin(rot) + lz * Math.cos(rot)), h: [hx, hy, hz], yaw: rot}); };
   const footing = (x, z, w, l, ry) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
-    const px = x + Math.cos(ry) * a * w / 2 + Math.sin(ry) * b * l / 2, pz = z - Math.sin(ry) * a * w / 2 + Math.cos(ry) * b * l / 2, y = terrainHeight(px, pz); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [lo - .6, hi]; };
+    const px = x + Math.cos(ry) * a * w / 2 + Math.sin(ry) * b * l / 2, pz = z - Math.sin(ry) * a * w / 2 + Math.cos(ry) * b * l / 2, y = groundY(px, pz); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [lo - .6, hi]; };
   for (const s of SITES) {
     if (s.type === 'village') {
       const axis = rnd() * Math.PI, houses = [];
@@ -786,7 +795,7 @@ const siteGroup = new THREE.Group(); scene.add(siteGroup);
         const top = hi + ht + 2.6 + w * .18; tgt(s, x, z, ry, 0, (lo + top) / 2, 0, w / 2 + .4, (top - lo) / 2, l / 2 + .4);
       }
       // church: nave + tower + spire near the centre
-      const cy = terrainHeight(s.x, s.z), cr = axis, g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = cr; siteGroup.add(g);
+      const cy = groundY(s.x, s.z), cr = axis, g = new THREE.Group(); g.position.set(s.x, 0, s.z); g.rotation.y = cr; siteGroup.add(g);
       const white = M(0xe9e4d6, .9), roofM = M(0x6e3a2c, .85);
       put(B(10, cy + 9 - (cy - 1.5), 20), white, 0, cy - 1.5, 0, 0, .4, g); put(roofGeo, roofM, 0, cy + 7.5, 0, 0, .35, g).scale.set(11, 4.5, 21);
       put(B(5.5, 20, 5.5), white, 0, cy - 1.5, -12, 0, .4, g); put(new THREE.ConeGeometry(4.2, 9, 4).translate(0, 4.5, 0), M(0x3f4a48, .6, .3), 0, cy + 18.5, -12, Math.PI / 4, .35, g);
@@ -800,7 +809,7 @@ const siteGroup = new THREE.Group(); scene.add(siteGroup);
       for (const sx of [-1, 1]) { put(B(7, 6, 7), M(0xd2cdbf, .85), sx * (len / 2 - 6), s.crest, 0, 0, .42, g); put(new THREE.BoxGeometry(len - 16, 1, .6).translate(0, .5, 0), conc, 0, s.crest + 1.2, sx * 5, 0, .3, g); }   // parapets
       for (let k = -2; k <= 2; k++) put(new THREE.BoxGeometry(6, hgt * .9, 2).translate(0, hgt * .45, 0), M(0x9c9a92, .9), k * len / 7, base, 5.5, 0, .3, g);   // buttresses / spillway piers
     } else if (s.type === 'radar') {
-      const y = terrainHeight(s.x, s.z), g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = rnd() * TAU; siteGroup.add(g);
+      const y = groundY(s.x, s.z), g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = rnd() * TAU; siteGroup.add(g);
       const grey = M(0x8a9089, .8, .2), white = M(0xf1f1ee, .45, .05), gr = g.rotation.y;
       tgt(s, s.x, s.z, gr, 0, y + 6, -6, 6.6, 9, 6.6); tgt(s, s.x, s.z, gr, -10, y + 1.5, 4, 8, 3, 4.5); tgt(s, s.x, s.z, gr, 8, y + 1, 8, 4.5, 2.5, 3.5);
       { const c = s.targets[0].c; s.aim = {x: c.x, y: y + 7, z: c.z, what: 'the radar station'}; }
@@ -1555,9 +1564,13 @@ function buildTerrainCache() {
 function drawMap() {
   const c = $('mapCanvas'); if (!c || !mapOpen) return;
   if (!mapTerrainCache) buildTerrainCache();
-  const ctx = c.getContext('2d');
+  // render at the real display resolution (the canvas used to be a fixed 600 px bitmap stretched → blurry);
+  // all drawing below stays in MAP_SIZE (600) logical units
+  const want = Math.round(clamp((c.clientWidth || MAP_SIZE) * (devicePixelRatio || 1), MAP_SIZE, 2400));
+  if (c.width !== want) { c.width = c.height = want; }
+  const ctx = c.getContext('2d'); ctx.setTransform(c.width / MAP_SIZE, 0, 0, c.width / MAP_SIZE, 0, 0); ctx.imageSmoothingQuality = 'high';
   // 1. terrain background
-  ctx.drawImage(mapTerrainCache, 0, 0);
+  ctx.drawImage(mapTerrainCache, 0, 0, MAP_SIZE, MAP_SIZE);
 
   // 2. (no marker at the target's true position — the map only knows what the radar/track knows)
   const tgt = state.aiTarget;
@@ -1667,7 +1680,7 @@ function drawMap() {
   }
 
   // 7b. Compass rose (north = map up) with the drone's heading on the ring
-  { const R = 38, [bx, by] = worldToMap(ARENA, -ARENA), cx = bx - R - 24, cy = by + R + 26, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
+  { const R = 38, [bx, by] = worldToMap(ARENA, -ARENA), cx = bx - R - 26, cy = by + R + 28, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
     ctx.save(); ctx.translate(cx, cy);
     ctx.fillStyle = 'rgba(8,18,28,.72)'; ctx.strokeStyle = 'rgba(122,255,202,.35)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill(); ctx.stroke();
@@ -1679,13 +1692,13 @@ function drawMap() {
     ctx.fillStyle = 'rgba(200,220,235,.55)'; ctx.beginPath(); ctx.moveTo(0, R - 8); ctx.lineTo(4, 0); ctx.lineTo(-4, 0); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#0a1824'; ctx.beginPath(); ctx.arc(0, 0, 1.6, 0, TAU); ctx.fill();
     ctx.font = 'bold 8px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = 'bold 7px ui-monospace,monospace';
+    ctx.font = 'bold 8.5px ui-monospace,monospace';
     for (let a = 0; a < 360; a += 30) { const r = a * Math.PI / 180;   // bearings 0, 30, 60 … 330 outside the ring
-      ctx.fillStyle = a === 0 ? '#ff8a7e' : a % 90 === 0 ? 'rgba(215,235,248,.9)' : 'rgba(170,205,225,.7)'; ctx.fillText(String(a), Math.sin(r) * (R + 9), -Math.cos(r) * (R + 9)); }
+      ctx.fillStyle = a === 0 ? '#ff8a7e' : a % 90 === 0 ? '#e8f4fb' : 'rgba(200,225,240,.88)'; ctx.fillText(String(a), Math.sin(r) * (R + 11), -Math.cos(r) * (R + 11)); }
     // drone heading marker on the ring
     const hr = hdg * Math.PI / 180; ctx.fillStyle = '#7affca';
     ctx.beginPath(); ctx.moveTo(Math.sin(hr) * (R - 1), -Math.cos(hr) * (R - 1)); ctx.lineTo(Math.sin(hr + .13) * (R + 5), -Math.cos(hr + .13) * (R + 5)); ctx.lineTo(Math.sin(hr - .13) * (R + 5), -Math.cos(hr - .13) * (R + 5)); ctx.closePath(); ctx.fill();
-    ctx.font = '8px ui-monospace,monospace'; ctx.fillStyle = 'rgba(122,255,202,.85)'; ctx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 0, R + 21);
+    ctx.font = 'bold 9px ui-monospace,monospace'; ctx.fillStyle = 'rgba(122,255,202,.85)'; ctx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 0, R + 24);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.restore(); }
   // 8. Status label
   const lbl = $('mapCoordLabel');
@@ -3881,8 +3894,8 @@ const MISSIONS = [
   {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'FOB Kestrel is a forward base {where} — a long flight out from your pad, so every relaunch costs precious time.'}
 ];
 const DIFFS = {
-  easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   arriveFirst:240, gap:[150, 190], pairs:false, kinds:['light', 'heavy', 'light'], warn:'dir',
-          weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance'},
+  easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   arriveFirst:240, gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir',
+          weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance, updated every 20 s'},
   normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', arriveFirst:210, gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound',
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
   hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3800, scoutDiff:'normal',   arriveFirst:210, gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none',
@@ -3932,7 +3945,7 @@ $('menuBtn').onclick = () => { if (state.launchStage === 'active' && !confirm('L
 //    Placed on the flattest dry spot near the site, clear of its buildings (FOB: on the apron). PAD moves there. ──
 function placeFieldPad(S0) {
   const keep = (x, z) => (S0.targets || []).every(T => Math.hypot(T.c.x - x, T.c.z - z) > Math.hypot(T.h[0], T.h[2]) + 18);
-  const slopeAt = (x, z) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-3.5, -3.5], [3.5, -3.5], [3.5, 3.5], [-3.5, 3.5], [0, 0]]) { const y = terrainHeight(x + a, z + b); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [hi - lo, lo, hi]; };
+  const slopeAt = (x, z) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-3.5, -3.5], [3.5, -3.5], [3.5, 3.5], [-3.5, 3.5], [0, 0]]) { const y = groundY(x + a, z + b); lo = Math.min(lo, y); hi = Math.max(hi, y); } return [hi - lo, lo, hi]; };
   let best = null;
   if (S0.fieldPadAt) { const f = S0.fieldPadAt; best = {x: S0.x + f.lx * Math.cos(f.rot) + f.lz * Math.sin(f.rot), z: S0.z - f.lx * Math.sin(f.rot) + f.lz * Math.cos(f.rot)}; }
   else for (let r = 40; r <= Math.max(60, S0.clear - 15); r += 15) for (let k = 0; k < 24; k++) {
@@ -3945,12 +3958,12 @@ function placeFieldPad(S0) {
   const add = (geo, material, x, y, z, heat = .35) => { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); g.add(m); th(m, heat); return m; };
   const mat5 = mat(0x3b4a3f, .9, .05), frame = mat(0x9aa0a4, .5, .6), white = mat(0xe9eef2, .6, .1), yel = mat(0xe8c14a, .6, .1), olive = mat(0x55603f, .85, .1);
   add(new THREE.BoxGeometry(5, .08, 5), mat5, 0, deck - .04, 0, .38);                                        // landing mat
-  for (const [a, b] of [[-2.3, -2.3], [2.3, -2.3], [2.3, 2.3], [-2.3, 2.3]]) { const gy = terrainHeight(best.x + a, best.z + b), hgt = deck - gy;   // adjustable legs
+  for (const [a, b] of [[-2.3, -2.3], [2.3, -2.3], [2.3, 2.3], [-2.3, 2.3]]) { const gy = groundY(best.x + a, best.z + b), hgt = deck - gy;   // adjustable legs
     add(new THREE.CylinderGeometry(.05, .07, hgt + .3, 6).translate(0, (hgt + .3) / 2 - .3, 0), frame, a, gy, b, .3); }
   for (const [w, d, x, z] of [[5, .12, 0, -2.44], [5, .12, 0, 2.44], [.12, 5, -2.44, 0], [.12, 5, 2.44, 0]]) add(new THREE.BoxGeometry(w, .02, d), yel, x, deck + .01, z, .35);   // border
   { const ring = add(new THREE.RingGeometry(1.35, 1.5, 40).rotateX(-Math.PI / 2), white, 0, deck + .015, 0, .35);
     add(new THREE.BoxGeometry(.18, .02, 1.1), white, -.4, deck + .015, 0); add(new THREE.BoxGeometry(.18, .02, 1.1), white, .4, deck + .015, 0); add(new THREE.BoxGeometry(.8, .02, .18), white, 0, deck + .015, 0); }
-  const gy = x => terrainHeight(best.x + x[0], best.z + x[1]);
+  const gy = x => groundY(best.x + x[0], best.z + x[1]);
   add(new THREE.BoxGeometry(1.2, .55, .6).translate(0, .275, 0), olive, -4.2, gy([-4.2, -1]), -1, .4);        // transport cases
   add(new THREE.BoxGeometry(1.0, .5, .55).translate(0, .25, 0), olive, -4.1, gy([-4.1, .2]), .2, .4);
   add(new THREE.BoxGeometry(.8, .45, .5).translate(0, .225, 0), mat(0x2b2f33, .6, .3), 4.1, gy([4.1, -1.2]), -1.2, .55);   // charger
@@ -4016,9 +4029,10 @@ function planRaider(kind, ang) {
   // loiter / search legs: two points sweeping sideways round the outer ring (3.0-3.8 km out, lowest ground of a few
   // candidates — valleys), then an initial point ~2.4 km out on the lowest approach, then the run at the site
   const ring = (a, r) => ({x: clamp(S0.x + Math.cos(a) * r, -lim2, lim2), z: clamp(S0.z + Math.sin(a) * r, -lim2, lim2)});
-  const l1 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400, 3800].map(r => ring(aE + side * o, r))));
-  const a1 = Math.atan2(l1.z - S0.z, l1.x - S0.x), l2 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400].map(r => ring(a1 + side * o, r))));
-  const a2 = Math.atan2(l2.z - S0.z, l2.x - S0.x), ip = lowestOf([-.45, -.2, 0, .2, .45].map(o => ring(a2 + o, 2400)));
+  const sw = game.m.D.sweep ?? 1;   // Easy: much narrower sideways sweep (the warned bearing stays useful)
+  const l1 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400, 3800].map(r => ring(aE + side * o * sw, r))));
+  const a1 = Math.atan2(l1.z - S0.z, l1.x - S0.x), l2 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400].map(r => ring(a1 + side * o * sw, r))));
+  const a2 = Math.atan2(l2.z - S0.z, l2.x - S0.x), ip = lowestOf([-.45, -.2, 0, .2, .45].map(o => ring(a2 + o * sw, 2400)));
   const A = S0.aim || {x: S0.x, y: terrainHeight(S0.x, S0.z) + 5, z: S0.z};
   const D = game.m.D, speed = Math.min(SCOUT_SPEC[kind].speed * (D.scoutDiff === 'easy' ? .82 : D.scoutDiff === 'hard' ? 1.15 : 1), 101);
   const travel = (Math.hypot(l1.x - ex, l1.z - ez) + Math.hypot(l2.x - l1.x, l2.z - l1.z) + Math.hypot(ip.x - l2.x, ip.z - l2.z)) * 1.12 / speed;   // +12 % for turns
@@ -4039,28 +4053,41 @@ function spawnRaider(p) {
   s.band = band; s.raid = {legs:p.legs, leg:-1, aim:p.aim}; chooseScoutWaypoint(s);
   const l1 = p.legs[0]; s.hdg = Math.atan2(-(l1.x - p.ex), -(l1.z - p.ez)); s.yaw = s.hdg; s.vel.set(-Math.sin(s.hdg) * s.speed, 0, -Math.cos(s.hdg) * s.speed);
   m.raid.push(s); m.spawned++;
-  const L = Math.hypot(p.ex - S0.x, p.ez - S0.z), brg = (Math.atan2(p.ex - S0.x, -(p.ez - S0.z)) * 180 / Math.PI + 360) % 360;
-  const brgTxt = 'BEARING ' + String(Math.round(brg) % 360).padStart(3, '0') + '° (' + compass(brg) + ') FROM ' + S0.name.toUpperCase() + ' · ' + (L / 1000).toFixed(1) + ' KM';
-  const mt = Math.floor(m.t), clock = Math.floor(mt / 60) + ':' + String(mt % 60).padStart(2, '0');
-  if (D.warn === 'dir') { radioMessage('RAID WARNING · CONTACT INBOUND · ' + brgTxt); raidBanner('⚠ RAID WARNING', clock + ' · CONTACT INBOUND · ' + brgTxt); }
-  else if (D.warn === 'inbound') { radioMessage('RAID WARNING · CONTACT INBOUND'); raidBanner('⚠ RAID WARNING', clock + ' · CONTACT INBOUND'); }
+  if (D.warn !== 'none') { s.warnNo = m.spawned; s.warnAt = m.t; s.warnPos = s.pos.clone(); raidWarnings.unshift(s); raidWarnings.length = Math.min(raidWarnings.length, 4);
+    radioMessage('RAID WARNING · CONTACT ' + s.warnNo + ' INBOUND' + (D.warn === 'dir' ? ' · ' + warnBearing(s) : '')); renderRaidBanner(true); }
   return s;
 }
-// Raid-warning banner (top centre, pulses + alarm). Stays up until the mission ends or the operator closes it (✕);
-// further warnings are added on top (newest first, last 4 kept). The radio line also goes into the log.
+// Raid-warning banner (top centre, pulses + alarm on a new contact). One line per warned raider (newest first, last 4).
+// Easy: bearing + distance from the site, refreshed every 20 s from the early-warning radar (so a loiter sweep can't
+// mislead you) until that raider is down — then its line goes. Normal: 'CONTACT n INBOUND'. Stays up until the
+// mission ends or the operator clicks ✕. The radio line also goes into the log.
 const raidWarnings = [];
-function raidBanner(title, text) {
-  raidWarnings.unshift(text); raidWarnings.length = Math.min(raidWarnings.length, 4);
-  const el = $('raidWarn'); el.innerHTML = '<button title="Close">✕</button>' + title + raidWarnings.map(w => '<small>' + w + '</small>').join('');
+const fmtClock = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+function warnBearing(s) {
+  const S0 = game.m.site, p = s.warnPos, L = Math.hypot(p.x - S0.x, p.z - S0.z), brg = (Math.atan2(p.x - S0.x, -(p.z - S0.z)) * 180 / Math.PI + 360) % 360;
+  return 'BEARING ' + String(Math.round(brg) % 360).padStart(3, '0') + '° (' + compass(brg) + ') · ' + (L / 1000).toFixed(1) + ' KM FROM ' + S0.name.toUpperCase();
+}
+function renderRaidBanner(alarm) {
+  const el = $('raidWarn'), m = game.m;
+  for (let i = raidWarnings.length - 1; i >= 0; i--) if (raidWarnings[i].raidDone || raidWarnings[i].destroyed) raidWarnings.splice(i, 1);
+  if (!raidWarnings.length || !m) { el.classList.remove('show'); return; }
+  el.innerHTML = '<button title="Close">✕</button>⚠ RAID WARNING' + raidWarnings.map(s => '<small>CONTACT ' + s.warnNo + ' · ' +
+    (m.D.warn === 'dir' ? warnBearing(s) + ' · <i>' + (m.t - s.warnAt < 2 ? 'NEW' : 'updated ' + Math.round(m.t - s.warnAt) + ' s ago') + '</i>' : 'INBOUND · ' + fmtClock(s.warnAt)) + '</small>').join('');
   el.querySelector('button').onclick = closeRaidBanner;
-  el.style.opacity = 1; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); playSfx('alarm');
+  if (alarm) { el.classList.remove('show'); void el.offsetWidth; playSfx('alarm'); }
+  el.classList.add('show');
+}
+function updateRaidWarnings() {   // from missionTick: refresh Easy bearings every 20 s, drop raiders that are down
+  const m = game.m; if (!m || !$('raidWarn').classList.contains('show')) return;
+  if (m.D.warn === 'dir') for (const s of raidWarnings) if (m.t - s.warnAt >= 20 && !s.destroyed) { s.warnAt = m.t; s.warnPos = s.pos.clone(); }
+  if ((m.uiT = (m.uiT || 0) + 1) % 120 === 0 || raidWarnings.some(s => s.destroyed || s.raidDone)) renderRaidBanner(false);
 }
 function closeRaidBanner() { raidWarnings.length = 0; $('raidWarn').classList.remove('show'); }
 function missionTick(h) {
   const m = game.m; if (!m || !m.running || m.result) return;
   m.t += h;
   while (m.spawned < m.total && m.t >= m.plan[m.spawned].spawnT) spawnRaider(m.plan[m.spawned]);
-  countRaidDowns(m);
+  countRaidDowns(m); updateRaidWarnings();
   for (const s of m.raid) if (!s.raidDone && !s.destroyed && hDist(s.pos, m.site) < 700 && raiderHitsSite(s, m.site, h)) { siteStrike(s); return; }
   if (m.downed >= m.total) finishMission(true, 'All ' + m.total + ' scouts stopped before they reached ' + m.site.name + '.');
 }
@@ -4134,6 +4161,9 @@ $('gmResRetry').onclick = () => { const m = game.m; restartInto({mode:'mission',
 $('gmResMenu').onclick = () => restartInto({mode:'menu'});
 $('gmResSandbox').onclick = () => restartInto({mode:'sandbox'});
 function missionUiTick() {
+  { const rw = $('raidWarn'); if (rw.classList.contains('show')) {   // stay clear of the contact readout / TERMINATE button
+      let top = 10; for (const id of ['contactReadout', 'abortBtn']) { const e = $(id); if (e && e.offsetParent && getComputedStyle(e).display !== 'none') top = Math.max(top, e.offsetTop + e.offsetHeight + 6); }
+      rw.style.top = top + 'px'; } }
   const m = game.m; if (!m || !m.result || m.shown) return;
   if (!replay.active && performance.now() > m.result.showAt && !state.returning) showMissionResult();
 }
