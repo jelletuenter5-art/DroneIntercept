@@ -1,0 +1,19 @@
+{
+  "name": "droneintercept-tools",
+  "private": true,
+  "description": "Test, benchmark and screenshot tools for Alpine Drone Lab (index.html)",
+  "scripts": {
+    "syntax": "node check-syntax.js",
+    "smoke": "node smoke.js",
+    "bench": "node bench.js",
+    "landing": "node landing.js",
+    "traffic": "node traffic.js",
+    "shots": "node shots.js",
+    "test": "node check-syntax.js && node smoke.js && node bench.js --n 15 && node landing.js --per 4"
+  },
+  "devDependencies": {
+    "acorn": "^8.11.0",
+    "playwright": "^1.45.0",
+    "three": "0.160.0"
+  }
+}

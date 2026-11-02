@@ -1036,7 +1036,7 @@ function updateAircraftLights() {
 }
 function createPassengerPlane(x, y, z, planeType) {
   const t = planeType !== undefined ? planeType : Math.floor(Math.random() * 3);
-  const g = new THREE.Group(); scene.add(g);
+  const g = new THREE.Group(); g.rotation.order = 'YXZ'; scene.add(g);
   const livery = LIVERIES[Math.floor(Math.random() * LIVERIES.length)];
   const built = PLANE_BUILDERS[t](g, livery);
   g.scale.setScalar(PLANE_SCALES[t]); registerGroup(g, .28, true); g.position.set(x, y, z);
@@ -1875,21 +1875,37 @@ function stepBird(a, h) {
 // and pick a new destination toward the middle before they would cross the border — nothing leaves the map.
 function stepPlane(a, h) {
   if (a.hdg === undefined) a.hdg = a.yaw;
-  if (a.transit) {                                         // straight through the area at cruise speed, then gone
-    a.bank = 0; a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
+  if (a.transit) {
+    // Through-traffic: crosses the area, but like real traffic it changes course now and then (ATC vectors) —
+    // gentle coordinated turns, ≤ 25° bank, roll ~3°/s → ~3 km turn radius at 120 m/s. Every new heading stays
+    // within ±35° of the original one, so it still passes through and leaves (its turns may run off the map).
+    if (a.baseHdg === undefined) { a.baseHdg = a.hdg; a.tgtHdg = a.hdg; a.turnT = 15 + Math.random() * 35; }
+    a.turnT -= h;
+    if (a.turnT <= 0) { a.turnT = 30 + Math.random() * 45; a.tgtHdg = a.baseHdg + (Math.random() * 2 - 1) * .61; }
+    const bankCmd = clamp(wrapAngle(a.tgtHdg - a.hdg) * 1.3, -.44, .44);
+    a.bank = moveToward(a.bank || 0, bankCmd, .05 * h);
+    a.hdg += 9.81 * Math.tan(a.bank) / a.speed * h;
+    a.vel.set(-Math.sin(a.hdg) * a.speed, 0, -Math.cos(a.hdg) * a.speed); a.yaw = a.hdg;
     a.pos.x += (a.vel.x + wind.x) * h; a.pos.z += (a.vel.z + wind.z) * h;
-    a.altPhase += h * .06; const ty = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 250, 800), py = a.pos.y;
-    a.pos.y += (ty - a.pos.y) * (1 - Math.exp(-0.4 * h)); a.vel.y = (a.pos.y - py) / h;
+    a.altPhase += h * .06; const ty = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 250, 800);
+    a.vy = moveToward(a.vy || 0, clamp((ty - a.pos.y) * .15, -8, 8), 1.5 * h); a.pos.y += a.vy * h; a.vel.y = a.vy;   // ≤ 8 m/s (~1600 ft/min)
+    a.pitch = damp(a.pitch || 0, .04 + Math.atan2(a.vel.y, a.speed), 1.5, h);   // ~2° nose-up cruise attitude + climb/descent
     if (Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z)) > ARENA + 1800 && a.pos.x * a.vel.x + a.pos.z * a.vel.z > 0) a.gone = true;
     return;
   }
-  const fx = -Math.sin(a.hdg), fz = -Math.cos(a.hdg), lookX = a.pos.x + fx * a.speed * 40, lookZ = a.pos.z + fz * a.speed * 40;
-  const leaving = Math.max(Math.abs(lookX), Math.abs(lookZ)) > ARENA - 300;   // ~40 s look-ahead: turn circle is ~1 km
+  // Border look-ahead ≈ 1.7 turn radii (light aircraft: ~600 m radius at 30° bank) — enough to turn back in
+  // time (a turn back inwards needs ~1 radius of room ahead) without herding them all into the middle.
+  const rTurn = a.speed * a.speed / (9.81 * Math.tan(a.maxBank || .44)), look = Math.max(900, 1.7 * rTurn);
+  const fx = -Math.sin(a.hdg), fz = -Math.cos(a.hdg), lookX = a.pos.x + fx * look, lookZ = a.pos.z + fz * look;
+  const leaving = Math.max(Math.abs(lookX), Math.abs(lookZ)) > ARENA - 300;
   const out = Math.max(Math.abs(a.pos.x), Math.abs(a.pos.z));
   if (out > ARENA - 250 && !a.returning) { a.returning = true; a.goal = {x:randInside(ARENA * .5), z:randInside(ARENA * .5)}; }   // crossed → back in
   if (a.returning && out < ARENA - 700) a.returning = false;
-  if (!a.goal || Math.hypot(a.goal.x - a.pos.x, a.goal.z - a.pos.z) < 700 || (leaving && !a.turningIn && !a.returning)) {
-    a.goal = leaving ? {x:randInside(ARENA * .55), z:randInside(ARENA * .55)} : {x:randInside(900), z:randInside(900)}; a.turningIn = leaving;
+  if (!a.goal || Math.hypot(a.goal.x - a.pos.x, a.goal.z - a.pos.z) < (a.type === 'cessna' ? 350 : 700) || (leaving && !a.turningIn && !a.returning)) {
+    // destinations anywhere up to 900 m from the border (randInside takes the margin), at least 1.2 km away
+    let gx = randInside(900), gz = randInside(900);
+    for (let k = 0; k < 6 && !leaving && Math.hypot(gx - a.pos.x, gz - a.pos.z) < 1200; k++) { gx = randInside(900); gz = randInside(900); }
+    a.goal = leaving ? {x:randInside(ARENA * .55), z:randInside(ARENA * .55)} : {x:gx, z:gz}; a.turningIn = leaving;
   }
   if (!leaving) a.turningIn = false;
   const bankLim = (a.maxBank || .44) * (a.returning ? 1.35 : 1);
@@ -1901,9 +1917,14 @@ function stepPlane(a, h) {
   a.pos.x = clamp(a.pos.x, -ARENA - 400, ARENA + 400); a.pos.z = clamp(a.pos.z, -ARENA - 400, ARENA + 400);   // invisible backstop
   a.altPhase += h * .06;
   let targetY;
-  if (a.type === 'cessna') targetY = terrainHeight(a.pos.x, a.pos.z) + a.agl + Math.sin(a.altPhase) * a.altAmp;   // light aircraft: height above ground
-  else targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);                                // airliner: 200–600 m
-  const py = a.pos.y; a.pos.y += (targetY - a.pos.y) * (1 - Math.exp(-0.4 * h)); a.vel.y = (a.pos.y - py) / h;
+  let vyMax = 8, vyMin = -8;
+  if (a.type === 'cessna') {   // light aircraft: height above the highest ground ~1.2 km ahead; climbs ≤ 3.5 m/s (~700 ft/min), descends ≤ 4.5
+    let gnd = terrainHeight(a.pos.x, a.pos.z); for (const d of [300, 600, 900, 1200]) gnd = Math.max(gnd, terrainHeight(a.pos.x + fx * d, a.pos.z + fz * d));
+    targetY = gnd + a.agl + Math.sin(a.altPhase) * a.altAmp; vyMax = a.pos.y < terrainHeight(a.pos.x, a.pos.z) + 50 ? 6 : 3.5; vyMin = -4.5;
+  } else targetY = clamp(a.altBase + Math.sin(a.altPhase) * a.altAmp, 200, 600);                                // airliner: 200–600 m
+  a.vy = moveToward(a.vy || 0, clamp((targetY - a.pos.y) * .2, vyMin, vyMax), 1.2 * h); a.pos.y += a.vy * h; a.vel.y = a.vy;
+  { const gl = terrainHeight(a.pos.x, a.pos.z) + 30; if (a.pos.y < gl) { a.pos.y = gl; a.vy = a.vel.y = Math.max(a.vy, 0); } }   // never into the ground
+  a.pitch = damp(a.pitch || 0, (a.type === 'cessna' ? .03 : .04) + Math.atan2(a.vel.y, a.speed), 1.5, h);   // nose follows the climb/descent
 }
 function updateWorld(h) {
   for (let i = scouts.length - 1; i >= 0; i--) { const s = scouts[i]; if (s.destroyed) { if (state.time > s.removeAt) removeScout(s); } else stepScout(s, h); }
@@ -2221,8 +2242,10 @@ function attackGuidance(t, G) {
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   if (a.phase === 'headon') {
     const tg = interceptTime(rx, ry, rz, tv, Math.max(V_CRUISE, state.cruiseSpeed));
-    G.aim.set(t.pos.x + tv.x * tg, 0, t.pos.z + tv.z * tg); G.alt = t.pos.y + tv.y * tg;
-    G.speed = Math.max(V_CRUISE, state.cruiseSpeed); G.tau = 1.2; G.ff = 1; G.terminal = R3 < 250;
+    // Height: its current altitude + copy its climb rate once (the vertical law adds G.vy·ff) and close the gap well
+    // before contact. (Aiming at its *future* altitude as well counted its climb twice → ~9 m misses above/below.)
+    G.aim.set(t.pos.x + tv.x * tg, 0, t.pos.z + tv.z * tg); G.alt = t.pos.y;
+    G.speed = Math.max(V_CRUISE, state.cruiseSpeed); G.tau = clamp(tg * .35, .4, 1.2); G.ff = 1; G.terminal = R3 < 250;
     if (R3 < 900) {   // last stretch: proportional navigation nulls the line-of-sight rotation → metre-level miss distance
       const R2 = rx * rx + rz * rz, losRate = (rz * vx - rx * vz) / Math.max(1, R2), Vc = Math.max(2, -(rx * vx + rz * vz) / R);
       G.rateCmd = 4 * Vc * losRate / Math.max(V_MIN, state.cruiseSpeed); G.aim.set(t.pos.x, 0, t.pos.z);
@@ -2886,7 +2909,7 @@ function physicsStep(h) {
   // Confirmed pursuit of a bird flock or airliner ends in a collision too.
   if (state.pursuitMode && tgt && tgt.isAmbient) {
     // airliners / light aircraft: their real airframe hit boxes; bird flock: 10 m around its centre
-    if (tgt.hit ? hitsAirframe(tgt, tgt.hit, 0, tgt.yaw, tgt.bank || 0) : state.pos.distanceTo(tgt.pos) < 10) {
+    if (tgt.hit ? hitsAirframe(tgt, tgt.hit, tgt.pitch || 0, tgt.yaw, tgt.bank || 0) : state.pos.distanceTo(tgt.pos) < 10) {
       state.tagCount++;
       const name = CLS_NAME[truthClass(tgt)];
       state.civilianIncidents = (state.civilianIncidents || 0) + 1;
@@ -2995,7 +3018,7 @@ function stepReplay(rdt) {
     for (const o of a.objs) {
       const ob = b.objs.find(x => x[0] === o[0]) || o, g = o[0].group; g.visible = true;
       g.position.set(lerp(o[1], ob[1], k), lerp(o[2], ob[2], k), lerp(o[3], ob[3], k));
-      if (o[0].isScout) g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); else if (o[0].type === 'birds') g.rotation.y = o[4]; else g.rotation.set(0, o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k));
+      if (o[0].isScout) g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); else if (o[0].type === 'birds') g.rotation.y = o[4]; else g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k));
     }
   }
   // Target position at this replay time (it is always in the recording; fall back to the impact point).
@@ -3115,7 +3138,7 @@ function updateVisuals(alpha, rdt) {
   }
   for (const a of ambientActors) {
     a.group.position.lerpVectors(a.prev, a.pos, alpha);
-    if (a.type === 'birds') a.group.rotation.y = a.yaw; else a.group.rotation.set(0, a.yaw, a.bank || 0);
+    if (a.type === 'birds') a.group.rotation.y = a.yaw; else a.group.rotation.set(a.pitch || 0, a.yaw, a.bank || 0);
     if (a.propeller) a.propeller.rotation.z += 60 * rdt;
     if (a.type === 'birds') for (const b of a.group.children) { const f = Math.sin(state.time * 11 + b.userData.phase) * .38; b.userData.wings[0].rotation.z = -.16 - f; b.userData.wings[1].rotation.z = .16 + f; }
   }
