@@ -56,7 +56,7 @@ b.ok{color:#7affca}b.bad{color:#ff6b6b}b.mid{color:#ffd27a}b.thr{color:#ff9a6b}b
 header{padding:0 10px!important;gap:10px!important}.brand{font-size:11px!important}.status{font-size:10.5px!important;gap:6px!important;overflow:hidden;white-space:nowrap}
 .tb{display:flex;gap:4px;flex:0 0 auto}.tb button{height:26px;padding:0 9px;font:600 11px system-ui,sans-serif;border-radius:5px;background:#132131;border:1px solid #2c4256}
 .tb button.active{background:#17416a;border-color:var(--blue)}.tb button:disabled{opacity:.35}
-.tb button.home{background:#0f2a24;border-color:#2f6b58;color:#9fffd8}.tb button.home.on{background:#3a2a10;border-color:#d9a441;color:#ffd58a}
+.tb button.home{background:#0f2a24;border-color:#2f6b58;color:#9fffd8}.tb button.eject{background:#2a1214;border-color:#7a3236;color:#ffb3b3}.tb button.eject.arm{background:#b3262e;border-color:#ff6b6b;color:#fff}.tb button.home.on{background:#3a2a10;border-color:#d9a441;color:#ffd58a}
 #settingsDrawer{display:none;position:absolute;top:10px;right:10px;width:330px;max-height:calc(100% - 20px);overflow:auto;z-index:40;pointer-events:auto;background:#07131df5;border:1px solid #3c6174;border-radius:10px;box-shadow:0 10px 34px #000a;font:11px system-ui,sans-serif;color:#cfe6f5}
 #settingsDrawer.open{display:block}.sdHead{display:flex;align-items:center;gap:6px;padding:8px 8px 0;position:sticky;top:0;background:#07131df5}
 .sdTabs{display:flex;gap:3px;flex:1}.sdTabs button{flex:1;padding:5px 0;font:600 11px system-ui,sans-serif;border-radius:6px 6px 0 0;background:#0e1d2a;border:1px solid #2c4256;border-bottom:0;color:#9fb8cc}
@@ -216,7 +216,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <div class="brand"><span>VTOL</span> DRONE LAB</div>
   <div class="status"><span class="dot"></span><span id="simStatus">SIM RUNNING</span><span id="thermalBadge">· THERMAL</span><span class="wide" id="weatherHud">DAY / CLEAR</span></div>
   <div class="tb">
-    <button id="menuBtn" title="Main menu (sandbox / missions)">☰ Menu</button><button id="homeBtn" class="home" disabled title="Return to base now (B)">⌂ Home</button><button id="cameraBtn" title="Cycle camera view (C)">Behind</button><button id="thermalBtn" title="Thermal sensor (T)">Thermal</button>
+    <button id="menuBtn" title="Main menu (sandbox / missions)">☰ Menu</button><button id="homeBtn" class="home" disabled title="Return to base now (B)">⌂ Home</button><button id="ejectBtn" class="eject" disabled title="Emergency abort (K, press twice): cut the motors — the drone falls like with an empty battery and is lost">⚠ Abort</button><button id="cameraBtn" title="Cycle camera view (C)">Behind</button><button id="thermalBtn" title="Thermal sensor (T)">Thermal</button>
     <button id="recordBtn" title="Record telemetry (CSV on stop)">● Rec</button><button id="replayBtn" disabled title="Replay last impact">⟲ Replay</button>
     <button id="pauseBtn" title="Pause / resume (Space)">Pause</button><button id="settingsBtn" title="Settings & controls (H)">⚙</button>
   </div>
@@ -293,6 +293,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
           <tr class="sbOnly"><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
+          <tr><td><kbd>K</kbd></td><td>Emergency abort (also ⚠ Abort in the header) — press twice: motors off, the drone falls and is lost (counts as a lost drone; crashing into a building is a civilian incident); short replay, then the next drone on the pad</td></tr>
           <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (also ⌂ Home in the header) · press again en route to cancel · during the landing: go around (abort and fly on)</td></tr>
           <tr><th colspan="2">Gimbal camera</th></tr>
           <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td>Aim (or drag inside the camera window)</td></tr>
@@ -1211,10 +1212,15 @@ let lampGlow = null; const LAMP_PTS = [];   // street-lamp glow points (night on
         const geo = new THREE.ExtrudeGeometry(sh, {depth: len, bevelEnabled: false}).translate(0, 0, -len / 2).rotateY(-Math.PI / 2);
         put(geo, conc, mid, base, 0, 0, .3, g); }                                                                        // dam wall
       tgt(s, s.x, s.z, -s.ang, mid, (base + crest) / 2 + .6, (3 - toe) / 2, len / 2, hgt / 2 + 1.8, (3 + toe) / 2 + .5);
-      s.aim = {x: s.x - R.ux * 6, y: crest - 5, z: s.z - R.uz * 6, what: 'the dam wall'};
+      // aim: the top of the wall (it was 6 m out on the lake side, 2 m *under* the water — unreachable, raiders skimmed the
+      // water and flew over the crest); the wall's hit box reaches up to the parapets
+      s.aim = {x: s.x + R.ux * .5, y: crest - .5, z: s.z + R.uz * .5, what: 'the dam wall'};
       put(new THREE.BoxGeometry(len, .5, 7.4).translate(0, .25, 0), M(0x5b5d5e, .8), mid, crest, -.5, 0, .3, g);     // crest road
       for (const sz of [-4, 3]) put(new THREE.BoxGeometry(len - 4, 1.1, .5).translate(0, .55, 0), conc, mid, crest + .5, sz, 0, .3, g);   // parapets
-      for (const sx of [-1, 1]) put(B(6, 5, 6), M(0xd2cdbf, .85), mid + sx * (len / 2 - 12), crest + .5, -.5, 0, .42, g);          // gate houses
+      for (const sx of [-1, 1]) { const gx = mid + sx * (len / 2 - 12);                                              // gate houses: small, with a roof
+        put(B(4.6, 3.2, 4), M(0xd2cdbf, .85), gx, crest + .5, -.5, 0, .42, g);
+        put(new THREE.ConeGeometry(3.6, 1.6, 4).rotateY(Math.PI / 4).translate(0, .8, 0), M(0x5a4b42, .8), gx, crest + 3.7, -.5, 0, .38, g);
+        put(B(1.1, 2, .08), M(0x40464c, .6, .3), gx, crest + .5, -2.55, 0, .35, g); }   // door on the road side
       { const sl = Math.hypot(toe - 4, hgt - 4); put(new THREE.BoxGeometry(10, .6, sl + 1), M(0xcfd2cc, .7), 7, base + (hgt - 4) / 2, -(4 + toe) / 2 - .3, 0, .3, g)
           .rotation.x = -Math.atan2(hgt - 4, toe - 4); }                                                             // spillway chute
       for (const cx of [1.6, 12.4]) put(B(1.2, hgt - 2, toe - 2), concD, cx, base, -toe / 2 - 1.5, 0, .3, g);        // chute walls
@@ -1849,6 +1855,7 @@ function openSettings(tab) {
 function closeSettings() { $('settingsDrawer').classList.remove('open'); }
 for (const b of document.querySelectorAll('.sdTabs button')) b.onclick = () => openSettings(b.dataset.tab);
 $('homeBtn').onclick = () => homeButton();
+$('ejectBtn').onclick = () => emergencyAbort();
 $('settingsBtn').onclick = () => $('settingsDrawer').classList.contains('open') ? closeSettings() : openSettings();
 $('sdClose').onclick = closeSettings;
 
@@ -2289,6 +2296,7 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'z') { zv.open = !zv.open; $('zoomView').classList.toggle('hidden', !zv.open); }
   if (e.key.toLowerCase() === 'v') gimbalCentre();
   if (e.key.toLowerCase() === 'b') homeButton();
+  if (e.key.toLowerCase() === 'k') emergencyAbort();
   if (e.key.toLowerCase() === 'u') { audio.vol.muted = !audio.vol.muted; $('volMute').checked = audio.vol.muted; applyAudioVolumes(); logEvent(audio.vol.muted ? 'Sound muted' : 'Sound on'); }
   if (e.key.toLowerCase() === 'h') { $('settingsDrawer').classList.contains('open') ? closeSettings() : openSettings('controls'); }
   if (e.key === 'Escape' && $('settingsDrawer').classList.contains('open')) closeSettings();
@@ -3460,7 +3468,7 @@ function showDebrief(reason) {
   const idRows = ids.map(i => { const c = i.c, tr = truthClass(c), ok = c.guess === tr; return {c, ok, tr}; });
   const calls = [...m.calls.values()].map(k => { const tr = truthClass(k.c), ok = (k.c.userMark === 'threat') === isThreatClass(tr); return {...k, tr, ok, mark:k.c.userMark}; });
   const idOk = idRows.filter(r => r.ok).length, callOk = calls.filter(r => r.ok).length, callBad = calls.length - callOk;
-  const lost = reason === 'battery';
+  const lost = reason === 'battery' || reason === 'abort';
   const score = m.hits * 100 + idOk * 10 + callOk * 25 - callBad * 40 - m.incidents * 250 + (reason === 'landed' ? 50 : 0) - (lost ? 150 : 0) - m.crashes * 75;
   const badge = reason === 'landed' ? ['LANDED SAFELY', 'ok'] : reason === 'intercept' ? (m.incidents ? ['CIVILIAN INCIDENT', 'bad'] : ['TARGET NEUTRALISED', 'ok']) : ['AIRCRAFT LOST', 'bad'];
   const row = (cells, cls = '') => `<tr class="${cls}">${cells.map(x => `<td>${x}</td>`).join('')}</tr>`;
@@ -3505,9 +3513,9 @@ function drawDebriefMap(m) {
   // end of mission: collision ✕ / landed ✓ / aircraft lost ✕ (red)
   const [ex, ez] = P(m.end[0], m.end[1]);
   if (m.reason !== 'landed') {
-    const col = m.reason === 'battery' ? '#ff6b6b' : m.incidents ? '#ff6b6b' : '#ffd27a';
+    const col = m.reason === 'battery' || m.reason === 'abort' ? '#ff6b6b' : m.incidents ? '#ff6b6b' : '#ffd27a';
     x.strokeStyle = col; x.lineWidth = 3; x.beginPath(); x.moveTo(ex - 7, ez - 7); x.lineTo(ex + 7, ez + 7); x.moveTo(ex + 7, ez - 7); x.lineTo(ex - 7, ez + 7); x.stroke();
-    x.fillStyle = col; x.font = 'bold 9px ui-monospace,monospace'; x.fillText(m.reason === 'battery' ? 'AIRCRAFT LOST' : 'COLLISION', ex, ez - 11);
+    x.fillStyle = col; x.font = 'bold 9px ui-monospace,monospace'; x.fillText(m.reason === 'battery' ? 'AIRCRAFT LOST' : m.reason === 'abort' ? 'ABORTED' : 'COLLISION', ex, ez - 11);
   }
   x.strokeStyle = 'rgba(255,120,100,.6)'; x.setLineDash([5, 4]); x.strokeRect(1, 1, W - 2, W - 2); x.setLineDash([]);
 }
@@ -3559,18 +3567,29 @@ function homeButton() {
   if (!state.rtb) acceptRtb();
   else if (state.rtb === 'enroute') { state.rtb = false; state.searchWp = null; state.searchTimer = 0; state.aiThink = 0; radioMessage('RETURN TO BASE CANCELLED · RESUMING SEARCH'); }
 }
+// Emergency abort (on request): cut the motors — the drone falls exactly like with an empty battery (stepPowerLoss),
+// a short replay of the crash follows, then the next drone waits on the pad. Press twice within 3 s (no accidents).
+function canAbort() { return (state.launchStage === 'active' || state.launchStage === 'takeoff') && !state.batteryDead && !state.crashed && !state.returning && !replay.active; }
+function emergencyAbort() {
+  if (!canAbort()) return;
+  if (!(state.abortArmUntil > performance.now())) { state.abortArmUntil = performance.now() + 3000; logEvent('EMERGENCY ABORT · press again to cut the motors', 'warn'); updateHomeBtn(); return; }
+  state.abortArmUntil = 0; state.aborting = true; state.rtb = false; state.landAim = null; $('rtbCard').className = '';
+  startBatteryFailure('EMERGENCY ABORT · MOTORS OFF · AIRCRAFT FALLING'); updateHomeBtn();
+}
 function updateHomeBtn() {
+  { const e = $('ejectBtn'), arm = state.abortArmUntil > performance.now(); e.disabled = !canAbort(); e.classList.toggle('arm', arm && !e.disabled);
+    const t = arm ? '⚠ Confirm abort' : '⚠ Abort'; if (e.textContent !== t) e.textContent = t; }
   const b = $('homeBtn'), ok = canGoHome();
   b.disabled = !ok; b.classList.toggle('on', !!state.rtb);
   const t = state.rtb === 'landing' ? '✕ Go around' : state.rtb ? '✕ Cancel RTB' : '⌂ Home';
   if (b.textContent !== t) b.textContent = t;
 }
-function startBatteryFailure() {
+function startBatteryFailure(msg) {
   state.batteryDead = true; state.lastWatts = 0; state.lastCurrent = 0;
   endPursuit(); mapWaypoint = null; state.manualWaypointActive = false; $('cancelWpBtn').style.display = 'none';
   state.launchStage = 'active';   // a takeoff in progress also just falls
-  radioMessage('BATTERY DEPLETED · MOTORS OFF');
-  $('flightState').textContent = 'POWER LOSS'; $('missionState').textContent = 'POWER LOSS';
+  radioMessage(msg || 'BATTERY DEPLETED · MOTORS OFF');
+  $('flightState').textContent = msg ? 'EMERGENCY ABORT · FALLING' : 'POWER LOSS'; $('missionState').textContent = 'POWER LOSS';
 }
 // Unpowered flight: no thrust, gravity + aerodynamic drag, the drone keeps its momentum and noses over.
 function stepPowerLoss(h) {
@@ -3586,14 +3605,29 @@ function stepPowerLoss(h) {
   state.rot.z = damp(state.rot.z, Math.sin(state.time * 1.7) * .5, 1.2, h);
   state.rot.y += Math.sin(state.time * .9) * .12 * h;
   state.turnCmd = 0;
-  const gy = terrainHeight(state.pos.x, state.pos.z);
-  if (state.pos.y < gy + 1.5) {
-    explodeAt(new THREE.Vector3(state.pos.x, gy + 1, state.pos.z), 2.0);
+  const gy = terrainHeight(state.pos.x, state.pos.z), bldg = buildingAt(state.pos);
+  if (state.pos.y < gy + 1.5 || bldg) {
+    const reason = state.aborting ? 'abort' : 'battery';
+    recordFrame(1);   // last frame for the replay
+    if (bldg) { state.civilianIncidents = (state.civilianIncidents || 0) + 1; state.crashBldg = true; radioMessage('CIVILIAN INCIDENT · DRONE CRASHED INTO A BUILDING · ' + bldg.name.toUpperCase()); }
+    explodeAt(bldg ? state.pos.clone() : new THREE.Vector3(state.pos.x, gy + 1, state.pos.z), 2.0);
     craft.visible = false; state.vel.set(0,0,0);
     radioMessage('IMPACT · AIRCRAFT LOST · RESETTING');
     if (state.recording && state.history.length) { exportTelemetry('crash'); state.recording = false; $('recordBtn').textContent = '● Rec'; $('recordBtn').classList.remove('active'); }
-    state.returning = true; state.returnTimer = 2.8; state.returnReason = 'battery';
+    state.returning = true; state.returnTimer = 2.8; state.returnReason = reason;
+    if (reason === 'abort') {   // short replay of the fall (~6 s), then the next drone on the pad
+      const fr = recBuf.filter(f => f.t >= state.time - 6);
+      if (fr.length > 4) { state.lastReplay = {mode:'crash', frames: fr, impactPos: state.pos.clone(), target: null, tScale: 2, label: bldg ? 'ABORT · CRASHED INTO A BUILDING' : 'EMERGENCY ABORT · AIRCRAFT LOST'};
+        $('replayBtn').disabled = false; state.returnTimer = 1.4; setTimeout(() => startReplay(state.lastReplay, false), 900); }
+    }
   }
+}
+// Is p inside (or touching) one of the sites' building/structure boxes? → that site (houses, churches, dam, radar, FOB…)
+function buildingAt(p) {
+  for (const S of SITES) { if (!S.targets || Math.hypot(S.x - p.x, S.z - p.z) > (S.clear || 600) + 150) continue;
+    for (const T of S.targets) { const dx = p.x - T.c.x, dy = p.y - T.c.y, dz = p.z - T.c.z, c = Math.cos(T.yaw), sn = Math.sin(T.yaw);
+      if (Math.abs(dx * c - dz * sn) < T.h[0] + HIT_DR && Math.abs(dy) < T.h[1] + HIT_DR && Math.abs(dx * sn + dz * c) < T.h[2] + HIT_DR) return S; } }
+  return null;
 }
 // Pad deck height (home pad: .52 m above the levelled ground; a mission field pad: its own deck) and the drone's
 // resting height on its fins — on the pad, or on bare ground after an off-pad landing.
@@ -3605,7 +3639,7 @@ function resetToPad(reason) {
   if (game.mode === 'mission' && game.m && game.m.cur) {   // mission map: close this sortie where it ended, and why
     const M = game.m, inc = state.civilianIncidents || 0;
     M.cur.path.push([state.pos.x, state.pos.z]);
-    M.cur.end = {x: state.pos.x, z: state.pos.z, reason: reason === 'intercept' && inc > (M.incSeen || 0) ? 'civil' : reason, stall: !!state.stalled};
+    M.cur.end = {x: state.pos.x, z: state.pos.z, reason: reason === 'intercept' && inc > (M.incSeen || 0) ? 'civil' : reason, stall: !!state.stalled, bldg: !!state.crashBldg};
     M.incSeen = inc; M.sorties.push(M.cur); M.cur = null;
   }
   state.returning = false; state.crashed = false; state.batteryDead = false;
@@ -3622,18 +3656,19 @@ function resetToPad(reason) {
   if (reason === 'battery') for (const c of [...scouts, ...ambientActors]) { c.identified = false; c.guess = null; c.conf = 0; c.votes = null; c.trk = null; }
   state.rot.set(0,0,0); snapPrev(); craft.visible = true;
   $('launchOverlay').style.display = 'flex'; $('launchBtn').disabled = false;
-  $('launchTitle').textContent = reason === 'battery' ? 'BATTERY REPLACED · ON PAD' : reason === 'landed' ? 'LANDED · BATTERY RECHARGED' : 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
-  $('launchHint').textContent = reason === 'battery' ? 'Aircraft lost after power loss. Fresh battery fitted — launch when ready.' : 'Targets intercepted: ' + state.tagCount + '. Launch for next sortie.';
+  $('launchTitle').textContent = reason === 'abort' ? 'ABORTED · NEXT DRONE ON PAD' : reason === 'battery' ? 'BATTERY REPLACED · ON PAD' : reason === 'landed' ? 'LANDED · BATTERY RECHARGED' : 'BACK ON PAD · SORTIE ' + (state.tagCount + 1);
+  $('launchHint').textContent = reason === 'abort' ? 'Drone lost after the emergency abort. The next one is ready — launch when ready.' : reason === 'battery' ? 'Aircraft lost after power loss. Fresh battery fitted — launch when ready.' : 'Targets intercepted: ' + state.tagCount + '. Launch for next sortie.';
   $('launchSequence').textContent = 'PAD STANDBY · AWAITING LAUNCH'; $('flightState').textContent = 'ON PAD';
   updatePauseButtons();
   if (game.mode === 'mission') { state.mission = null; missionAfterReset(reason); return; }   // missions: no per-sortie debrief, drones are counted
-  if (reason === 'landed' || reason === 'intercept' || reason === 'battery') showDebrief(reason); else state.mission = null;
+  state.aborting = false; state.crashBldg = false; state.abortArmUntil = 0;
+  if (reason === 'landed' || reason === 'intercept' || reason === 'battery' || reason === 'abort') showDebrief(reason); else state.mission = null;
 }
 // ───────────────────────── Flight physics ─────────────────────────
 const aim = new THREE.Vector3();
 function physicsStep(h) {
   state.prevPos.copy(state.pos); state.prevYaw = state.rot.y; state.prevPitch = state.rot.x; state.prevRoll = state.rot.z;
-  state.time += h; updateWind(h); updateRtbWarnings(h); missionSample(h); updateWorld(h); updateExplosions(h); radarScan(h); recordFrame(h);
+  state.time += h; updateWind(h); updateRtbWarnings(h); missionSample(h); updateWorld(h); updateExplosions(h); radarScan(h); recordFrame(h); recordRaid(h);
   if (state.returning) {
     state.returnTimer -= h;
     if (state.returnTimer <= 0) resetToPad(state.returnReason);
@@ -3833,14 +3868,16 @@ function physicsStep(h) {
     { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
       G_.speed = (game.mode === 'mission' ? 50 : V_CRUISE) + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind; missions: economical ~50 m/s patrol loiter (≈2× endurance)
   }
-  // Keep inside the play area.
-  // Keep inside the play area (mountain wall beyond ~2.6 km). A chase may run closer to the wall.
-  if (Math.max(Math.abs(px), Math.abs(pz)) > ARENA - (state.pursuitMode ? 150 : 400)) {
+  // Keep inside the play area (mountain wall just outside). A chase follows its target as far as the target can go
+  // (on request — scouts turn back only past ARENA − 250 and swing out wider; the drone used to turn away at
+  // ARENA − 150 and lose it): while pursuing, only the invisible backstop (± ARENA + 400) limits it.
+  const chasing = state.pursuitMode && state.aiTarget && !state.aiTarget.destroyed, edgeLim = chasing ? ARENA + 330 : ARENA - 400;
+  if (Math.max(Math.abs(px), Math.abs(pz)) > edgeLim) {
     if (!state.borderPt) state.borderPt = {x:randInside(ARENA * .5), z:randInside(ARENA * .5)};   // random way back in
     G_.aim.set(state.borderPt.x, G_.alt, state.borderPt.z); G_.bank = Math.max(G_.bank, BANK_CRUISE); if (!state.pursuitMode) G_.speed = Math.min(G_.speed, V_CRUISE);
   } else if (Math.max(Math.abs(px), Math.abs(pz)) < ARENA - 900) state.borderPt = null;
   // Never fly at the border: steer the aim point back inside.
-  G_.aim.x = clamp(G_.aim.x, -(ARENA - 200), ARENA - 200); G_.aim.z = clamp(G_.aim.z, -(ARENA - 200), ARENA - 200);
+  { const L = chasing ? ARENA + 300 : ARENA - 200; G_.aim.x = clamp(G_.aim.x, -L, L); G_.aim.z = clamp(G_.aim.z, -L, L); }
   // Terrain floor along the remaining straight route to the aim point (refreshed 4×/s).
   state.floorTimer = (state.floorTimer || 0) - h;
   if (state.floorTimer <= 0) {
@@ -3978,6 +4015,19 @@ function recordFrame(h) {
   recBuf.push({t:state.time, d:[state.pos.x, state.pos.y, state.pos.z, state.rot.x, state.rot.y, state.rot.z, state.modeBlend], objs});
   while (recBuf.length && state.time - recBuf[0].t > REC_SECONDS) recBuf.shift();
 }
+// Missions: a second small buffer of the raiders (+ civil traffic and the drone near the site) for the replay of a
+// strike on the site (on request — a failed mission now shows how the raider got through before the result card).
+const raidBuf = []; let raidAcc = 0;
+function recordRaid(h) {
+  const m = game.m; if (game.mode !== 'mission' || !m || !m.running) return;
+  raidAcc += h; if (raidAcc < 1 / REC_HZ && h < 1) return; raidAcc = 0;
+  const S0 = m.site, objs = [], add = o => { if (o.group) objs.push([o, o.pos.x, o.pos.y, o.pos.z, o.yaw || 0, o.pitch || 0, o.roll || o.bank || 0]); };
+  for (const sc of m.raid) if (!sc.destroyed || sc.strikeHit) add(sc);
+  for (const a of ambientActors) if (Math.hypot(a.pos.x - S0.x, a.pos.z - S0.z) < 1500) add(a);
+  const flying = state.launchStage !== 'parked' && !state.crashed && craft.visible;
+  raidBuf.push({t:state.time, d: flying ? [state.pos.x, state.pos.y, state.pos.z, state.rot.x, state.rot.y, state.rot.z, state.modeBlend] : null, objs});
+  while (raidBuf.length && state.time - raidBuf[0].t > 7) raidBuf.shift();
+}
 // Freeze the buffer at the moment of impact and explode both aircraft.
 function impact(target, label) {
   recordFrame(1);   // force the final frame
@@ -4002,7 +4052,7 @@ function startReplay(rp, thenReset) {
     wasPaused:state.paused, wasThermal:thermalOn});
   state.paused = true;
   if (thermalOn) setThermal(false, true);   // replay always in the normal camera
-  for (const o of [...scouts, ...ambientActors, rp.target]) { if (o.imp) o.imp.quad.visible = false; if (o.group && o.group.parent !== scene) scene.add(o.group); }
+  for (const o of [...scouts, ...ambientActors, rp.target].filter(Boolean)) { if (o.imp) o.imp.quad.visible = false; if (o.group && o.group.parent !== scene) scene.add(o.group); }
   $('replayOverlay').classList.add('show'); document.body.classList.add('replaying'); if (mapOpen) closeMap();
 }
 function finishReplay() {
@@ -4011,7 +4061,7 @@ function finishReplay() {
   if (replay.wasThermal !== thermalOn) setThermal(replay.wasThermal, true);   // back to the operator's own sensor choice
   for (const ex of state.explosions) disposeExplosion(ex); state.explosions = [];
   const rp = replay.rp;
-  if (rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); disposeImpostor(rp.target); }
+  if (rp.target && rp.target.isAmbient && rp.target.removed) { scene.remove(rp.target.group); unregisterGroup(rp.target.group); disposeImpostor(rp.target); }
   for (const sc of scouts) sc.group.visible = !sc.destroyed;
   if (replay.thenReset) { state.paused = false; resetToPad('intercept'); }
   else { state.paused = replay.wasPaused; craft.visible = !state.crashed && !state.returning; }
@@ -4023,6 +4073,8 @@ function frameAt(t) {
   return {a, b, k};
 }
 function stepReplay(rdt) {
+  if (replay.rp.mode === 'strike') return stepStrikeReplay(rdt);
+  if (replay.rp.mode === 'crash') return stepCrashReplay(rdt);
   const rp = replay.rp, toImpact = replay.tEnd - replay.t;
   const speed = 1;   // plain real-time replay (no slow motion)
   const {a, b, k} = frameAt(replay.t);
@@ -4075,6 +4127,59 @@ function stepReplay(rdt) {
     }
   } else { replay.hold += rdt; if (replay.hold > 2.6) finishReplay(); }
   updateExplosions(rdt * speed);
+}
+
+// Replay of a raider hitting the site: chase camera behind the raider looking at the site → fixed impact camera beside
+// the site for the last 2 s → explosion hold. The drone is shown where it was if it was flying.
+function stepStrikeReplay(rdt) {
+  const rp = replay.rp, toImpact = replay.tEnd - replay.t, {a, b, k} = frameAt(replay.t);
+  const ta = a.objs.find(x => x[0] === rp.target), tb = b.objs.find(x => x[0] === rp.target) || ta;
+  if (ta) _rq.set(lerp(ta[1], tb[1], k), lerp(ta[2], tb[2], k), lerp(ta[3], tb[3], k)); else _rq.copy(rp.impactPos);
+  const ry = ta ? ta[4] + wrapAngle(tb[4] - ta[4]) * k : 0;
+  if (!replay.boomed) {
+    if (a.d && b.d) { const L = i => lerp(a.d[i], b.d[i], k), mb = L(6); craft.visible = true; craft.position.set(L(0), L(1), L(2));
+      craft.rotation.set(Math.PI / 2 * mb + L(3) * (1 - mb), a.d[4] + wrapAngle(b.d[4] - a.d[4]) * k, L(5), 'YXZ'); } else craft.visible = false;
+    for (const sc of scouts) sc.group.visible = false;
+    for (const o of a.objs) { const ob = b.objs.find(x => x[0] === o[0]) || o, g = o[0].group; g.visible = true; if (g.parent !== scene) scene.add(g);
+      if (o[0].propeller) o[0].propeller.rotation.z += 70 * rdt;
+      g.position.set(lerp(o[1], ob[1], k), lerp(o[2], ob[2], k), lerp(o[3], ob[3], k));
+      g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k), o[0].isScout ? 'XYZ' : 'YXZ'); }
+  }
+  const big = rp.target.kind === 'heavy' ? 2.4 : 1, cut = replay.boomed || toImpact < 2 ? 'IMPACT CAM' : 'CHASE CAM';
+  _rf.subVectors(rp.aimPos, _rq); _rf.y = 0; if (_rf.lengthSq() < 1) _rf.set(-Math.sin(ry), 0, -Math.cos(ry)); _rf.normalize();
+  if (cut === 'CHASE CAM') { camera.position.copy(_rq).addScaledVector(_rf, -16 * big); camera.position.y += 4 * big; camera.up.set(0, 1, 0); camera.lookAt(_rc.copy(_rq).lerp(rp.aimPos, .35)); }
+  else { if (!replay.close) { const ip = rp.impactPos; replay.close = new THREE.Vector3(ip.x - _rf.z * 70 - _rf.x * 40, ip.y + 18, ip.z + _rf.x * 70 - _rf.z * 40); }
+    camera.position.copy(replay.close); camera.up.set(0, 1, 0); camera.lookAt(replay.boomed ? rp.impactPos : _rq); }
+  { const gy = groundY(camera.position.x, camera.position.z) + 3; if (camera.position.y < gy) camera.position.y = gy; }
+  { const tag = $('replayTag'); camera.updateMatrixWorld(); tmpP.copy(_rq).project(camera);
+    const on = !replay.boomed && tmpP.z > -1 && tmpP.z < 1 && Math.abs(tmpP.x) < 1 && Math.abs(tmpP.y) < 1; tag.style.display = on ? 'block' : 'none';
+    if (on) { tag.style.left = ((tmpP.x * .5 + .5) * vpW) + 'px'; tag.style.top = ((-tmpP.y * .5 + .5) * vpH) + 'px'; tag.querySelector('span').textContent = rp.target.spec.label + ' · ' + Math.round(_rq.distanceTo(rp.impactPos)) + ' m TO IMPACT'; } }
+  $('replayInfo').textContent = '▶ REPLAY · ' + rp.label + ' · ' + cut;
+  if (!replay.boomed) { replay.t += rdt;
+    if (replay.t >= replay.tEnd) { replay.boomed = true; rp.target.group.visible = false; explodeAt(rp.impactPos.clone(), 4.5, null, 0x4a4440); explodeAt(rp.impactPos.clone().add(new THREE.Vector3(6, 3, -4)), 3, null, 0x4a4440); } }
+  else { replay.hold += rdt; if (replay.hold > 3) finishReplay(); }
+  updateExplosions(rdt);
+}
+
+// Replay of the drone's fall after an emergency abort: chase camera → fixed camera beside the crash point for the
+// last 2 s → explosion hold.
+function stepCrashReplay(rdt) {
+  const rp = replay.rp, toImpact = replay.tEnd - replay.t, {a, b, k} = frameAt(replay.t), L = i => lerp(a.d[i], b.d[i], k);
+  _rq.set(L(0), L(1), L(2)); const ry = a.d[4] + wrapAngle(b.d[4] - a.d[4]) * k, mb = L(6);
+  if (!replay.boomed) { craft.visible = true; craft.position.copy(_rq); craft.rotation.set(Math.PI / 2 * mb + L(3) * (1 - mb), ry, L(5), 'YXZ');
+    for (const sc of scouts) sc.group.visible = false;
+    for (const o of a.objs) { const ob = b.objs.find(x => x[0] === o[0]) || o, g = o[0].group; g.visible = true; if (g.parent !== scene) scene.add(g);
+      g.position.set(lerp(o[1], ob[1], k), lerp(o[2], ob[2], k), lerp(o[3], ob[3], k)); g.rotation.set(lerp(o[5], ob[5], k), o[4] + wrapAngle(ob[4] - o[4]) * k, lerp(o[6], ob[6], k)); } }
+  const cut = replay.boomed || toImpact < 2 ? 'IMPACT CAM' : 'CHASE CAM', fx = -Math.sin(ry), fz = -Math.cos(ry);
+  if (cut === 'CHASE CAM') { camera.position.set(_rq.x - fx * 12, _rq.y + 4, _rq.z - fz * 12); camera.up.set(0, 1, 0); camera.lookAt(_rq); }
+  else { if (!replay.close) { const ip = rp.impactPos; replay.close = new THREE.Vector3(ip.x - fz * 30 - fx * 14, ip.y + 9, ip.z + fx * 30 - fz * 14); }
+    camera.position.copy(replay.close); camera.up.set(0, 1, 0); camera.lookAt(replay.boomed ? rp.impactPos : _rq); }
+  { const gy = groundY(camera.position.x, camera.position.z) + 2; if (camera.position.y < gy) camera.position.y = gy; }
+  $('replayTag').style.display = 'none';
+  $('replayInfo').textContent = '▶ REPLAY · ' + rp.label + ' · ' + cut;
+  if (!replay.boomed) { replay.t += rdt; if (replay.t >= replay.tEnd) { replay.boomed = true; craft.visible = false; explodeAt(rp.impactPos.clone(), 2.0); } }
+  else { replay.hold += rdt; if (replay.hold > 2.2) finishReplay(); }
+  updateExplosions(rdt);
 }
 
 // ── Sun glare (normal camera only, deliberately mild) ──
@@ -4578,8 +4683,11 @@ function placeFieldPad(S0) {
   if (S0.fieldPadAt) { const f = S0.fieldPadAt; best = {x: S0.x + f.lx * Math.cos(f.rot) + f.lz * Math.sin(f.rot), z: S0.z - f.lx * Math.sin(f.rot) + f.lz * Math.cos(f.rot)}; }
   else for (let r = 40; r <= Math.max(60, S0.clear - 15); r += 15) for (let k = 0; k < 24; k++) {
     const a = k / 24 * TAU, x = S0.x + Math.cos(a) * r, z = S0.z + Math.sin(a) * r, [sl, lo] = slopeAt(x, z);
-    if (lo < WATER_Y + 1.5 || isWater(x, z) || !keep(x, z)) continue;
-    const sc = sl + r * .01; if (!best || sc < best.sc) best = {x, z, sc};
+    if (lo < WATER_Y + 1.5 || isWater(x, z) || !keep(x, z) || [[0, 0], [-7, -7], [7, -7], [7, 7], [-7, 7]].some(([a, b]) => nearRoad(x + a, z + b))) continue;   // (and off roads — the dam pad stood on one)
+    // where the exact terrain stands above the rendered 24 m triangles (e.g. a reservoir's built-up rim) everything
+    // placed on it floats over the visible grass (the dam's pad stood ~2 m up on long legs): keep to spots where they agree
+    let gap = 0; for (const [a, b] of [[-6, -6], [6, -6], [6, 6], [-6, 6], [0, 0], [-6, 0], [6, 0], [0, -6], [0, 6]]) gap = Math.max(gap, terrainHeight(x + a, z + b) - meshHeight(x + a, z + b));
+    const sc = sl + r * .01 + Math.max(0, gap - .25) * 8; if (!best || sc < best.sc) best = {x, z, sc};
   }
   if (!best) best = {x: S0.x + 60, z: S0.z};
   const [, lo, hi] = slopeAt(best.x, best.z), deck = hi + .35 + (S0.type === 'base' ? .3 : 0), g = new THREE.Group(); g.position.set(best.x, 0, best.z); scene.add(g);
@@ -4874,18 +4982,24 @@ function raiderHitsSite(s, S0, h) {
 }
 function siteStrike(s) {
   const m = game.m, S0 = m.site; m.strikeAt = [s.pos.x, s.pos.z];
-  s.raidDone = true; s.destroyed = true; s.removeAt = state.time + .5; s.group.visible = false; if (s.trail) s.trail.visible = false;
+  s.strikeHit = true; recordRaid(1); s.raidDone = true; s.destroyed = true; s.removeAt = state.time + 1e6; s.group.visible = false; if (s.trail) s.trail.visible = false;   // (kept for the replay)
   if (state.aiTarget === s) { if (state.pursuitMode) endPursuit('TARGET REACHED THE SITE'); state.aiTarget = null; }
   const P = s.pos.clone(); explodeAt(P, 4.5, s.vel, 0x4a4440); setTimeout(() => explodeAt(P.clone().add(new THREE.Vector3(6, 3, -4)), 3, null, 0x4a4440), 450);
   radioMessage('SITE HIT · ' + S0.name.toUpperCase() + ' · MISSION FAILED');
   finishMission(false, 'A ' + s.spec.label.toLowerCase() + ' crashed into ' + (S0.aim ? S0.aim.what : S0.name) + ' at ' + S0.name + '.');
+  // replay of the strike ~1.5 s after it (the live explosion shows first); the result card waits for it
+  const fr = raidBuf.filter(f => f.t >= state.time - 6);
+  if (fr.length > 4 && m.result) { m.result.replayPending = true;
+    state.lastReplay = {mode:'strike', frames: fr, impactPos: s.pos.clone(), target: s, tScale: 4.5, aimPos: new THREE.Vector3(S0.aim ? S0.aim.x : S0.x, S0.aim ? S0.aim.y : s.pos.y, S0.aim ? S0.aim.z : S0.z), label: 'STRIKE ON ' + S0.name.toUpperCase()};
+    $('replayBtn').disabled = false;
+    setTimeout(() => { if (!replay.active) startReplay(state.lastReplay, false); m.result.replayPending = false; }, 1500); }
 }
 function finishMission(win, reason) { const m = game.m; if (!m || m.result) return; closeRaidBanner(); m.result = {win, reason, at: m.t, showAt: performance.now() + (win ? 2500 : 3500)}; }
 // called at the end of resetToPad in mission mode: an intercept / crash / empty battery uses up that drone
 function missionAfterReset(reason) {
   const m = game.m; if (!m) return;
   countRaidDowns(m); if (!m.result && m.downed >= m.total) finishMission(true, 'All ' + m.total + ' scouts stopped before they reached ' + m.site.name + '.');
-  if (reason === 'intercept' || reason === 'battery' || reason === 'crash') { m.dronesUsed++; if (reason !== 'intercept') m.lost++;
+  if (reason === 'intercept' || reason === 'battery' || reason === 'crash' || reason === 'abort') { m.dronesUsed++; if (reason !== 'intercept') m.lost++;
     logEvent('DRONE ' + (reason === 'intercept' ? 'EXPENDED' : 'LOST') + ' · ' + Math.max(0, m.dronesTotal - m.dronesUsed) + ' LEFT', reason === 'intercept' ? 'ok' : 'warn'); }
   const left = m.dronesTotal - m.dronesUsed; setSpareDrones(Math.max(0, left - 1));
   if (!m.result && left <= 0 && m.downed < m.total) { radioMessage('NO DRONES LEFT · MISSION FAILED'); finishMission(false, 'You ran out of drones with ' + (m.total - m.downed) + ' scout' + (m.total - m.downed > 1 ? 's' : '') + ' still to stop.'); }
@@ -4918,8 +5032,8 @@ function showMissionResult() {
   // why each star was (not) earned — ★★ and ★★★ only count once the mission is completed (★)
   const why = [
     ['★', `Mission completed — every scout stopped before one hit ${esc(site)}`, `<small>${downs.length}/${m.total} stopped</small> ${ok(r.win)}`],
-    ['★★', `No drone lost — none crashed, stalled into the ground or ran out of battery <small>(drones used to ram a scout don't count)</small>`, `<small>${m.lost} lost</small> ${ok(r.win && m.lost === 0)}`],
-    ['★★★', `Stopped far out — every scout brought down more than ${FAR_R / 1000} km from ${esc(site)} <small>(the red dotted ★★★ ring round the site on the map)</small>`, `<small>${closest === null ? '—' : 'closest ' + (closest / 1000).toFixed(2) + ' km'}</small> ${ok(r.win && r.far)}`]];
+    ['★★', `No drone lost — none crashed, stalled into the ground, ran out of battery or was aborted <small>(drones used to ram a scout don't count)</small>`, `<small>${m.lost} lost${r.win ? '' : ' · only counts with ★'}</small> ${ok(r.win && m.lost === 0)}`],
+    ['★★★', `Stopped far out — every scout brought down more than ${FAR_R / 1000} km from ${esc(site)} <small>(the red dotted ★★★ ring round the site on the map)</small>`, `<small>${!r.win ? (m.strikeAt ? 'a scout got through to the site' : 'not every scout was intercepted') : closest === null ? '—' : 'closest ' + (closest / 1000).toFixed(2) + ' km'}</small> ${ok(r.win && r.far)}`]];   // lost: a 'closest' distance made no sense
   const stars = [0, 1, 2].map(i => `<span class="slap${i < r.stars ? ' on' : ''}" style="--d:${.45 + i * .3}s">★</span>`).join('');
   const D = (t, d) => `class="slap" style="--d:${d}s"`;
   $('gmResCard').innerHTML = `
@@ -4979,7 +5093,8 @@ function drawMissionMap(m, cv) {
   for (const so of m.sorties) { const e = so.end; if (!e) continue; const [u, v] = P(e.x, e.z);
     if (e.reason === 'intercept') cross(u, v, '#ffd27a', 'RAM');
     else if (e.reason === 'civil') cross(u, v, '#ff6b6b', 'CIVILIAN HIT');
-    else if (e.reason === 'battery') cross(u, v, '#ff6b6b', 'BATTERY EMPTY');
+    else if (e.reason === 'battery') cross(u, v, '#ff6b6b', e.bldg ? 'BATTERY · BUILDING HIT' : 'BATTERY EMPTY');
+    else if (e.reason === 'abort') cross(u, v, '#ff6b6b', e.bldg ? 'ABORT · BUILDING HIT' : 'ABORTED');
     else if (e.reason === 'crash') cross(u, v, '#ff6b6b', e.stall ? 'STALL · CRASH' : 'CRASH');
     else if (e.reason === 'landed') { x.fillStyle = '#7affca'; x.beginPath(); x.arc(u, v, fs * .35, 0, TAU); x.fill(); } }
   // scouts down without a ram right there (mid-air collisions etc.)
@@ -5001,7 +5116,7 @@ function missionUiTick() {
       let top = 10; for (const id of ['contactReadout', 'abortBtn']) { const e = $(id); if (e && e.offsetParent && getComputedStyle(e).display !== 'none') top = Math.max(top, e.offsetTop + e.offsetHeight + 6); }
       rw.style.top = top + 'px'; } }
   const m = game.m; if (!m || !m.result || m.shown) return;
-  if (!replay.active && performance.now() > m.result.showAt && !state.returning) showMissionResult();
+  if (!replay.active && !m.result.replayPending && performance.now() > m.result.showAt && !state.returning) showMissionResult();
 }
 // ── Boot: menu, or straight into the requested mode (after Retry / Missions / Sandbox) ──
 {
