@@ -391,7 +391,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
   </div>
 </div></div>
 <div id="gmList" class="gm"><div class="gmCard">
-  <h2>MISSIONS · DEFEND</h2><div class="gmSub">A scout crashing into the site fails the mission. You fly from a field pad at the site. ★ completed · ★★ no drone lost to a crash or empty battery · ★★★ every scout stopped more than 1.5 km from the site.</div>
+  <h2>MISSIONS · DEFEND</h2><div class="gmSub">A scout crashing into the site fails the mission. You fly from a field pad at the site. ★ completed · ★★ no drone lost to a crash or empty battery · ★★★ every scout stopped more than 1 km from the site (the red dotted ring on the map).</div>
   <div class="gmDiff" id="gmDiff"><button data-d="easy">EASY</button><button data-d="normal">NORMAL</button><button data-d="hard">HARD</button></div>
   <div class="gmList" id="gmMissionList"></div>
   <div class="gmRow"><button class="gmBtn sec" id="gmListBack">← Back</button><span class="sp"></span></div>
@@ -517,8 +517,8 @@ function setContactOpacity(c, o) {
 function unregisterGroup(g) { g.traverse(o => thermalReg.delete(o)); }
 
 // ───────────────────────── Terrain ─────────────────────────
-// ARENA = half-width of the playable square (8.4 km across). A mountain wall rises just outside it and nothing may leave it.
-const ARENA = 4200, WORLD = 2 * (ARENA + 1300), SEG = 440, WATER_Y = 1.4, PAD_H = 7;
+// ARENA = half-width of the playable square (12 km across; was 8.4 km). A mountain wall rises just outside it and nothing may leave it.
+const ARENA = 6000, WORLD = 2 * (ARENA + 1300), SEG = 600, WATER_Y = 1.4, PAD_H = 7;
 const randInside = m => (Math.random() - .5) * 2 * (ARENA - m);   // random coordinate at least m inside the border
 function hash2(ix, iz) { let h = Math.imul(ix, 374761393) ^ Math.imul(iz, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
 function vnoise(x, z) {
@@ -556,15 +556,24 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
   const add = (type, names, list, sep, extra) => { for (const p of list) { if (SITES.filter(s => s.type === type).length >= names.length) break;
     if (!far(p, sep)) continue; SITES.push(Object.assign({type, name:names[SITES.filter(s => s.type === type).length], x:p.x, z:p.z}, extra ? extra(p) : {})); } };
   const flatness = p => { let lo = 1e9, hi = -1e9; for (let k = 0; k < 12; k++) for (const r of [120, 260]) { const a = k / 12 * TAU, y = H(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r); lo = Math.min(lo, y); hi = Math.max(hi, y); } return hi - lo; };
-  // forward military base: 2.3-3.5 km from home, dry and as flat as possible over ~500 m
-  add('base', ['FOB Kestrel'], cells.filter(p => p.home > 2200 && p.home < 3600 && p.h > WATER_Y + 6 && p.h < 110 && p.slope < 9)
+  // forward military base: 3-5 km from home, dry and as flat as possible over ~500 m
+  add('base', ['FOB Kestrel'], cells.filter(p => p.home > 3000 && p.home < 5000 && p.h > WATER_Y + 6 && p.h < 110 && p.slope < 9)
     .map(p => Object.assign(p, {fl: flatness(p)})).sort((a, b) => a.fl - b.fl), 1500);
   // ridge radar stations: prominent high points away from home
-  add('radar', ['Hochgrat Radar', 'Felsnase Radar'], cells.filter(p => p.home > 1500 && p.h > 60 && p.h - p.ring > 22 && p.slope < 14)
-    .sort((a, b) => (b.h - b.ring + b.h * .2) - (a.h - a.ring + a.h * .2)), 2000);
-  // valley villages: gentle ground in a valley (surroundings well above), not in a lake
-  add('village', ['Bergtal', 'Altwil', 'Seeboden'], cells.filter(p => p.home > 1000 && p.h > WATER_Y + 5 && p.h < 80 && p.slope < 7 && p.ring - p.h > 8)
-    .sort((a, b) => ((b.ring - b.h) - b.slope * 3) - ((a.ring - a.h) - a.slope * 3)), 1400);
+  add('radar', ['Hochgrat Radar', 'Felsnase Radar'], cells.filter(p => p.home > 2000 && p.h > 60 && p.h - p.ring > 22 && p.slope < 14)
+    .sort((a, b) => (b.h - b.ring + b.h * .2) - (a.h - a.ring + a.h * .2)), 3000);
+  // settlements (type 'village', `size` town / village / hamlet) — realistic spacing on the 12 km map: the market
+  // town on the widest flat valley floor, villages 2.5+ km apart in valleys, hamlets anywhere gentle 1.4+ km from
+  // everything else. Bigger places want flatter, wider ground.
+  const settle = (size, names, list, sep) => { let n = 0; for (const p of list) { if (n >= names.length) break; if (!far(p, sep)) continue;
+    SITES.push({type: 'village', size, name: names[n++], x: p.x, z: p.z}); } };
+  const wide = p => { let lo = 1e9, hi = -1e9; for (let k = 0; k < 12; k++) for (const r of [150, 300, 420]) { const a = k / 12 * TAU, y = H(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r); lo = Math.min(lo, y); hi = Math.max(hi, y); } return hi - lo; };
+  settle('town', ['Talhausen'], cells.filter(p => p.home > 2500 && p.home < 5000 && p.h > WATER_Y + 5 && p.h < 70 && p.slope < 5)
+    .map(p => Object.assign(p, {wd: wide(p)})).sort((a, b) => a.wd - b.wd), 2600);
+  settle('village', ['Bergtal', 'Altwil', 'Seeboden'], cells.filter(p => p.home > 1000 && p.h > WATER_Y + 5 && p.h < 80 && p.slope < 7 && p.ring - p.h > 8)
+    .sort((a, b) => ((b.ring - b.h) - b.slope * 3) - ((a.ring - a.h) - a.slope * 3)), 2500);
+  settle('hamlet', ['Kalchhof', 'Hinterried', 'Moosweid'], cells.filter(p => p.home > 900 && p.h > WATER_Y + 5 && p.h < 95 && p.slope < 9)
+    .sort((a, b) => (a.slope - b.slope) + (hash2(a.x, a.z) - hash2(b.x, b.z)) * 6), 1400);
   // dams: a real reservoir — an upland hollow (ellipse ~330 × 200 m) whose rim is (nearly) all above the chosen water
   // level L, with one outlet direction where the ground falls ≥ 26 m within ~160-700 m. The terrain is then shaped
   // (`shapeReservoir`): the hollow becomes the lake bed, low rim points are built up a little, and a gorge is cut
@@ -591,7 +600,7 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
   }
   resC.sort((p, q) => q.score - p.score);
   for (const c of resC) { if (SITES.filter(s => s.type === 'dam').length >= 2) break;
-    if (!SITES.every(s => Math.hypot(s.x - c.cx, s.z - c.cz) > (s.type === 'dam' ? 1500 : 700 + {village: 230, radar: 100, base: 520}[s.type]))) continue;
+    if (!SITES.every(s => Math.hypot(s.x - c.cx, s.z - c.cz) > (s.type === 'dam' ? 1500 : 700 + (s.size === 'town' ? 520 : s.size === 'hamlet' ? 130 : {village: 230, radar: 100, base: 520}[s.type])))) continue;
     const sDam = c.r + 35, damH = 26, R = {cx: c.cx, cz: c.cz, ca: c.ca, sa: c.sa, a: c.a, b: c.b, L: c.L, ux: c.ux, uz: c.uz, r: c.r, sDam,
       sEnd: c.sE + 60, Fd: Math.max(c.L + 3 - damH, WATER_Y + 5), w: 13};   // gorge floor below the dam stays dry
     R.Fend = H(c.cx + c.ux * R.sEnd, c.cz + c.uz * R.sEnd) - 2; R.reach2 = (Math.max(c.a * 1.75, R.sEnd + 150)) ** 2;
@@ -599,7 +608,7 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
     const n = SITES.filter(s => s.type === 'dam').length;
     SITES.push({type: 'dam', name: ['Grauwand Dam', 'Klarsee Dam'][n], x: c.cx + c.ux * sDam, z: c.cz + c.uz * sDam, ang: Math.atan2(c.ux, -c.uz), crest: c.L + 3, res: R});
   }
-  for (const s of SITES) s.clear = {village: 230, dam: 130, radar: 100, base: 430}[s.type];
+  for (const s of SITES) s.clear = s.size === 'town' ? 520 : s.size === 'hamlet' ? 130 : {village: 230, dam: 130, radar: 100, base: 430}[s.type];
   const b = SITES.find(s => s.type === 'base'); if (b) FLAT.push({x: b.x, z: b.z, y: Math.max(WATER_Y + 6, H(b.x, b.z)), r0: 300, r1: 520});
 })();
 // Height of the *rendered* terrain (the 25 m triangle grid of the terrain mesh) at x,z — in valleys the triangles sit
@@ -719,11 +728,19 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
       if (hi - lo < bv) { bv = hi - lo; best = a; } }
     const ax = Math.cos(best), az = Math.sin(best), px = -az, pz = ax;
     v.axis = best; v.church = {x: v.x + px * 22, z: v.z + pz * 22};
-    const a1 = street(v.x, v.z, best, 230, 1, 6), a2 = street(v.x, v.z, best + Math.PI, 230, 1, 6);
-    const main = {pts: [...(a2 ? a2.pts.slice(1).reverse() : []), ...(a1 ? a1.pts : [[v.x, v.z]])], w: 6, kind: 'street'};
+    const sz = v.size || 'village', town = sz === 'town', ham = sz === 'hamlet';
+    if (town) v.church = {x: v.x + px * 34, z: v.z + pz * 34}, v.hall = {x: v.x - px * 34, z: v.z - pz * 34};   // town square: church one side, town hall the other
+    const half = town ? 430 : ham ? 70 + rnd() * 40 : 230, bend = town ? .25 : 1;
+    const a1 = street(v.x, v.z, best, half, bend, town ? 8 : ham ? 4.5 : 6), a2 = street(v.x, v.z, best + Math.PI, half, bend, town ? 8 : ham ? 4.5 : 6);
+    const main = {pts: [...(a2 ? a2.pts.slice(1).reverse() : []), ...(a1 ? a1.pts : [[v.x, v.z]])], w: town ? 8 : ham ? 4.5 : 6, kind: 'street'};
     v.streets = [main]; v.ends = [main.pts[0], main.pts[main.pts.length - 1]];
     const n = main.pts.length;
-    for (const f of [.18, .34, .62, .8]) { const i = Math.floor(n * f), p = main.pts[i]; if (!p || Math.hypot(p[0] - v.x, p[1] - v.z) < 30) continue;
+    if (town) {   // grid: parallel streets either side of the main street + cross streets every ~85 m
+      for (const lat of [-150, -75, 75, 150]) { const L = Math.abs(lat) > 100 ? 260 : 340, sx = v.x + px * lat - ax * L, sz2 = v.z + pz * lat - az * L;
+        const st = street(sx, sz2, best, 2 * L, .15, 6); if (st) v.streets.push(st); }
+      for (let al = -340; al <= 340; al += 85) { if (Math.abs(al) < 60) continue; const cx = v.x + ax * al, cz = v.z + az * al;
+        for (const sd of [1, -1]) { const st = street(cx, cz, best + sd * Math.PI / 2, Math.abs(al) > 260 ? 155 : 175, .15, 5.5); if (st) v.streets.push(st); } }
+    } else if (!ham) for (const f of [.18, .34, .62, .8]) { const i = Math.floor(n * f), p = main.pts[i]; if (!p || Math.hypot(p[0] - v.x, p[1] - v.z) < 30) continue;
       const side = rnd() < .5 ? 1 : -1, q = main.pts[Math.min(n - 1, i + 1)], o = main.pts[Math.max(0, i - 1)], ma = Math.atan2(q[1] - o[1], q[0] - o[0]);
       const st = street(p[0], p[1], ma + side * (Math.PI / 2 + (rnd() - .5) * .5), 70 + rnd() * 70, 1.5, 4.5); if (st) v.streets.push(st);
       if (rnd() < .45) { const st2 = street(p[0], p[1], ma - side * (Math.PI / 2 + (rnd() - .5) * .5), 50 + rnd() * 60, 1.5, 4.5); if (st2) v.streets.push(st2); } }
@@ -780,13 +797,14 @@ let seed = 7823; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; re
   const lowGeo = new THREE.ConeGeometry(1, 1, 7).translate(0, .5, 0), upGeo = new THREE.ConeGeometry(.72, .8, 7).translate(0, .4, 0);
   const trunkMat = mat(0x514333, .95, 0), greens = [0x244d32, 0x315f39, 0x3d7041, 0x526f42].map(c => new THREE.MeshStandardMaterial({color:c, roughness:.95, flatShading:true}));
   const trees = [[], [], [], []];
-  for (let a = 0; a < 92000 && trees.reduce((n, t) => n + t.length, 0) < 14000; a++) {
+  const AREA_K = (ARENA / 4200) ** 2;   // tree / rock counts keep the same density on the bigger map
+  for (let a = 0, nT = 0; a < 92000 * AREA_K && nT < 14000 * AREA_K; a++) {
     const x = (rnd() - .5) * (2 * ARENA + 400), z = (rnd() - .5) * (2 * ARENA + 400);
     if (Math.hypot(x, z) < 130 || nearSite(x, z) || nearRoad(x, z)) continue;
     const f = forestField(x, z); if (f < .05 || rnd() > f * .9 + .04) continue;
     const y = terrainHeight(x, z); if (y > 88 || isWater(x, z, y)) continue;
     if (Math.abs(terrainHeight(x + 7, z) - y) + Math.abs(terrainHeight(x, z + 7) - y) > 7.5) continue;
-    trees[Math.floor(rnd() * 4)].push({x, y, z, h:3.5 + rnd() * 9.5 * (1 - .4 * smoothstep(50, 88, y)), r:rnd() * TAU});
+    nT++; trees[Math.floor(rnd() * 4)].push({x, y, z, h:3.5 + rnd() * 9.5 * (1 - .4 * smoothstep(50, 88, y)), r:rnd() * TAU});
   }
   const d = new THREE.Object3D();
   const total = trees.reduce((n, t) => n + t.length, 0);
@@ -803,7 +821,7 @@ let seed = 7823; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; re
   });
   trunkIM.count = total; scene.add(trunkIM); th(trunkIM, .3);
   const rockGeo = new THREE.IcosahedronGeometry(1, 0), rocks = [];
-  for (let a = 0; a < 18000 && rocks.length < 900; a++) {
+  for (let a = 0; a < 18000 * AREA_K && rocks.length < 900 * AREA_K; a++) {
     const x = (rnd() - .5) * (2 * ARENA + 200), z = (rnd() - .5) * (2 * ARENA + 200), y = terrainHeight(x, z);
     if (Math.hypot(x, z) < 130 || isWater(x, z, y) || nearSite(x, z) || nearRoad(x, z)) continue;
     const sl = Math.abs(terrainHeight(x + 6, z) - y) + Math.abs(terrainHeight(x, z + 6) - y);
@@ -843,7 +861,7 @@ for (let i = 0; i < 16; i++) {
 // view whites out; looking through one blocks the camera (thermal sees through partly); radar is unaffected.
 // Scouts flying in or behind a cloud are hidden from the eye — but not from radar.
 const cloudBanks = [];
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < Math.round(20 * (ARENA / 4200) ** 2); i++) {
   const b = {c:new THREE.Vector3(randInside(300), 300 + Math.random() * 300, randInside(300)), rx:220 + Math.random() * 230, rz:190 + Math.random() * 210, ry:45 + Math.random() * 40, rank:Math.random(), sprites:[]};
   const g = new THREE.Group(); scene.add(g); b.group = g;
   const n = 14 + Math.floor(Math.random() * 8);
@@ -929,37 +947,51 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
     if (s.type === 'village') {
       // houses lined up along both sides of every street (gable or eaves to the street, small gaps = gardens), then a
       // few farm buildings scattered round the edge; never on a street, in water or on steep ground
-      const axis = s.axis, houses = [], C = s.church;
+      const axis = s.axis, houses = [], C = s.church, size = s.size || 'village', town = size === 'town', ham = size === 'hamlet';
+      const keepOut = [[C, town ? 30 : 24], ...(s.hall ? [[s.hall, 30], [{x: s.x, z: s.z}, 34]] : [])];   // church / town hall / town square
       const onStreet = (x, z, r) => s.streets.some(st => st.pts.some(p => Math.hypot(p[0] - x, p[1] - z) < st.w / 2 + r));
-      const tryHouse = (x, z, ry, w, l, ht) => {
+      const tryHouse = (x, z, ry, w, l, ht, roofH = 2.6 + w * .18) => {
         const y = terrainHeight(x, z), r = Math.hypot(w, l) / 2;
         if (isWater(x, z, y) || Math.abs(terrainHeight(x + 6, z) - y) + Math.abs(terrainHeight(x, z + 6) - y) > 3.5) return false;
-        if (Math.hypot(x - C.x, z - C.z) < 24 + r || houses.some(h => Math.hypot(h.x - x, h.z - z) < h.r + r - 2.5) || onStreet(x, z, Math.min(w, l) / 2 + 1)) return false;
+        if (keepOut.some(([q, k]) => Math.hypot(x - q.x, z - q.z) < k + r) || houses.some(h => Math.hypot(h.x - x, h.z - z) < h.r + r - 2.5) || onStreet(x, z, Math.min(w, l) / 2 + 1)) return false;
         const [lo, hi] = footing(x, z, w, l, ry); houses.push({x, z, r});
         d.position.set(x, lo, z); d.rotation.set(0, ry, 0); d.scale.set(w, hi + ht - lo, l); d.updateMatrix(); walls[houses.length % 2].push(d.matrix.clone());
-        d.position.set(x, hi + ht, z); d.scale.set(w + .8, 2.6 + w * .18, l + .8); d.updateMatrix(); roofs[Math.floor(rnd() * 3)].push(d.matrix.clone());
-        const top = hi + ht + 2.6 + w * .18; tgt(s, x, z, ry, 0, (lo + top) / 2, 0, w / 2 + .4, (top - lo) / 2, l / 2 + .4); return true; };
+        d.position.set(x, hi + ht, z); d.scale.set(w + .8, roofH, l + .8); d.updateMatrix(); roofs[Math.floor(rnd() * 3)].push(d.matrix.clone());
+        const top = hi + ht + roofH; tgt(s, x, z, ry, 0, (lo + top) / 2, 0, w / 2 + .4, (top - lo) / 2, l / 2 + .4); return true; };
+      // town: 3-4 storey plastered blocks with low roofs in the centre (within ~220 m), ordinary houses further out
       for (const st of s.streets) {
         const P = st.pts; let next = [4, 4];
         for (let i = 1; i < P.length - 1; i++) { const dx = P[i + 1][0] - P[i - 1][0], dz = P[i + 1][1] - P[i - 1][1], ma = Math.atan2(dz, dx), px = -Math.sin(ma), pz = Math.cos(ma);
           for (const [k, sd] of [[0, 1], [1, -1]]) { if ((next[k] -= 5) > 0) continue;
-            const turn = rnd() < .5, w = 7 + rnd() * 4, l = 8 + rnd() * 4, along = turn ? l : w, deep = turn ? w : l;
-            const ht = rnd() < .45 ? 6 + rnd() * 1.6 : 3.6 + rnd() * 1.2, off = st.w / 2 + 2.5 + rnd() * 2.5 + deep / 2;
-            if (rnd() < .82) tryHouse(P[i][0] + px * sd * off, P[i][1] + pz * sd * off, -ma + (turn ? Math.PI / 2 : 0) + (rnd() - .5) * .08, w, l, ht);
-            next[k] = along + 2 + rnd() * 5; } }
+            const core = town && Math.hypot(P[i][0] - s.x, P[i][1] - s.z) < 220;
+            const turn = !core && rnd() < .5, w = core ? 10 + rnd() * 6 : 7 + rnd() * 4, l = core ? 11 + rnd() * 5 : 8 + rnd() * 4, along = turn ? l : w, deep = turn ? w : l;
+            const ht = core ? 8.5 + rnd() * 5 : rnd() < .45 ? 6 + rnd() * 1.6 : 3.6 + rnd() * 1.2, off = st.w / 2 + (core ? 1.5 + rnd() : 2.5 + rnd() * 2.5) + deep / 2;
+            if (rnd() < (core ? .95 : town ? .88 : .82)) tryHouse(P[i][0] + px * sd * off, P[i][1] + pz * sd * off, -ma + (turn ? Math.PI / 2 : 0) + (rnd() - .5) * .08, w, l, ht, core ? 1.6 + rnd() * 1.2 : undefined);
+            next[k] = along + (core ? .8 + rnd() * 1.5 : 2 + rnd() * 5); } }
       }
-      for (let k = 0; k < 300 && houses.length < 95; k++) {   // farm buildings / outlying houses
-        const r = 60 + Math.sqrt(rnd()) * 160, a = rnd() * TAU, big = rnd() < .35;
+      const cap = town ? 420 : ham ? 22 : 95, R0 = town ? 60 : ham ? 25 : 60, R1 = town ? 430 : ham ? 90 : 160;
+      for (let k = 0; k < (town ? 1400 : 300) && houses.length < cap; k++) {   // farm buildings / outlying houses (town: infill between the streets too)
+        const r = R0 + Math.sqrt(rnd()) * R1, a = rnd() * TAU, big = rnd() < (ham ? .5 : .35);
         tryHouse(s.x + Math.cos(a) * r, s.z + Math.sin(a) * r, -axis + Math.floor(rnd() * 4) * Math.PI / 2 + (rnd() - .5) * .3, big ? 10 + rnd() * 4 : 7 + rnd() * 3, big ? 16 + rnd() * 8 : 8 + rnd() * 4, big ? 5 + rnd() * 2 : 3.6 + rnd() * 1.5);
-        if (houses.length > 60 && rnd() < .08) break;
+        if (houses.length > (town ? 330 : ham ? 12 : 60) && rnd() < .08) break;
       }
       s.houseCount = houses.length;
-      // church: nave + tower + spire near the centre
+      // church (town: bigger; hamlet: a small chapel): nave + tower + spire
       const cy = groundY(C.x, C.z), cr = -axis + Math.PI / 2, g = new THREE.Group(); g.position.set(C.x, 0, C.z); g.rotation.y = cr; siteGroup.add(g);
-      const white = M(0xe9e4d6, .9), roofM = M(0x6e3a2c, .85);
-      put(B(10, cy + 9 - (cy - 1.5), 20), white, 0, cy - 1.5, 0, 0, .4, g); put(roofGeo, roofM, 0, cy + 7.5, 0, 0, .35, g).scale.set(11, 4.5, 21);
-      put(B(5.5, 20, 5.5), white, 0, cy - 1.5, -12, 0, .4, g); put(new THREE.ConeGeometry(4.2, 9, 4).translate(0, 4.5, 0), M(0x3f4a48, .6, .3), 0, cy + 18.5, -12, Math.PI / 4, .35, g);
-      tgt(s, C.x, C.z, cr, 0, cy + 5, 0, 5.5, 6.5, 10.5); tgt(s, C.x, C.z, cr, 0, cy + 13, -12, 3, 14.5, 3); s.aim = {x: C.x, y: cy + 5, z: C.z, what: 'the church'};
+      const white = M(0xe9e4d6, .9), roofM = M(0x6e3a2c, .85), k = town ? 1.45 : ham ? .55 : 1;
+      put(B(10 * k, 10.5 * k, 20 * k), white, 0, cy - 1.5, 0, 0, .4, g); put(roofGeo, roofM, 0, cy + 9 * k - 1.5, 0, 0, .35, g).scale.set(11 * k, 4.5 * k, 21 * k);
+      put(B(5.5 * k, 20 * k, 5.5 * k), white, 0, cy - 1.5, -12 * k, 0, .4, g); put(new THREE.ConeGeometry(4.2 * k, 9 * k, 4).translate(0, 4.5 * k, 0), M(0x3f4a48, .6, .3), 0, cy + 20 * k - 1.5, -12 * k, Math.PI / 4, .35, g);
+      tgt(s, C.x, C.z, cr, 0, cy + 5 * k, 0, 5.5 * k, 6.5 * k, 10.5 * k); tgt(s, C.x, C.z, cr, 0, cy + 13 * k, -12 * k, 3 * k, 14.5 * k, 3 * k);
+      s.aim = {x: C.x, y: cy + 5 * k, z: C.z, what: ham ? 'the chapel' : 'the church'};
+      if (s.hall) {   // town hall on the square opposite the church: 3 storeys, hip-ish roof, clock turret — the town mission's target
+        const H0 = s.hall, hy = groundY(H0.x, H0.z), gh = new THREE.Group(); gh.position.set(H0.x, 0, H0.z); gh.rotation.y = cr; siteGroup.add(gh);
+        put(B(22, 15.5, 30), M(0xe6d6b0, .85), 0, hy - 1.5, 0, 0, .45, gh); put(roofGeo, M(0x55595e, .7, .2), 0, hy + 14, 0, 0, .35, gh).scale.set(23, 4, 31);
+        put(B(5, 8, 5), M(0xe6d6b0, .85), 0, hy + 16, 0, 0, .4, gh); put(new THREE.ConeGeometry(4, 6, 4).translate(0, 3, 0), M(0x3f4a48, .6, .3), 0, hy + 24, 0, Math.PI / 4, .35, gh);
+        put(new THREE.CylinderGeometry(1.4, 1.4, .3, 16).rotateX(Math.PI / 2), M(0xf4f1e6, .4), 0, hy + 20, 2.6, 0, .3, gh);   // clock face
+        tgt(s, H0.x, H0.z, cr, 0, hy + 7, 0, 11, 9, 15); tgt(s, H0.x, H0.z, cr, 0, hy + 22, 0, 2.5, 6, 2.5);
+        s.aim = {x: H0.x, y: hy + 7, z: H0.z, what: 'the town hall'};
+        // the square itself: a paved plaza between the two
+        const sq = put(new THREE.BoxGeometry(80, .3, 60).translate(0, .15, 0), M(0x8d8a82, .95), s.x, groundY(s.x, s.z) - .05, s.z, cr, .32); sq.material.polygonOffset = true; sq.material.polygonOffsetFactor = -1; }
     } else if (s.type === 'dam') {
       // gravity dam across the gorge: vertical upstream face (lake side = local +z), sloping downstream face, crest road
       // with parapets, gate houses, a spillway chute down the middle, intake tower in the lake, powerhouse at the toe,
@@ -1785,6 +1817,7 @@ function drawMap() {
     ctx.fillStyle = 'rgba(255,200,90,.035)'; ctx.strokeStyle = 'rgba(255,200,90,.5)'; ctx.lineWidth = 1.1; ctx.setLineDash([6, 4]);
     ctx.beginPath(); ctx.arc(mx, mz, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(255,200,90,.85)'; ctx.beginPath(); ctx.moveTo(mx, mz - 5); ctx.lineTo(mx - 3.5, mz + 3); ctx.lineTo(mx + 3.5, mz + 3); ctx.closePath(); ctx.fill();   // mast
+    ctx.font = 'bold 6.5px ui-monospace,monospace'; ctx.fillText('MAST', mx + 5, mz + 2);
     ctx.font = '8px ui-monospace,monospace'; const lbl = 'SITE RADAR ' + (siteRadarRange() / 1000).toFixed(1) + ' km', ly = mz - rr * .71 - 3;
     ctx.fillText(lbl, Math.min(mx + rr * .71 + 3, MAP_SIZE - 8 - ctx.measureText(lbl).width), Math.max(14, ly)); }
   // 4a. Sites (villages, dams, radar stations, forward base); in a mission the defended one with its strike and
@@ -1796,11 +1829,13 @@ function drawMap() {
         ctx.fillStyle = 'rgba(255,140,110,.9)'; ctx.font = 'bold 7.5px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText('★★★ ' + FAR_R / 1000 + ' KM', sx, sz + FAR_R * k + 9); ctx.textAlign = 'left';
         ctx.fillStyle = 'rgba(255,90,60,.25)'; ctx.strokeStyle = '#ff8a6a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sz, 9, 0, TAU); ctx.fill(); ctx.stroke(); }
       ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.3;
-      if (s.type === 'village') for (const [ox, oz] of [[-3, 1], [2, -2], [3, 3]]) ctx.fillRect(sx + ox - 1.6, sz + oz - 1.6, 3.2, 3.2);
+      if (s.type === 'village') { const blocks = s.size === 'town' ? [[-5, -3], [0, -4], [5, -2], [-4, 2], [1, 1], [5, 4], [-1, 6]] : s.size === 'hamlet' ? [[-1.5, 0], [2, 1]] : [[-3, 1], [2, -2], [3, 3]], b = s.size === 'town' ? 3.6 : s.size === 'hamlet' ? 2.4 : 3.2;
+        for (const [ox, oz] of blocks) ctx.fillRect(sx + ox - b / 2, sz + oz - b / 2, b, b); }
       else if (s.type === 'dam') { ctx.beginPath(); ctx.moveTo(sx - Math.cos(s.ang) * 6, sz - Math.sin(s.ang) * 6); ctx.lineTo(sx + Math.cos(s.ang) * 6, sz + Math.sin(s.ang) * 6); ctx.lineWidth = 3; ctx.stroke(); }
       else if (s.type === 'radar') { ctx.beginPath(); ctx.arc(sx, sz, 3.5, Math.PI, TAU); ctx.fill(); ctx.fillRect(sx - 4, sz, 8, 2); }
       else { ctx.strokeRect(sx - 5, sz - 4, 10, 8); ctx.beginPath(); ctx.moveTo(sx - 5, sz - 4); ctx.lineTo(sx + 5, sz + 4); ctx.stroke(); }
-      ctx.font = (on ? 'bold ' : '') + '8px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText(s.name.toUpperCase(), sx, sz + 13); ctx.textAlign = 'left';
+      const fsz = s.size === 'town' ? 10.5 : s.size === 'hamlet' ? 6.5 : 8;   // label size by importance: town > village/site > hamlet
+      ctx.font = (on || s.size === 'town' ? 'bold ' : '') + fsz + 'px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText(s.name.toUpperCase(), sx, sz + 9 + fsz * .6 + (s.size === 'town' ? 4 : 0)); ctx.textAlign = 'left';
     } }
   // 4b. Home / landing pad with a dashed line and distance from the drone
   { const [hx, hz] = worldToMap(PAD.x, PAD.z), [dx3, dz3] = worldToMap(state.pos.x, state.pos.z), dkm = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000;
@@ -4102,6 +4137,7 @@ function animate(now) {
 // every mission starts from a clean world. Best stars + score per mission and difficulty: localStorage 'dl_missions'.
 const STRIKE_R = 300, FAR_R = 1000;   // FAR_R: the ★★★ ring (every scout down outside it); was 1.5 km   // STRIKE_R: only the distance-bonus baseline now (losing = a raider hitting the structure)
 const MISSIONS = [
+  {id:'town', site:'Talhausen', kind:'MARKET TOWN', text:'Talhausen is the valley\'s market town {where} — hundreds of houses round the church and the town hall on its square. Any roof is a target, and the town hall is what they are after: keep them well clear of the streets.'},
   {id:'village', site:'Bergtal', kind:'VALLEY VILLAGE', text:'Bergtal lies low in a valley {where}. Raiders will follow the valleys around it to stay under your radar until late — expect them to pop up close.'},
   {id:'dam', site:'Grauwand Dam', kind:'DAM', text:'Grauwand Dam closes a gorge and holds back a mountain reservoir {where} — the valley below depends on it. Scouts have long, open runs over the water and up the valley: see them early, stop them early.'},
   {id:'radar', site:'Hochgrat Radar', kind:'RIDGE RADAR STATION', text:'Hochgrat Radar sits on a ridge {where}. Scouts climb up from the valleys below and stay terrain-masked until the last moment.'},

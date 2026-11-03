@@ -8,7 +8,7 @@
 'use strict';
 const { args, buildTestPage, openGame } = require('./lib');
 (async () => {
-  const a = args({ missions: 'village,dam,radar,base', diffs: 'easy,normal,hard', seed: 1, gimbal: 'on' });
+  const a = args({ missions: 'town,village,dam,radar,base', diffs: 'easy,normal,hard', seed: 1, gimbal: 'on' });
   const file = buildTestPage(), out = [];
   for (const diff of String(a.diffs).split(',')) for (const id of String(a.missions).split(',')) {
     const g = await openGame(file, { noRaf: true, seed: a.seed, mode: 'sandbox' });
@@ -34,7 +34,7 @@ const { args, buildTestPage, openGame } = require('./lib');
           if (k === 0 && (Math.cos(S.dayClock) < -.1 || S.weatherStrength > .3)) T.setThermal(true);   // (state.night is only updated by the render loop)   // like a human: thermal at night / in mist and rain
           if (useGimbal && k % 60 === 0 && S.launchStage === 'active') {
             // (a human gives up on a blip after a few seconds — e.g. hidden behind a ridge — and tries the next one)
-            const tc = [...T.scouts, ...T.ambientActors].filter(c => c.trk && !c.trk.lost && !c.destroyed && !c.identified && !(c._gskip > S.time) && !(c.transit && Math.max(Math.abs(c.pos.x), Math.abs(c.pos.z)) > 4200))
+            const tc = [...T.scouts, ...T.ambientActors].filter(c => c.trk && !c.trk.lost && !c.destroyed && !c.identified && !(c._gskip > S.time) && !(c.transit && Math.max(Math.abs(c.pos.x), Math.abs(c.pos.z)) > T.ARENA))
               .sort((p, q) => Math.hypot(p.trk.x - m.site.x, p.trk.z - m.site.z) - Math.hypot(q.trk.x - m.site.x, q.trk.z - m.site.z))[0];
             if (tc) { tc._gt = (tc._gt || 0) + .5; if (tc._gt >= 4) { tc._gt = 0; tc._gskip = S.time + 20; } T.zv.open = true; T.zv.zoom = 12; T.zv.zEff = 1 + 11 * Math.min(1, Math.max(.25, .3 + .7 * T.sensorQuality(tc))); T.zv.halfAng = .03;
               T.zv.fwd.set(tc.trk.x - S.pos.x, tc.trk.y - S.pos.y, tc.trk.z - S.pos.z).normalize(); }

@@ -8,7 +8,7 @@ const { args, buildTestPage, openGame } = require('./lib');
   const a = args({ minutes: 30, wind: 6 });
   const g = await openGame(buildTestPage(), { noRaf: true });
   const r = await g.page.evaluate(({ minutes, wind }) => {
-    const T = __t, S = T.state, A = 4200; S.replenishTimer = 1e9; T.env.windAuto = false; T.env.windSpeed = wind;
+    const T = __t, S = T.state, A = T.ARENA; S.replenishTimer = 1e9; T.env.windAuto = false; T.env.windSpeed = wind;
     for (const s of [...T.scouts]) T.removeScout(s);
     for (let i = 0; i < 3; i++) T.spawnTransitAirliner();
     const st = new Map(); let spawned = 3;
@@ -23,7 +23,7 @@ const { args, buildTestPage, openGame } = require('./lib');
         const w = Math.abs((x.hdg - s.h) / ((S.time - s.t) || 1)); if (w > 1e-3) s.minR = Math.min(s.minR, x.speed / w); s.h = x.hdg; s.t = S.time;
         if (x.baseHdg !== undefined) s.dev = Math.max(s.dev, Math.abs(Math.atan2(Math.sin(x.hdg - x.baseHdg), Math.cos(x.hdg - x.baseHdg))));
         s.out = Math.max(s.out, Math.max(Math.abs(x.pos.x), Math.abs(x.pos.z))); s.minAgl = Math.min(s.minAgl, x.pos.y - T.terrainHeight(x.pos.x, x.pos.z));
-        s.cells.add(Math.floor((x.pos.x + A) / 1400) + ',' + Math.floor((x.pos.z + A) / 1400)); s.t1 = S.time; s.gone = x.gone;
+        s.cells.add(Math.floor((x.pos.x + A) / (A / 3)) + "," + Math.floor((x.pos.z + A) / (A / 3))); s.t1 = S.time; s.gone = x.gone;
       }
     }
     const d = 57.3, all = [...st.values()], pl = all.filter(s => s.type === 'plane'), ce = all.filter(s => s.type === 'cessna');
