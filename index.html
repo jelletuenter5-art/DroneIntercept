@@ -758,12 +758,15 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
   }
   // A* grid
   const G = 40, N = Math.floor(2 * (ARENA - 150) / G), o = -(ARENA - 150), hh = new Float32Array(N * N), wet = new Uint8Array(N * N);
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = o + (i + .5) * G, z = o + (j + .5) * G, y = terrainHeight(x, z); hh[j * N + i] = y; wet[j * N + i] = isWater(x, z, y) ? 1 : 0; }
+  const blockZ = [{x: 0, z: 0, r: 45}, ...SITES.filter(q => q.type === 'base').map(q => ({x: q.x, z: q.z, r: 235})), ...SITES.filter(q => q.type === 'radar').map(q => ({x: q.x, z: q.z, r: 30}))];   // roads keep out of the home base, the FOB and the radar compounds
+  const blocked = new Uint8Array(N * N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = o + (i + .5) * G, z = o + (j + .5) * G, y = terrainHeight(x, z); hh[j * N + i] = y; wet[j * N + i] = isWater(x, z, y) ? 1 : 0;
+    blocked[j * N + i] = blockZ.some(b => Math.hypot(x - b.x, z - b.z) < b.r) ? 1 : 0; }
   const cell = (x, z) => [clamp(Math.floor((x - o) / G), 0, N - 1), clamp(Math.floor((z - o) / G), 0, N - 1)];
   // A* from A towards B over the 40 m grid. With `own` set it stops at the first cell of the existing network (`net`)
   // that isn't its own place's streets — so a new road ends on the network as a T-junction instead of running beside
   // an existing road. Water may be crossed (a bridge), but costs 7× (short crossings only).
-  const net = new Int16Array(N * N);
+  const net = new Int16Array(N * N), streetOf = new Int16Array(N * N);
   function route(A, B, own = 0, opt = {}) {
     const waterCost = opt.water || 7, netCost = opt.net || 1;
     const [si, sj] = cell(A[0], A[1]), [ti, tj] = cell(B[0], B[1]), S = sj * N + si, T0 = tj * N + ti, gs = new Float32Array(N * N).fill(1e30), from = new Int32Array(N * N).fill(-1), heap = [];
@@ -771,10 +774,11 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
     const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let c = 0; for (;;) { const l = 2 * c + 1, r = l + 1; let m = c;
       if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; c = m; } } return top; };
     gs[S] = 0; push(S, 0);
-    let T = T0; while (heap.length) { const [, k] = pop(); if (k === T0 || (own && net[k] && net[k] !== own && k !== S)) { T = k; break; } const i = k % N, j = (k - i) / N;
+    let T = T0; while (heap.length) { const [, k] = pop(); if (k === T0 || (own && net[k] && net[k] !== own && k !== S) || (opt.goal && streetOf[k] === opt.goal)) { T = k; break; } const i = k % N, j = (k - i) / N;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= N || b >= N) continue;
-        const kk = b * N + a, d = G * Math.hypot(di, dj), gr = wet[kk] || wet[k] ? 0 : Math.abs(hh[kk] - hh[k]) / d;
-        const g2 = gs[k] + d * (wet[kk] ? waterCost : 1 + 30 * gr * gr + Math.max(0, gr - .14) * 60) * (net[kk] && !own ? netCost : 1); if (g2 < gs[kk]) { gs[kk] = g2; from[kk] = k; push(kk, g2 + G * Math.hypot(a - ti, b - tj)); } } }
+        const kk = b * N + a; if (blocked[kk] && kk !== T0) continue; const d = G * Math.hypot(di, dj), gr = wet[kk] || wet[k] ? 0 : Math.abs(hh[kk] - hh[k]) / d;
+        // grades above ~8 % get expensive and above ~25 % prohibitive (roads wind round hills like real mountain roads)
+        const g2 = gs[k] + d * (wet[kk] ? waterCost : 1 + 40 * gr * gr + Math.max(0, gr - .08) * 120 + (gr > .25 ? 400 : 0)) * (net[kk] && !own ? netCost : 1); if (g2 < gs[kk]) { gs[kk] = g2; from[kk] = k; push(kk, g2 + G * Math.hypot(a - ti, b - tj)); } } }
     if (from[T] < 0) return null;
     const pts = [T === T0 ? B : [o + (T % N + .5) * G, o + (Math.floor(T / N) + .5) * G]]; for (let k = from[T]; k !== S && k >= 0; k = from[k]) { const i = k % N; pts.push([o + (i + .5) * G, o + ((k - i) / N + .5) * G]); } pts.push(A); pts.reverse();
     let sm = pts; for (let it = 0; it < 3; it++) { const q = [sm[0]]; for (let i = 0; i < sm.length - 1; i++) { const [x0, z0] = sm[i], [x1, z1] = sm[i + 1];
@@ -784,7 +788,7 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
   // nodes and their connection points
   const nodes = [{id: 'home', x: 0, z: 0}, ...SITES.filter(q => q.type === 'village' || q.type === 'base' || q.type === 'dam').map(q => ({id: q.name, x: q.x, z: q.z, s: q}))];
   const port = (n, toward) => { const s = n.s, dx = toward.x - n.x, dz = toward.z - n.z, l = Math.hypot(dx, dz) || 1;
-    if (!s) return [n.x + dx / l * 48, n.z + dz / l * 48];
+    if (!s) return [n.x + dx / l * 46, n.z + dz / l * 46];
     if (s.type === 'village') { const e = s.ends.slice().sort((a, b) => Math.hypot(a[0] - toward.x, a[1] - toward.z) - Math.hypot(b[0] - toward.x, b[1] - toward.z))[0]; return e; }
     if (s.type === 'base') return [n.x + dx / l * 260, n.z + dz / l * 260];
     const wx = Math.cos(s.ang), wz = Math.sin(s.ang), sg = wx * dx + wz * dz > 0 ? 1 : -1;   // dam: off the end of the crest
@@ -796,14 +800,15 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
   const mark = (pts, id) => { for (const [x, z] of pts) { const [i, j] = cell(x, z); if (!net[j * N + i]) net[j * N + i] = id; } };
   const snap = (p, own) => { let best = null, bd = 1e18; for (const R of ROADS) if (R.owner && R.owner !== own) for (const q of R.pts) { const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; if (d < bd) { bd = d; best = q; } } return bd < 90 * 90 ? best : null; };
   nodes.forEach((n, i) => n.id = i + 1);
-  { const h0 = port(nodes[0], nodes[1] || {x: 1, z: 0}); ROADS.push({pts: [[0, 0], h0], w: 5.5, kind: 'road', owner: 1}); mark([[0, 0], h0], 1); }
+  { const h0 = port(nodes[0], nodes[1] || {x: 1, z: 0}), l0 = Math.hypot(h0[0], h0[1]), h1 = [h0[0] / l0 * 60, h0[1] / l0 * 60];   // access road starts outside the home base (hangar, cabin, mast are within ~36 m)
+    ROADS.push({pts: [h0, h1], w: 5.5, kind: 'road', owner: 1}); mark([h0, h1], 1); }
   const inT = [nodes[0]], rest = nodes.slice(1), edges = [];
   while (rest.length) { let bi = 0, bj = 0, bd = 1e18; rest.forEach((r, i) => inT.forEach((t, j) => { const d = Math.hypot(r.x - t.x, r.z - t.z); if (d < bd) { bd = d; bi = i; bj = j; } }));
     edges.push([inT[bj], rest[bi]]); inT.push(rest.splice(bi, 1)[0]); }
   for (const [par, ch] of edges) {
     const pa = port(ch, par), r = route(pa, port(par, ch), ch.id);
     if (r) { const end = r[r.length - 1], sn = snap(end, ch.id); if (sn) r.push(sn); const road = {pts: r, w: 5.5, kind: 'road', owner: ch.id}; ROADS.push(road); mark(r, ch.id); }
-    if (ch.s && ch.s.streets) { for (const st of ch.s.streets) st.owner = ch.id; mark(ch.s.streets.flatMap(st => st.pts), ch.id); }
+    if (ch.s && ch.s.streets) { for (const st of ch.s.streets) st.owner = ch.id; const sp = ch.s.streets.flatMap(st => st.pts); mark(sp, ch.id); for (const [x, z] of sp) { const [i, j] = cell(x, z); streetOf[j * N + i] = ch.id; } }
     if (ch.s && ch.s.type === 'dam') {   // the crest road joins both banks: part of the network (drawn on the map; the dam model has its own deck)
       const d = ch.s, wx = Math.cos(d.ang), wz = Math.sin(d.ang), e = sg => { let l = 10; while (l < 260 && terrainHeight(d.x + wx * sg * l, d.z + wz * sg * l) < d.crest + 1) l += 4; return [d.x + wx * sg * (l + 25), d.z + wz * sg * (l + 25)]; };
       const crest = {pts: [e(-1), e(1)], w: 5.5, kind: 'road', owner: ch.id, noMesh: true}; ROADS.push(crest); mark(crest.pts, ch.id); }
@@ -813,7 +818,7 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
   // to the other place's street end and avoid running along existing roads (net cells cost 3×).
   { const places = nodes.filter(n => n.s && n.s.type === 'village'), ends = nodes.filter(n => n.s && (n.s.type === 'village' || n.s.type === 'base')), done = new Set(edges.map(([a, b]) => Math.min(a.id, b.id) + '-' + Math.max(a.id, b.id)));
     const key = (a, b) => Math.min(a.id, b.id) + '-' + Math.max(a.id, b.id);
-    const add = (a, b, opt) => { const r = route(port(a, b), port(b, a), 0, opt); if (!r) return null; const sn = snap(r[r.length - 1], 0); if (sn) r.push(sn);
+    const add = (a, b, opt) => { const r = route(port(a, b), port(b, a), 0, {...opt, goal: b.id}); if (!r) return null; const sn = snap(r[r.length - 1], 0); if (sn) r.push(sn);
       const road = {pts: r, w: 5.5, kind: 'road', owner: 700 + ROADS.length}; ROADS.push(road); mark(r, road.owner); done.add(key(a, b)); return r; };
     // the bridge: a pair 1.5-4.5 km apart whose straight line crosses some water (8-40 %, longest stretch ≤ 450 m)
     const cands = [];
@@ -834,13 +839,23 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
   // resample every 5 m (for draping) and mark the tree-free corridor
   for (const R of ROADS) { const q = [R.pts[0]]; for (let i = 1; i < R.pts.length; i++) { const [x0, z0] = R.pts[i - 1], [x1, z1] = R.pts[i], n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 5));
       for (let k = 1; k <= n; k++) q.push([x0 + (x1 - x0) * k / n, z0 + (z1 - z0) * k / n]); } R.pts = q;
-    // bridges: runs of points over water get a deck height — straight between the two banks, ≥ 4 m above the water
-    const wet2 = q.map(([x, z]) => !R.noMesh && isWater(x, z)), ys = q.map(([x, z]) => null); R.bridges = [];
-    for (let i = 0; i < q.length; i++) if (wet2[i]) { let j = i; while (j + 1 < q.length && wet2[j + 1]) j++;
-      const a0 = Math.max(0, i - 1), b0 = Math.min(q.length - 1, j + 1), ya = groundY(...q[a0]), yb = groundY(...q[b0]);
-      let wl = WATER_Y; for (let k = i; k <= j; k++) { const rv = reservoirAt(...q[k]); if (rv) wl = Math.max(wl, rv.L); }
-      for (let k = a0; k <= b0; k++) { const t = b0 > a0 ? (k - a0) / (b0 - a0) : 0; ys[k] = Math.max(lerp(ya, yb, t) + .3, wl + 4 * Math.sin(Math.PI * clamp(t, 0, 1)) + .6); }
-      R.bridges.push([a0, b0, wl]); i = j; }
+    // Road profile (on request — no more steep bumps): the lowest line that stays on or above the ground (water: ≥ 4.5 m
+    // above it, i.e. a bridge deck) with a maximum grade per kind — 10 % roads, 12 % streets, 14 % tracks. It ends at
+    // the height of the road it joins (junctions meet level). Up to 4 m above the ground it sits on an earth embankment
+    // (side slopes, `buildSiteModels`); over water or higher it is carried on a bridge / viaduct (`R.bridges`: beams,
+    // railings, piers) — runs closer than 15 m are merged, land runs shorter than 15 m stay embankment.
+    const dz = 5 * (R.kind === 'road' ? .10 : R.kind === 'street' ? .12 : .14), wl = q.map(([x, z]) => { const rv = reservoirAt(x, z); return rv ? rv.L : WATER_Y; });
+    const wet2 = q.map(([x, z]) => !R.noMesh && isWater(x, z)), g = q.map(([x, z], i) => wet2[i] ? wl[i] + 4.5 : groundY(x, z) + .2), ys = g.slice();
+    for (let i = 1; i < q.length; i++) ys[i] = Math.max(ys[i], ys[i - 1] - dz);
+    for (let i = q.length - 2; i >= 0; i--) ys[i] = Math.max(ys[i], ys[i + 1] - dz);
+    const heightAt = p => { for (const O of ROADS) { if (O === R || !O.ys) continue; for (let k = 0; k < O.pts.length; k++) if (Math.abs(O.pts[k][0] - p[0]) < 3 && Math.abs(O.pts[k][1] - p[1]) < 3) return O.ys[k]; } return null; };
+    for (const end of [0, q.length - 1]) { const ya = heightAt(q[end]); if (ya == null) continue; ys[end] = ya;   // meet the other road level, blend in over the grade
+      if (end) for (let i = end - 1; i >= 0; i--) { const lo = ys[i + 1] - dz, hi = ys[i + 1] + dz, c = clamp(ys[i], lo, hi); if (c === ys[i]) break; ys[i] = Math.max(c, g[i] - .15); }
+      else for (let i = 1; i < q.length; i++) { const lo = ys[i - 1] - dz, hi = ys[i - 1] + dz, c = clamp(ys[i], lo, hi); if (c === ys[i]) break; ys[i] = Math.max(c, g[i] - .15); } }
+    R.bridges = [];
+    const up = q.map(([x, z], i) => !R.noMesh && (wet2[i] || ys[i] - groundY(x, z) > 4));
+    for (let i = 0; i < q.length; i++) if (up[i]) { let j = i; for (;;) { while (j + 1 < q.length && up[j + 1]) j++; let k = j + 1; while (k < q.length && k <= j + 3 && !up[k]) k++; if (k < q.length && k <= j + 3 && up[k]) j = k; else break; }
+      const run = [Math.max(0, i - 1), Math.min(q.length - 1, j + 1), wl[i]]; if (j - i >= 2 || wet2.slice(i, j + 1).some(Boolean)) R.bridges.push(run); i = j; }
     R.ys = ys;
     const rad = R.w / 2 + 5; for (const [x, z] of q) for (let dx = -rad; dx <= rad; dx += 5) for (let dz = -rad; dz <= rad; dz += 5) {
       const i = Math.floor((x + dx + ARENA) / 10), j = Math.floor((z + dz + ARENA) / 10); if (i >= 0 && j >= 0 && i < RM_N && j < RM_N) roadMask[j * RM_N + i] = 1; } }
@@ -1113,7 +1128,20 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
   const inst = (geo, material, list, heat) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, material, list.length); list.forEach((m, i) => im.setMatrixAt(i, m)); scene.add(im); th(im, heat); };
   walls.forEach((l, i) => inst(wallGeo, wallMats[i], l, .44)); roofs.forEach((l, i) => inst(roofGeo, roofMats[i], l, .38));
   const roadMats = {road: M(0x4c4f52, .92), street: M(0x585a5b, .92), track: M(0x8d8572, .97)};
-  for (const R of ROADS) if (!R.noMesh) siteGroup.add(ribbon(R.pts.map(([x, z], i) => [x, R.ys && R.ys[i] != null ? R.ys[i] : groundY(x, z) + .2, z]), R.w, roadMats[R.kind], R.kind === 'track' ? .3 : .34));
+  for (const R of ROADS) if (!R.noMesh) siteGroup.add(ribbon(R.pts.map(([x, z], i) => [x, R.ys ? R.ys[i] : groundY(x, z) + .2, z]), R.w, roadMats[R.kind], R.kind === 'track' ? .3 : .34));
+  // Embankments: where a road runs up to 4 m above the ground (its profile is smoother than the terrain), earth side
+  // slopes run from the road edges down to the ground (1 : 1.6). One merged mesh for every road on the map.
+  { const pos = [];
+    for (const R of ROADS) { if (R.noMesh || !R.ys) continue; const inBr = i => (R.bridges || []).some(([a0, b0]) => i >= a0 && i <= b0), P = R.pts;
+      const fill = P.map(([x, z], i) => R.ys[i] - groundY(x, z));
+      for (let i = 0; i < P.length - 1; i++) { if (Math.max(fill[i], fill[i + 1]) < .35 || (inBr(i) && inBr(i + 1))) continue;
+        const [x0, z0] = P[i], [x1, z1] = P[i + 1], ang = Math.atan2(z1 - z0, x1 - x0), nx = -Math.sin(ang), nz = Math.cos(ang);
+        for (const sd of [-1, 1]) { const e = R.w / 2 + .1, o0 = e + Math.max(.4, fill[i]) * 1.6, o1 = e + Math.max(.4, fill[i + 1]) * 1.6;
+          const A = [x0 + nx * sd * e, R.ys[i] - .02, z0 + nz * sd * e], B = [x1 + nx * sd * e, R.ys[i + 1] - .02, z1 + nz * sd * e];
+          const cx = x1 + nx * sd * o1, cz = z1 + nz * sd * o1, dx = x0 + nx * sd * o0, dz2 = z0 + nz * sd * o0, C = [cx, groundY(cx, cz) - .3, cz], D = [dx, groundY(dx, dz2) - .3, dz2];
+          pos.push(...A, ...B, ...C, ...A, ...C, ...D); } } }
+    if (pos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: 0x6d7a4c, roughness: 1, side: THREE.DoubleSide})); siteGroup.add(m); th(m, .3); } }
   // bridges: concrete deck edge beams + railings along both sides, piers down to the lake bed every ~25 m
   // (instanced unit boxes: 3 draw calls for every bridge on the map)
   { const beams = [], rails = [], piers = [], o3 = new THREE.Object3D(); o3.rotation.order = 'YXZ';
@@ -1122,7 +1150,7 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
       for (let k = a0; k < b0; k++) { const [x0, z0] = R.pts[k], [x1, z1] = R.pts[k + 1], y0 = R.ys[k], y1 = R.ys[k + 1], L = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(z1 - z0, x1 - x0), nx = -Math.sin(ang), nz = Math.cos(ang), pitch = Math.atan2(y1 - y0, L);
         for (const sd of [-1, 1]) { const cx = (x0 + x1) / 2 + nx * sd * (R.w / 2 + .25), cz = (z0 + z1) / 2 + nz * sd * (R.w / 2 + .25), cy = (y0 + y1) / 2;
           box(beams, cx, cy - .35, cz, -ang, pitch, L + .2, 1.1, .5); box(rails, cx, cy + 1.05, cz, -ang, pitch, L + .2, .12, .12); }
-        if ((k - a0) % 5 === 2 && k < b0 - 1) { const bed = Math.min(terrainHeight(x0, z0), y0 - 2), h = y0 - .6 - bed; if (h > 1) box(piers, x0, bed + h / 2, z0, -ang, 0, 1.8, h, R.w * .8); } } }
+        if ((k - a0) % 5 === 2 && k < b0 - 1) { const bed = Math.min(terrainHeight(x0, z0), groundY(x0, z0)) - .5, h = y0 - .6 - bed; if (h > 1.2) box(piers, x0, bed + h / 2, z0, -ang, 0, 1.6, h, R.w * .8); } } }
     const unit = new THREE.BoxGeometry(1, 1, 1);
     inst(unit, M(0xa9a9a2, .85), beams, .3); inst(unit, M(0x8c939a, .5, .6), rails, .25); inst(unit, M(0x9a9a93, .9), piers, .3); }
 })();
@@ -1842,9 +1870,7 @@ function buildTerrainCache() {
     if ((i2 + j2) % 2 === 0) ctx.fillText((wx2 / 1000).toFixed(1) + ' km', i2/8*MAP_SIZE+2, j2/8*MAP_SIZE+9);
   }
   // arena border: nothing flies beyond this line
-  { const [b0] = worldToMap(-ARENA, -ARENA), [b1] = worldToMap(ARENA, ARENA);
-    ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(255,120,100,.65)'; ctx.lineWidth = 1.5; ctx.strokeRect(b0, b0, b1 - b0, b1 - b0); ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(255,140,120,.8)'; ctx.fillText('AREA BOUNDARY', b0 + 4, b1 - 4); }
+  // (the area boundary is no longer drawn — removed from the map on request; it still works in the game)
   mapTerrainCache = offscreen;
 }
 
@@ -1898,13 +1924,12 @@ function drawMap() {
         ctx.fillStyle = 'rgba(255,140,110,.9)'; ctx.font = 'bold 7.5px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText('★★★ ' + FAR_R / 1000 + ' KM', sx, sz + FAR_R * k + 9); ctx.textAlign = 'left';
         ctx.fillStyle = 'rgba(255,90,60,.25)'; ctx.strokeStyle = '#ff8a6a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sz, 9, 0, TAU); ctx.fill(); ctx.stroke(); }
       ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.3;
-      if (s.type === 'village') { const blocks = s.size === 'town' ? [[-5, -3], [0, -4], [5, -2], [-4, 2], [1, 1], [5, 4], [-1, 6]] : s.size === 'hamlet' ? [[-1.5, 0], [2, 1]] : [[-3, 1], [2, -2], [3, 3]], b = s.size === 'town' ? 3.6 : s.size === 'hamlet' ? 2.4 : 3.2;
-        for (const [ox, oz] of blocks) ctx.fillRect(sx + ox - b / 2, sz + oz - b / 2, b, b); }
+      if (s.type === 'village') { /* settlements: name only (no icon), on request */ }
       else if (s.type === 'dam') { ctx.beginPath(); ctx.moveTo(sx - Math.cos(s.ang) * 6, sz - Math.sin(s.ang) * 6); ctx.lineTo(sx + Math.cos(s.ang) * 6, sz + Math.sin(s.ang) * 6); ctx.lineWidth = 3; ctx.stroke(); }
       else if (s.type === 'radar') { ctx.beginPath(); ctx.arc(sx, sz, 3.5, Math.PI, TAU); ctx.fill(); ctx.fillRect(sx - 4, sz, 8, 2); }
       else { ctx.strokeRect(sx - 5, sz - 4, 10, 8); ctx.beginPath(); ctx.moveTo(sx - 5, sz - 4); ctx.lineTo(sx + 5, sz + 4); ctx.stroke(); }
       const fsz = s.size === 'town' ? 10.5 : s.size === 'hamlet' ? 6.5 : 8;   // label size by importance: town > village/site > hamlet
-      ctx.font = (on || s.size === 'town' ? 'bold ' : '') + fsz + 'px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText(s.name.toUpperCase(), sx, sz + 9 + fsz * .6 + (s.size === 'town' ? 4 : 0)); ctx.textAlign = 'left';
+      ctx.font = (on || s.size === 'town' ? 'bold ' : '') + fsz + 'px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText(s.name.toUpperCase(), sx, s.type === 'village' ? sz + fsz * .35 : sz + 9 + fsz * .6); ctx.textAlign = 'left';
     } }
   // 4b. Home / landing pad with a dashed line and distance from the drone
   { const [hx, hz] = worldToMap(PAD.x, PAD.z), [dx3, dz3] = worldToMap(state.pos.x, state.pos.z), dkm = Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000;
