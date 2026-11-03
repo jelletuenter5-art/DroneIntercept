@@ -95,6 +95,7 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 #replayTag{position:absolute;display:none;transform:translate(-50%,-50%);pointer-events:none}#replayTag i{display:block;width:46px;height:46px;border:2px solid #ff8a6b;border-radius:4px;box-shadow:0 0 10px #ff8a6b88}
 #replayTag span{position:absolute;left:50%;top:-16px;transform:translateX(-50%);font:700 10px ui-monospace,monospace;color:#ffb39e;letter-spacing:.1em;white-space:nowrap}
 #abortBtn{display:none;position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:12;pointer-events:auto;padding:9px 22px 8px;background:#3a0c10ee;border:1.5px solid #ff6b6b;border-radius:8px;color:#ffd6d6;font:700 13px ui-monospace,monospace;letter-spacing:.1em;box-shadow:0 6px 24px #000a;text-align:center;cursor:pointer}
+#boostBtn{display:none;position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:12;pointer-events:auto;padding:7px 20px 6px;background:#0d2a22ee;border:1.5px solid #4fd6a4;border-radius:8px;color:#c8ffea;font:700 12px ui-monospace,monospace;letter-spacing:.1em;box-shadow:0 6px 24px #000a;text-align:center;cursor:pointer;user-select:none;touch-action:none}#boostBtn small{display:block;font-weight:500;font-size:10px;color:#9fe8c8;letter-spacing:.04em;margin-top:2px}#boostBtn kbd{position:absolute;right:6px;top:5px;font-size:9px}#boostBtn.show{display:block}#boostBtn.on,#boostBtnMap.on{background:#1f6a4e;border-color:#8fffd0;color:#fff}#boostBtnMap{display:none;user-select:none;touch-action:none}#boostBtnMap.show{display:inline-block}body.replaying #boostBtn{visibility:hidden}
 #abortBtn:hover{background:#561419}#abortBtn.show{display:block}#abortBtn small{display:block;font-weight:500;font-size:10px;color:#ffb3b3;letter-spacing:.04em;margin-top:2px}#abortBtn kbd{position:absolute;right:6px;top:5px;font-size:9px}
 #envBtn{white-space:nowrap}#envPanel{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:30;width:270px;padding:10px 12px;background:#07131df2;border:1px solid #3c6174;border-radius:9px;box-shadow:0 8px 30px #0008;font:11px ui-monospace,monospace;color:#cfe6f5;pointer-events:auto}
 #envPanel.open{display:block}#envPanel .envHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;color:#7affca;letter-spacing:.12em}
@@ -267,7 +268,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
     <span id="mapStatusSpan">Press ⊕ to place waypoint</span>
-    <button id="cancelWpBtn">✕ Waypoint</button><button id="cancelTrackBtn">✕ Tracking</button><button id="legendBtn" style="pointer-events:auto">◧ Legend</button><button id="mapCloseBtn" style="pointer-events:auto">✕ Close</button>
+    <button id="boostBtnMap" title="Hold (or hold E): fly to the waypoint at up to 350 km/h">⏩ Boost (hold E)</button><button id="cancelWpBtn">✕ Waypoint</button><button id="cancelTrackBtn">✕ Tracking</button><button id="legendBtn" style="pointer-events:auto">◧ Legend</button><button id="mapCloseBtn" style="pointer-events:auto">✕ Close</button>
   </div>
 </div>
 <div id="thermalScale"><span>HOT</span><i id="thermalScaleBar"></i><span>COLD</span></div>
@@ -294,6 +295,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
           <tr class="sbOnly"><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
+          <tr><td><kbd>E</kbd></td><td>Hold: boost to the waypoint (also ⏩ BOOST) — only while flying to a map waypoint; speeds up to 350 km/h over ~4 s and stays there while held (uses much more battery); released or at the waypoint it eases back to cruise</td></tr>
           <tr><td><kbd>K</kbd></td><td>Emergency abort (also ⚠ Abort in the header) — press twice: motors off, the drone falls and is lost (counts as a lost drone; crashing into a building is a civilian incident); short replay, then the next drone on the pad</td></tr>
           <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (also ⌂ Home in the header) · press again en route to cancel · during the landing: go around (abort and fly on)</td></tr>
           <tr><th colspan="2">Gimbal camera</th></tr>
@@ -349,7 +351,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
       <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1) · permanent, Civil switches it">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2) · permanent, Threat switches it">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button></div></div>
     <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
-    <button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
+    <button id="boostBtn" title="Hold (or hold E): fly to the waypoint at up to 350 km/h — uses much more battery"><b>⏩ BOOST</b><small>hold · up to 350 km/h</small><kbd>E</kbd></button><button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
 
   </section>
   <aside id="right" class="panel">
@@ -2423,6 +2425,10 @@ $('resetBtn').onclick = () => {
   state.ang.set(0,0,0); state.time = 0; state.paused = false; state.history = []; state.tagCount = 0;
   updatePauseButtons(); toast('Aircraft reset to launch pad');
 };
+// Waypoint boost button (hold) — see the search branch of the guidance
+const V_WPBOOST = 350 / 3.6; let boostHeld = false;
+for (const id of ['boostBtn', 'boostBtnMap']) { const b = $(id); b.addEventListener('pointerdown', e => { e.preventDefault(); boostHeld = true; b.setPointerCapture(e.pointerId); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => { boostHeld = false; }); }
 function getInput() {
   let p = 0, r = 0, y = 0, z = 0, boost = keys.has('shift') ? 1.35 : 1;
   if (!mapOpen) { if (keys.has('a')) r += 1; if (keys.has('d')) r -= 1; if (keys.has('w')) z += 1; if (keys.has('s')) z -= 1; }   // nudges: A/D turn, W/S higher/lower (map open: W/A/S/D pan the map)
@@ -3621,6 +3627,9 @@ function emergencyAbort() {
   startBatteryFailure('EMERGENCY ABORT · MOTORS OFF · AIRCRAFT FALLING'); updateHomeBtn();
 }
 function updateHomeBtn() {
+  { const show = state.manualWaypointActive && !!mapWaypoint && state.launchStage === 'active' && !state.pursuitMode && !state.batteryDead && !state.rtb, on = show && (boostHeld || keys.has('e'));
+    for (const id of ['boostBtn', 'boostBtnMap']) { const b = $(id); b.classList.toggle('show', show); b.classList.toggle('on', on); }
+    if (!show) boostHeld = false; }
   { const e = $('ejectBtn'), arm = state.abortArmUntil > performance.now(); e.disabled = !canAbort(); e.classList.toggle('arm', arm && !e.disabled);
     const t = arm ? '⚠ Confirm abort' : '⚠ Abort'; if (e.textContent !== t) e.textContent = t; }
   const b = $('homeBtn'), ok = canGoHome();
@@ -3911,6 +3920,11 @@ function physicsStep(h) {
     G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.userAlt ?? state.searchAlt; G_.clear = 120;
     { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
       G_.speed = (game.mode === 'mission' ? 50 : V_CRUISE) + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind; missions: economical ~50 m/s patrol loiter (≈2× endurance)
+    // Waypoint boost (on request): hold E / ⏩ BOOST while flying to a manual waypoint → the commanded speed ramps up to
+    // 350 km/h over ~4 s and stays there (costs power: ∝ V^2.3); released or at the waypoint it eases back over ~7 s.
+    { const want = state.manualWaypointActive && !!mapWaypoint && (keys.has('e') || boostHeld) && !state.rtb;
+      state.wpBoost = want ? Math.min(1, (state.wpBoost || 0) + h / 4) : Math.max(0, (state.wpBoost || 0) - h / 7);
+      if (state.wpBoost > 0) G_.speed = lerp(G_.speed, V_WPBOOST, smoothstep(0, 1, state.wpBoost)); }
   }
   // Keep inside the play area (mountain wall just outside). A chase follows its target as far as the target can go
   // (on request — scouts turn back only past ARENA − 250 and swing out wider; the drone used to turn away at
@@ -4563,7 +4577,7 @@ function updateHud(rdt) {
   if (state.launchStage === 'active' && !state.crashed && !state.batteryDead) {
     if (state.stalled) { $('flightState').innerHTML = '<span style="color:#ff6b6b">⚠ STALL · RECOVERING</span>'; } else
     if (state.rtb === 'landing') { /* text set by the landing controller */ } else if (state.rtb === 'enroute') { $('flightState').textContent = 'RETURNING TO BASE · ' + (Math.hypot(state.pos.x - PAD.x, state.pos.z - PAD.z) / 1000).toFixed(1) + ' km'; } else
-    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS', decoyed:'DECOYED BY FLARES'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' : state.nudging ? 'SEARCH · MANUAL NUDGE' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
+    $('flightState').textContent = (state.pursuitMode && tgt ? 'PURSUIT · ' + ({intercept:'INTERCEPT', join:'JOINING TAIL', terminal:'CLOSING IN', headon:'HEAD-ON', search:'TO LAST KNOWN POS', decoyed:'DECOYED BY FLARES'}[state.attack.phase] || '') : tgt ? 'AI INVESTIGATE' : state.manualWaypointActive ? 'TO WAYPOINT' + (state.wpBoost > .05 ? ' · BOOST ' + Math.round(state.cruiseSpeed * 3.6) + ' KM/H' : '') : state.nudging ? 'SEARCH · MANUAL NUDGE' : 'AI SEARCH') + (state.night ? ' · NIGHT' : '');
     if (tgt) {
       const cr = classifyRange(tgt), progress = clamp(1 - (dist - cr) / (cr * 3), 0, 1), info = contactInfo(tgt);
       const conf = known ? Math.round(clamp(70 + (1 - dist / 800) * 28, 70, 98)) : Math.round(progress * 60);
@@ -5055,15 +5069,15 @@ function updateMissionLaunchCard() {
   $('launchHint').textContent = 'Defend ' + m.site.name + ' · raid ' + m.downed + '/' + m.total + ' down · ' + m.raid.filter(s => !s.raidDone).length + ' inbound. Launch when ready.';
   $('launchBtn').disabled = left <= 0 || !!m.result;
 }
-const distBonus = d => d > STRIKE_R ? 100 + (d - STRIKE_R) * .25 : 0;   // points for one scout stopped d m from the site
+const distBonus = d => d * .25;   // points for one scout stopped d m from the site (on request: simply 0.25 per metre — 3 scouts at 2 km = 1500)
 function missionScore() {
   const m = game.m, win = !!(m.result && m.result.win), downs = m.raid.filter(s => s.downDist !== undefined), left = m.dronesTotal - m.dronesUsed;
   const wrong = ambientActors.filter(a => a.userMark === 'threat').length, inc = state.civilianIncidents || 0;
   const far = downs.length === m.total && downs.every(s => s.downDist > FAR_R);
   const rows = [['Scouts stopped', downs.length + ' / ' + m.total, downs.length * 500],
     // distance bonus per scout (on request — it was capped at 500 from 1 km on, so every good run scored the same):
-    // a base of 100 once it is stopped beyond STRIKE_R (300 m), + 0.25 per metre further out, no cap
-    ['Distance bonus (100 per scout + 0.25 per m beyond 300 m)', downs.length ? 'avg ' + (downs.reduce((a, s) => a + s.downDist, 0) / downs.length / 1000).toFixed(2) + ' km · farthest ' + (Math.max(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + distBonus(s.downDist), 0))],
+    // 0.25 per metre from the site, no base, no minimum, no cap
+    ['Distance bonus (0.25 per m from the site, per scout)', downs.length ? 'avg ' + (downs.reduce((a, s) => a + s.downDist, 0) / downs.length / 1000).toFixed(2) + ' km · farthest ' + (Math.max(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + distBonus(s.downDist), 0))],
     ['Mission completed', win ? 'yes' : 'no', win ? 1000 : 0], ['Drones left', win ? left + ' of ' + m.dronesTotal : '—', win ? left * 250 : 0],
     ['Drones lost (crash / battery)', String(m.lost), -m.lost * 200], ['Civilian incidents', String(inc), -inc * 750], ['Civil traffic flagged as threat', String(wrong), -wrong * 150]];
   const base = rows.reduce((a, r) => a + r[2], 0), score = Math.max(0, Math.round(base * m.D.mult));
