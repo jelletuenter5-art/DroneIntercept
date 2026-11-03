@@ -125,6 +125,7 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 
 #mapOverlay{display:none;position:fixed;inset:0;z-index:999;background:#010509f2;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;gap:8px;pointer-events:none;overflow:hidden}
 #mapOverlay.open{display:flex;pointer-events:auto}
+#mapCanvasBox{position:relative;flex:0 0 auto;line-height:0}#mapZoomBtns{position:absolute;left:8px;top:8px;display:flex;flex-direction:column;gap:4px;line-height:normal}#mapZoomBtns button{width:26px;height:24px;padding:0;font:bold 14px system-ui;background:rgba(8,18,28,.82);color:#bfefff;border:1px solid #3a778e;border-radius:4px;cursor:pointer}#mapZoomBtns button:hover{background:#12324a}
 #mapWrap{position:relative;flex:0 0 auto;display:flex;gap:12px;align-items:flex-start;justify-content:center;max-width:100%}
 /* legend always beside the map, never over it: with the legend open the map shrinks to leave room for it */
 #mapWrap.leg #mapCanvas{width:min(520px,calc(100vw - 32px - 217px),calc(100vh - 140px));height:min(520px,calc(100vw - 32px - 217px),calc(100vh - 140px))}
@@ -262,7 +263,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
       <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>RADAR</span><span id="radarCount">0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="openMapBtn">⊕ Map <kbd>M</kbd></button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="raidWarn"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
-  <div id="mapWrap"><canvas id="mapCanvas" width="600" height="600"></canvas><div id="mapLegend"></div></div>
+  <div id="mapWrap"><div id="mapCanvasBox"><canvas id="mapCanvas" width="600" height="600"></canvas><div id="mapZoomBtns"><button id="mapZoomIn" title="Zoom in (mouse wheel)">＋</button><button id="mapZoomOut" title="Zoom out">−</button><button id="mapZoomReset" title="Whole map">⟲</button></div></div><div id="mapLegend"></div></div>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
     <span id="mapStatusSpan">Press ⊕ to place waypoint</span>
@@ -289,7 +290,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div class="sdTab" data-tab="controls">
         <table class="keys">
           <tr><th colspan="2">Mission</th></tr>
-          <tr><td><kbd>M</kbd></td><td>Map — click empty spot = waypoint, click contact = pursue</td></tr>
+          <tr><td><kbd>M</kbd></td><td>Map — click empty spot = waypoint, click contact = pursue · mouse wheel / ＋ − = zoom (⟲ whole map), drag or W A S D = move the map (W/A/S/D don't nudge the drone while the map is open)</td></tr>
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
           <tr class="sbOnly"><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
@@ -1997,20 +1998,17 @@ function worldToMap(wx, wz) { return [(wx / MAP_WORLD + .5) * MAP_SIZE, (wz / MA
 function mapToWorld(mx, mz) { return [(mx / MAP_SIZE - .5) * MAP_WORLD, (mz / MAP_SIZE - .5) * MAP_WORLD]; }
 
 // Build terrain once on first open (expensive but only happens once)
+function mapColour(wx, wz) {
+  const h = terrainHeight(wx, wz);
+  return h < WATER_Y + 2 || isWater(wx, wz, h) ? [28, 68, 105] : h < 18 ? [48, 82, 54] : h < 45 ? [58, 100, 62] : h < 85 ? [74, 116, 72]
+    : h < 130 ? [100, 112, 76] : h < 175 ? [128, 116, 90] : h < 220 ? [165, 155, 118] : [210, 218, 222];
+}
 function buildTerrainCache() {
   const offscreen = document.createElement('canvas'); offscreen.width = MAP_SIZE; offscreen.height = MAP_SIZE;
   const ctx = offscreen.getContext('2d'), imgD = ctx.createImageData(MAP_SIZE, MAP_SIZE);
   for (let py = 0; py < MAP_SIZE; py++) for (let px2 = 0; px2 < MAP_SIZE; px2++) {
-    const [wx, wz] = mapToWorld(px2, py), h = terrainHeight(wx, wz);
-    let r, g, b;
-    if (h < WATER_Y + 2 || isWater(wx, wz, h))  { r=28;  g=68;  b=105; }
-    else if (h < 18)       { r=48;  g=82;  b=54;  }
-    else if (h < 45)       { r=58;  g=100; b=62;  }
-    else if (h < 85)       { r=74;  g=116; b=72;  }
-    else if (h < 130)      { r=100; g=112; b=76;  }
-    else if (h < 175)      { r=128; g=116; b=90;  }
-    else if (h < 220)      { r=165; g=155; b=118; }
-    else                   { r=210; g=218; b=222; }
+    const [wx, wz] = mapToWorld(px2, py);
+    const [r, g, b] = mapColour(wx, wz);
     // slight vignette/shade near edges
     const ex = Math.max(0, (Math.abs(px2 - MAP_SIZE/2) / (MAP_SIZE/2) - .72) * 3.5);
     const ez = Math.max(0, (Math.abs(py - MAP_SIZE/2) / (MAP_SIZE/2) - .72) * 3.5);
@@ -2039,16 +2037,47 @@ function buildTerrainCache() {
   mapTerrainCache = offscreen;
 }
 
+// Map zoom & pan (on request): mouse wheel zooms round the cursor (1-8×), drag pans, W/A/S/D pan while the map is
+// open (they don't nudge the drone then), ＋ / − / ⟲ buttons. Only the big map: positions and distances are scaled,
+// symbols and text keep their size. View = centre (in 600-unit base map coords) + zoom.
+const mapView = {z: 1, cx: MAP_SIZE / 2, cy: MAP_SIZE / 2, detail: null, detailKey: '', moveAt: 0, lastT: 0};
+function clampMapView() { const h = MAP_SIZE / 2 / mapView.z; mapView.cx = clamp(mapView.cx, h, MAP_SIZE - h); mapView.cy = clamp(mapView.cy, h, MAP_SIZE - h); mapView.moveAt = performance.now(); }
+const viewOf = (bx, by) => [(bx - mapView.cx) * mapView.z + MAP_SIZE / 2, (by - mapView.cy) * mapView.z + MAP_SIZE / 2];   // base map → screen (600 units)
+const baseOf = (sx, sy) => [(sx - MAP_SIZE / 2) / mapView.z + mapView.cx, (sy - MAP_SIZE / 2) / mapView.z + mapView.cy];
+const mapViewW2M = (wx, wz) => { const [bx, by] = worldToMap(wx, wz); return viewOf(bx, by); };
+const mapViewM2W = (sx, sy) => { const [bx, by] = baseOf(sx, sy); return mapToWorld(bx, by); };
+function zoomMapAt(f, sx = MAP_SIZE / 2, sy = MAP_SIZE / 2) {   // zoom by factor f, keeping the point under (sx, sy) where it is
+  const [bx, by] = baseOf(sx, sy); mapView.z = clamp(mapView.z * f, 1, 8);
+  mapView.cx = bx - (sx - MAP_SIZE / 2) / mapView.z; mapView.cy = by - (sy - MAP_SIZE / 2) / mapView.z; clampMapView();
+}
+// zoomed in: a sharper terrain image of the visible area, computed once the view has been still for ~0.2 s
+function mapDetailTick() {
+  const V = mapView; if (V.z < 1.6 || performance.now() - V.moveAt < 200) return;
+  const key = [V.z.toFixed(3), V.cx.toFixed(1), V.cy.toFixed(1)].join(); if (V.detailKey === key) return;
+  const N = 300, half = MAP_SIZE / 2 / V.z, bx0 = V.cx - half, by0 = V.cy - half, bw = 2 * half;
+  const cv = V.detail?.canvas || document.createElement('canvas'); cv.width = cv.height = N;
+  const cx = cv.getContext('2d'), img = cx.createImageData(N, N);
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const [wx, wz] = mapToWorld(bx0 + (i + .5) / N * bw, by0 + (j + .5) / N * bw), [r, g, b] = mapColour(wx, wz), k = (j * N + i) * 4;
+    img.data[k] = r; img.data[k + 1] = g; img.data[k + 2] = b; img.data[k + 3] = 255; }
+  cx.putImageData(img, 0, 0); V.detail = {canvas: cv, bx: bx0, by: by0, bw}; V.detailKey = key;
+}
 function drawMap() {
   const c = $('mapCanvas'); if (!c || !mapOpen) return;
   if (!mapTerrainCache) buildTerrainCache();
+  const worldToMap = mapViewW2M, MZ = mapView.z;   // (shadows the base mapping inside the big map only)
+  { const now = performance.now(), dt = Math.min(.1, (now - (mapView.lastT || now)) / 1000); mapView.lastT = now;   // W/A/S/D pan
+    const px = (keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), py = (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0);
+    if ((px || py) && MZ > 1) { mapView.cx += px * 320 / MZ * dt; mapView.cy += py * 320 / MZ * dt; clampMapView(); } }
+  mapDetailTick();
   // render at the real display resolution (the canvas used to be a fixed 600 px bitmap stretched → blurry);
   // all drawing below stays in MAP_SIZE (600) logical units
   const want = Math.round(clamp((c.clientWidth || MAP_SIZE) * (devicePixelRatio || 1), MAP_SIZE, 2400));
   if (c.width !== want) { c.width = c.height = want; }
   const ctx = c.getContext('2d'); ctx.setTransform(c.width / MAP_SIZE, 0, 0, c.width / MAP_SIZE, 0, 0); ctx.imageSmoothingQuality = 'high';
-  // 1. terrain background
-  ctx.drawImage(mapTerrainCache, 0, 0, MAP_SIZE, MAP_SIZE);
+  // 1. terrain background (the visible part of the base image; when zoomed in, the sharper detail image on top)
+  { const h = MAP_SIZE / 2 / MZ; ctx.fillStyle = '#081420'; ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
+    ctx.drawImage(mapTerrainCache, mapView.cx - h, mapView.cy - h, 2 * h, 2 * h, 0, 0, MAP_SIZE, MAP_SIZE);
+    const D = mapView.detail; if (D && MZ >= 1.6) { const [x0, y0] = viewOf(D.bx, D.by); ctx.drawImage(D.canvas, x0, y0, D.bw * MZ, D.bw * MZ); } }
   // roads (vector, so they stay sharp): regional roads + village streets light, gravel tracks thin and dashed
   ctx.lineCap = ctx.lineJoin = 'round';
   for (const R of ROADS) { ctx.beginPath(); R.pts.forEach(([x, z], i) => { const [mx, my] = worldToMap(x, z); i ? ctx.lineTo(mx, my) : ctx.moveTo(mx, my); });
@@ -2068,12 +2097,12 @@ function drawMap() {
   }
 
   // 4. Radar coverage around the drone
-  { const [cx3, cz3] = worldToMap(state.pos.x, state.pos.z), rr = radarRange() / MAP_WORLD * MAP_SIZE;
+  { const [cx3, cz3] = worldToMap(state.pos.x, state.pos.z), rr = radarRange() / MAP_WORLD * MAP_SIZE * MZ;
     ctx.fillStyle = 'rgba(80,220,200,.05)'; ctx.strokeStyle = 'rgba(80,220,200,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.arc(cx3, cz3, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '7px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
   // 4a'. Mission: the site surveillance radar's coverage (fixed ring round its mast; shrinks with the weather)
-  if (game.mode === 'mission' && game.m && game.m.radar) { const R = game.m.radar, [mx, mz] = worldToMap(R.x, R.z), rr = siteRadarRange() / MAP_WORLD * MAP_SIZE;
+  if (game.mode === 'mission' && game.m && game.m.radar) { const R = game.m.radar, [mx, mz] = worldToMap(R.x, R.z), rr = siteRadarRange() / MAP_WORLD * MAP_SIZE * MZ;
     ctx.fillStyle = 'rgba(255,200,90,.035)'; ctx.strokeStyle = 'rgba(255,200,90,.5)'; ctx.lineWidth = 1.1; ctx.setLineDash([6, 4]);
     ctx.beginPath(); ctx.arc(mx, mz, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(255,200,90,.85)'; ctx.beginPath(); ctx.moveTo(mx, mz - 5); ctx.lineTo(mx - 3.5, mz + 3); ctx.lineTo(mx + 3.5, mz + 3); ctx.closePath(); ctx.fill();   // mast
@@ -2082,7 +2111,7 @@ function drawMap() {
     ctx.fillText(lbl, Math.min(mx + rr * .71 + 3, MAP_SIZE - 8 - ctx.measureText(lbl).width), Math.max(14, ly)); }
   // 4a. Sites (villages, dams, radar stations, forward base); in a mission the defended one with its strike and
   //     1.5 km rings
-  { const k = MAP_SIZE / MAP_WORLD, tgt = game.mode === 'mission' && game.m ? game.m.site : null;
+  { const k = MAP_SIZE / MAP_WORLD * MZ, tgt = game.mode === 'mission' && game.m ? game.m.site : null;
     for (const s of SITES) {
       const [sx, sz] = worldToMap(s.x, s.z), on = s === tgt, col = on ? '#ff8a6a' : 'rgba(205,220,232,.75)';
       if (on) { ctx.setLineDash([1.5, 3]); ctx.strokeStyle = 'rgba(255,120,90,.75)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(sx, sz, FAR_R * k, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
@@ -2111,7 +2140,7 @@ function drawMap() {
     const isT = c === tgt && state.pursuitMode, age = state.time - c.trk.seen;
     // (off radar: just the object at its estimated position, faded, labelled 'EST' + age — no uncertainty circle, on request)
     // labels flip to the left near the right-hand border so they don't run over it
-    const [, bR] = worldToMap(ARENA, ARENA), flip = mx > bR - 95;
+    const bR = Math.min(MAP_SIZE, mapViewW2M(ARENA, ARENA)[0]), flip = mx > bR - 95;
     ctx.textAlign = flip ? 'right' : 'left';
     ctx.globalAlpha = live ? 1 : .55;
     if (!c.identified) {
@@ -2159,7 +2188,7 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(wx2-11,wz2); ctx.lineTo(wx2+11,wz2); ctx.moveTo(wx2,wz2-11); ctx.lineTo(wx2,wz2+11); ctx.stroke();
     // distance ring that shrinks as drone approaches
     const dist = Math.hypot(mapWaypoint.x-state.pos.x, mapWaypoint.z-state.pos.z);
-    const ringR = clamp(dist / MAP_WORLD * MAP_SIZE * .5, 8, 60);
+    const ringR = clamp(dist / MAP_WORLD * MAP_SIZE * MZ * .5, 8, 60);
     ctx.strokeStyle='rgba(255,200,80,.2)'; ctx.lineWidth=8;
     ctx.beginPath(); ctx.arc(wx2,wz2,ringR,0,Math.PI*2); ctx.stroke();
     ctx.fillStyle='#ffca77'; ctx.font='bold 9px ui-monospace,monospace';
@@ -2167,7 +2196,7 @@ function drawMap() {
   }
 
   // 7b. Compass rose (north = map up) with the drone's heading on the ring
-  { const R = 38, [bx, by] = worldToMap(-ARENA, ARENA), cx = bx + R + 26, cy = by - R - 44, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
+  { const R = 38, bx = Math.max(0, mapViewW2M(-ARENA, ARENA)[0]), by = Math.min(MAP_SIZE, mapViewW2M(-ARENA, ARENA)[1]), cx = bx + R + 26, cy = by - R - 44, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
     ctx.save(); ctx.translate(cx, cy);
     ctx.fillStyle = 'rgba(8,18,28,.72)'; ctx.strokeStyle = 'rgba(122,255,202,.35)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill(); ctx.stroke();
@@ -2187,6 +2216,7 @@ function drawMap() {
     ctx.beginPath(); ctx.moveTo(Math.sin(hr) * (R - 1), -Math.cos(hr) * (R - 1)); ctx.lineTo(Math.sin(hr + .13) * (R + 5), -Math.cos(hr + .13) * (R + 5)); ctx.lineTo(Math.sin(hr - .13) * (R + 5), -Math.cos(hr - .13) * (R + 5)); ctx.closePath(); ctx.fill();
     ctx.font = 'bold 9px ui-monospace,monospace'; ctx.fillStyle = 'rgba(122,255,202,.85)'; ctx.fillText('HDG ' + String(Math.round(hdg) % 360).padStart(3, '0') + '°', 0, R + 24);
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.restore(); }
+  if (MZ > 1.01) { ctx.fillStyle = 'rgba(8,18,28,.75)'; ctx.fillRect(MAP_SIZE - 64, MAP_SIZE - 20, 60, 16); ctx.fillStyle = '#9fe8ff'; ctx.font = 'bold 9px ui-monospace,monospace'; ctx.textAlign = 'right'; ctx.fillText('ZOOM ' + MZ.toFixed(1) + '×', MAP_SIZE - 8, MAP_SIZE - 8); ctx.textAlign = 'left'; }
   // 8. Status label
   const lbl = $('mapCoordLabel');
   const span = $('mapStatusSpan');
@@ -2196,7 +2226,7 @@ function drawMap() {
   } else if (mapWaypoint) {
     lbl.textContent = 'Waypoint set'; if(span) span.textContent = 'Drone en route · will resume search on arrival';
   } else {
-    lbl.innerHTML = 'Click anywhere &rarr; waypoint &nbsp;|&nbsp; Click an identified contact &rarr; pursue<br><span style="font-weight:400;color:#8fa8ba;font-size:9.5px">Grey = unidentified · faded + EST = estimated position off radar (age) · identifications are sensor estimates and may be wrong</span>';
+    lbl.innerHTML = 'Click anywhere &rarr; waypoint &nbsp;|&nbsp; Click an identified contact &rarr; pursue<br><span style="font-weight:400;color:#bfe6f5;font-size:9.5px">Scroll = zoom · drag or W A S D = move the map</span><br><span style="font-weight:400;color:#8fa8ba;font-size:9.5px">Grey = unidentified · faded + EST = estimated position off radar (age) · identifications are sensor estimates and may be wrong</span>';
   }
 }
 
@@ -2211,6 +2241,8 @@ $('tc-auth').onclick = () => {
 $('tc-cancel').onclick = () => { _pendingContact = null; $('trackConfirm').classList.remove('show'); };
 
 $('mapCanvas').addEventListener('click', e => {
+  if (mapDrag.moved) { mapDrag.moved = false; return; }   // that was a pan, not a click
+  const worldToMap = mapViewW2M, mapToWorld = mapViewM2W;
   const r = $('mapCanvas').getBoundingClientRect();
   const mx = (e.clientX - r.left) * (MAP_SIZE / r.width);
   const mz = (e.clientY - r.top)  * (MAP_SIZE / r.height);
@@ -2247,6 +2279,18 @@ $('mapCanvas').addEventListener('click', e => {
 });
 
 function setSelectMode(on) { /* removed – direct click now active */ }
+// zoom & pan input on the big map
+const mapDrag = {on: false, moved: false, x: 0, y: 0};
+const mapUnits = e => { const r = $('mapCanvas').getBoundingClientRect(); return [(e.clientX - r.left) * MAP_SIZE / r.width, (e.clientY - r.top) * MAP_SIZE / r.height, MAP_SIZE / r.width]; };
+$('mapCanvas').addEventListener('wheel', e => { e.preventDefault(); const [sx, sy] = mapUnits(e); zoomMapAt(Math.pow(1.0018, -e.deltaY * (e.deltaMode === 1 ? 30 : 1)), sx, sy); $('trackConfirm').classList.remove('show'); }, {passive: false});
+$('mapCanvas').addEventListener('pointerdown', e => { if (e.button !== 0) return; mapDrag.on = true; mapDrag.moved = false; mapDrag.x = e.clientX; mapDrag.y = e.clientY; });
+window.addEventListener('pointermove', e => { if (!mapDrag.on) return; const dx = e.clientX - mapDrag.x, dy = e.clientY - mapDrag.y;
+  if (!mapDrag.moved && Math.hypot(dx, dy) < 5) return;
+  if (!mapDrag.moved) { mapDrag.moved = true; $('mapCanvas').style.cursor = 'grabbing'; $('trackConfirm').classList.remove('show'); }
+  const [, , k] = mapUnits(e); mapView.cx -= dx * k / mapView.z; mapView.cy -= dy * k / mapView.z; clampMapView(); mapDrag.x = e.clientX; mapDrag.y = e.clientY; });
+window.addEventListener('pointerup', () => { if (!mapDrag.on) return; mapDrag.on = false; $('mapCanvas').style.cursor = ''; setTimeout(() => { mapDrag.moved = false; }, 0); });
+$('mapZoomIn').onclick = () => zoomMapAt(1.5); $('mapZoomOut').onclick = () => zoomMapAt(1 / 1.5);
+$('mapZoomReset').onclick = () => { mapView.z = 1; mapView.cx = mapView.cy = MAP_SIZE / 2; clampMapView(); };
 // Map legend (on request): what every symbol means, in the colours the map uses. Beside the map on wide screens,
 // over its top-right corner on narrow ones; '◧ Legend' toggles it (remembered in localStorage 'dl_legend').
 // Mission-only items (site, rings, mast) are hidden in the sandbox.
@@ -2381,7 +2425,7 @@ $('resetBtn').onclick = () => {
 };
 function getInput() {
   let p = 0, r = 0, y = 0, z = 0, boost = keys.has('shift') ? 1.35 : 1;
-  if (keys.has('a')) r += 1; if (keys.has('d')) r -= 1; if (keys.has('w')) z += 1; if (keys.has('s')) z -= 1;   // nudges: A/D turn, W/S higher/lower
+  if (!mapOpen) { if (keys.has('a')) r += 1; if (keys.has('d')) r -= 1; if (keys.has('w')) z += 1; if (keys.has('s')) z -= 1; }   // nudges: A/D turn, W/S higher/lower (map open: W/A/S/D pan the map)
   const pads = navigator.getGamepads?.() || [];
   for (const pad of pads) { if (pad) { if (Math.abs(pad.axes[0] || 0) > .12) r = -pad.axes[0]; if (Math.abs(pad.axes[1] || 0) > .12) p = -pad.axes[1]; if (pad.buttons[7]?.pressed) z = 1; if (pad.buttons[6]?.pressed) z = -1; break; } }
   return {p, r, y, z, boost};
