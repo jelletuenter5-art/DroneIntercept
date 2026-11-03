@@ -2238,9 +2238,10 @@ function setSelectMode(on) { /* removed – direct click now active */ }
     row('<rect x="6" y="3" width="12" height="8" fill="none" stroke="rgba(205,220,232,.8)" stroke-width="1.3"/><path d="M6 3 L18 11" stroke="rgba(205,220,232,.8)" stroke-width="1.3"/>', 'Military base (FOB)') +
     row('<path d="M5 7 H19" stroke="rgba(205,220,232,.8)" stroke-width="3"/>', 'Dam') +
     row('<text x="12" y="10" font-size="8" font-weight="700" text-anchor="middle" fill="rgba(205,220,232,.9)">TOWN</text>', 'Town / village / hamlet (by size)');
-  let on = innerWidth >= 1100; try { const v = localStorage.getItem('dl_legend'); if (v) on = v === 'on'; } catch (e) {}
-  const setLeg = v => { on = v; $('mapLegend').classList.toggle('off', !on); $('legendBtn').classList.toggle('active', on); try { localStorage.setItem('dl_legend', on ? 'on' : 'off'); } catch (e) {} };
-  setLeg(on); $('legendBtn').onclick = () => setLeg(!on); }
+  // shown by default on every screen size (it used to start hidden below 1100 px)
+  let on = true; try { const v = localStorage.getItem('dl_legend2'); if (v) on = v === 'on'; } catch (e) {}   // new key: the old one stored 'off' on narrow screens
+  const setLeg = (v, save) => { on = v; $('mapLegend').classList.toggle('off', !on); $('legendBtn').classList.toggle('active', on); if (save) try { localStorage.setItem('dl_legend2', on ? 'on' : 'off'); } catch (e) {} };
+  setLeg(on); $('legendBtn').onclick = () => setLeg(!on, true); }
 function openMap()  { mapOpen = true; $('mapOverlay').classList.add('open'); const mb=$('missionBanner'); if(mb) mb.style.display='none'; }
 function closeMap() { mapOpen = false; $('mapOverlay').classList.remove('open'); $('trackConfirm').classList.remove('show'); }
 $('openMapBtn').onclick = openMap;
@@ -4509,6 +4510,29 @@ function setMissionEnv(D) {
   $('envTimeAuto').checked = false; $('envTime').value = hour; state.dayClock = ((hour - 12) / 24) * TAU;
   applyEnv(); state.weatherMode = wx; state.weatherTarget = state.weatherStrength = WEATHER_STRENGTH[wx]; windMean = w;
 }
+// The site surveillance radar as a real object (on request — it was only a symbol on the map): a tapering steel
+// lattice tower from the ground up to the radar height (4 legs, X-bracing every ~5 m), a platform, a rotating radar
+// antenna (one turn every 2 s), a red aviation light on top that blinks at night, and an equipment hut at its foot.
+function buildSiteMast(R) {
+  const g = new THREE.Group(), y0 = groundY(R.x, R.z) - .3, H = R.y - y0, steel = mat(0xb8bcc0, .5, .6), red = mat(0xc23a2a, .6, .3);
+  g.position.set(R.x, y0, R.z); scene.add(g);
+  const half = t => lerp(2.4, .8, t), corner = (i, y) => { const t = y / H, w = half(t), a = Math.PI / 4 + i * Math.PI / 2; return [Math.cos(a) * w * Math.SQRT2, y, Math.sin(a) * w * Math.SQRT2]; };
+  for (let i = 0; i < 4; i++) strut(g, corner(i, 0), corner(i, H - 1.2), .09, steel);
+  const levels = Math.max(3, Math.round(H / 5));
+  for (let l = 0; l < levels; l++) { const ya = (H - 1.2) * l / levels, yb = (H - 1.2) * (l + 1) / levels;
+    for (let i = 0; i < 4; i++) { const j = (i + 1) % 4; strut(g, corner(i, ya), corner(j, yb), .04, steel); strut(g, corner(j, ya), corner(i, yb), .04, steel); strut(g, corner(i, yb), corner(j, yb), .045, steel); } }
+  box(g, [3.2, .3, 3.2], steel, [0, H - 1.2, 0]);                                                                  // platform
+  box(g, [.5, 1.2, .5], mat(0x4a4f55, .6, .4), [0, H - .5, 0]);                                                     // pedestal
+  const ant = new THREE.Group(); ant.position.set(0, H + .2, 0); g.add(ant);
+  box(ant, [6.5, .9, .25], mat(0xe9ecee, .5, .3), [0, .45, 0]); box(ant, [6.5, .12, .9], mat(0x9aa0a6, .5, .5), [0, 0, -.3]);   // antenna + feed boom
+  box(g, [4.2, 2.8, 3.2], mat(0xd8dcd6, .85), [5.5, 1.4, 0]); box(g, [4.4, .2, 3.4], mat(0x55595e, .7), [5.5, 2.9, 0]);       // equipment hut
+  box(g, [.9, 2, .05], mat(0x4a5560, .6), [5.5, 1, 1.63]);
+  for (let i = 0; i < 4; i++) box(g, [.12, .8, .12], red, [...corner(i, H - 1.2).map((v, k) => k === 1 ? v + .4 : v)]);   // red-white top marking
+  registerGroup(g, .32); ant.children.forEach(m => thermalReg.get(m) && (thermalReg.get(m).heat = .4));
+  const light = new THREE.Sprite(new THREE.SpriteMaterial({map: glowTex, color: 0xff3020, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending}));
+  light.position.set(0, H + 1.6, 0); light.scale.setScalar(4); g.add(light);
+  R.model = {g, ant, light};
+}
 function startMission(id, diff, opts = {}) {
   const def = MISSIONS.find(m => m.id === id) || MISSIONS[0], D = DIFFS[diff] || DIFFS.normal, site = siteByName(def.site);
   if (!site) { toast('Mission site not found'); return; }
@@ -4518,9 +4542,14 @@ function startMission(id, diff, opts = {}) {
   game.m = {def, diffKey: diff in DIFFS ? diff : 'normal', D, site, t:0, running:false, total:D.scouts, spawned:0, raid:[], downed:0,
     dronesTotal:D.drones, dronesUsed:0, lost:0, result:null, shown:false, sorties:[], cur:null, incSeen:0};
   planRaid(game.m);
-  { let best = {x: site.x, z: site.z, h: terrainHeight(site.x, site.z)};   // surveillance radar: highest ground within ~900 m
-    for (let r = 150; r <= 900; r += 150) for (let k = 0; k < 16; k++) { const x = site.x + Math.cos(k / 16 * TAU) * r, z = site.z + Math.sin(k / 16 * TAU) * r, h = terrainHeight(x, z); if (h > best.h + 5) best = {x, z, h}; }
-    game.m.radar = {x: best.x, z: best.z, y: Math.max(best.h, site.type === 'dam' ? site.crest : 0) + 30}; }
+  { let best = null;   // surveillance radar: highest dry, free ground within ~900 m (not on a building, street or road)
+    const free = (x, z) => !isWater(x, z) && !nearRoad(x, z) && SITES.every(q => !q.targets || q.targets.every(T => Math.hypot(T.c.x - x, T.c.z - z) > Math.hypot(T.h[0], T.h[2]) + 14))
+      && Math.abs(terrainHeight(x + 5, z) - terrainHeight(x - 5, z)) + Math.abs(terrainHeight(x, z + 5) - terrainHeight(x, z - 5)) < 5;
+    for (let r = 150; r <= 900; r += 75) for (let k = 0; k < 24; k++) { const x = site.x + Math.cos(k / 24 * TAU) * r, z = site.z + Math.sin(k / 24 * TAU) * r, h = terrainHeight(x, z);
+      if (free(x, z) && (!best || h > best.h + 5)) best = {x, z, h}; }
+    if (!best) best = {x: site.x + 150, z: site.z, h: terrainHeight(site.x + 150, site.z)};
+    game.m.radar = {x: best.x, z: best.z, y: Math.max(best.h, site.type === 'dam' ? site.crest : 0) + 30};
+    buildSiteMast(game.m.radar); }
   setMissionEnv(D); state.replenishTimer = 20; setMissionTraffic(D.traffic);
   placeFieldPad(site);
   resetToPad('manual'); setSpareDrones(D.drones - 1); state.civilianIncidents = 0; state.tagCount = 0;
@@ -4774,6 +4803,8 @@ function drawMissionMap(m, cv) {
   x.fillStyle = 'rgba(220,235,245,.85)'; x.font = `${Math.round(fs * .75)}px ui-monospace,monospace`; x.fillText('1 km', fs, W - fs * 1.4);
 }
 function missionUiTick() {
+  { const M = game.m && game.m.radar && game.m.radar.model; if (M) { const t = performance.now() / 1000, nt = facadeU.uNight.value;
+      M.ant.rotation.y = (t * Math.PI) % TAU; M.light.visible = !thermalOn && (t % 1.5) < .5; M.light.material.opacity = .35 + .65 * nt; M.light.scale.setScalar(2.5 + 3 * nt); } }
   { const rw = $('raidWarn'); if (rw.classList.contains('show')) {   // stay clear of the contact readout / TERMINATE button
       let top = 10; for (const id of ['contactReadout', 'abortBtn']) { const e = $(id); if (e && e.offsetParent && getComputedStyle(e).display !== 'none') top = Math.max(top, e.offsetTop + e.offsetHeight + 6); }
       rw.style.top = top + 'px'; } }
