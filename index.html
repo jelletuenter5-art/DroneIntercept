@@ -1792,7 +1792,8 @@ function drawMap() {
   { const k = MAP_SIZE / MAP_WORLD, tgt = game.mode === 'mission' && game.m ? game.m.site : null;
     for (const s of SITES) {
       const [sx, sz] = worldToMap(s.x, s.z), on = s === tgt, col = on ? '#ff8a6a' : 'rgba(205,220,232,.75)';
-      if (on) { ctx.setLineDash([3, 4]); ctx.strokeStyle = 'rgba(255,138,106,.55)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(sx, sz, FAR_R * k, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+      if (on) { ctx.setLineDash([1.5, 3]); ctx.strokeStyle = 'rgba(255,120,90,.75)'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(sx, sz, FAR_R * k, 0, TAU); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(255,140,110,.9)'; ctx.font = 'bold 7.5px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillText('★★★ ' + FAR_R / 1000 + ' KM', sx, sz + FAR_R * k + 9); ctx.textAlign = 'left';
         ctx.fillStyle = 'rgba(255,90,60,.25)'; ctx.strokeStyle = '#ff8a6a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx, sz, 9, 0, TAU); ctx.fill(); ctx.stroke(); }
       ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.3;
       if (s.type === 'village') for (const [ox, oz] of [[-3, 1], [2, -2], [3, 3]]) ctx.fillRect(sx + ox - 1.6, sz + oz - 1.6, 3.2, 3.2);
@@ -2684,7 +2685,10 @@ function siteRadarSees(c) {
   for (let i = 1; i < n; i++) { const f = i / n; if (terrainHeight(R.x + dx * f, R.z + dz * f) + 6 > R.y + dy * f) return -1; }
   return d;
 }
-function radarDetectRange(c) { return Math.min(2400, radarRange() * RCS[truthClass(c)]); }
+// The drone's radar sees every kind of contact out to radarRange() — the green ring on the map — measured flat like the
+// ring (it used to scale with radar cross-section: airliners were picked up at 2.1 km, outside the ring, prop scouts
+// only at 0.9 km). Terrain still masks it (line of sight).
+function radarDetectRange(c) { return radarRange(); }
 function radarScan(h) {
   state.passiveScanT -= h; if (state.passiveScanT > 0) return; state.passiveScanT = SCAN_DT;
   state.cloudHere = smoothstep(0, .25, cloudDensity(state.pos.x, state.pos.y, state.pos.z));
@@ -2697,12 +2701,12 @@ function radarScan(h) {
     // Camera / thermal identification: needs line of sight and a visible image (independent of the radar).
     if (on && los) classifyTick(c, d);
     if (!sweep) continue;
-    const dSite = siteRadarSees(c), det = (on && los && d < radarDetectRange(c)) || dSite >= 0;
+    const dh = Math.hypot(c.pos.x - state.pos.x, c.pos.z - state.pos.z), dSite = siteRadarSees(c), det = (on && los && dh < radarDetectRange(c)) || dSite >= 0;
     c.detected = det;
     if (det) {
       if (!c.trk || c.trk.lost) { c.trk = {}; if (c.identified) radioMessage('TRACK REACQUIRED · ' + CLS_SHORT[c.guess]); if (state.time - (audio.pingT || -9) > .6) { playSfx('ping'); audio.pingT = state.time; } }
       // A radar plot: noisy position (≈6 m + 1.5 % of range), rough velocity, turn rate from successive plots.
-      const n = 6 + (dSite >= 0 && !(on && los && d < radarDetectRange(c)) ? dSite : d) * .015, vn = 1 + .04 * Math.hypot(c.vel.x, c.vel.z);
+      const n = 6 + (dSite >= 0 && !(on && los && dh < radarDetectRange(c)) ? dSite : d) * .015, vn = 1 + .04 * Math.hypot(c.vel.x, c.vel.z);
       Object.assign(c.trk, {x:c.pos.x + gauss() * n, y:c.pos.y + gauss() * n * .5, z:c.pos.z + gauss() * n,
         vx:c.vel.x + gauss() * vn, vy:c.vel.y, vz:c.vel.z + gauss() * vn, w:c.turnRate || 0, seen:state.time, lost:false, covered:0, noise:n});
     } else if (c.trk && !c.trk.lost) {
@@ -4096,7 +4100,7 @@ function animate(now) {
 // Start screen → Sandbox (the free-play game as before) or Missions (defend a site against a scout raid).
 // The world is identical in both. Switching mode / retrying reloads the page (via sessionStorage 'dl_start'), so
 // every mission starts from a clean world. Best stars + score per mission and difficulty: localStorage 'dl_missions'.
-const STRIKE_R = 300, FAR_R = 1500;   // STRIKE_R: only the distance-bonus baseline now (losing = a raider hitting the structure)
+const STRIKE_R = 300, FAR_R = 1000;   // FAR_R: the ★★★ ring (every scout down outside it); was 1.5 km   // STRIKE_R: only the distance-bonus baseline now (losing = a raider hitting the structure)
 const MISSIONS = [
   {id:'village', site:'Bergtal', kind:'VALLEY VILLAGE', text:'Bergtal lies low in a valley {where}. Raiders will follow the valleys around it to stay under your radar until late — expect them to pop up close.'},
   {id:'dam', site:'Grauwand Dam', kind:'DAM', text:'Grauwand Dam closes a gorge and holds back a mountain reservoir {where} — the valley below depends on it. Scouts have long, open runs over the water and up the valley: see them early, stop them early.'},
@@ -4227,7 +4231,8 @@ function startMission(id, diff, opts = {}) {
   $('gmBriefTable').innerHTML = `<tr><td>Raid</td><td>${D.scouts} scouts, arriving one by one${D.pairs ? ' (sometimes in pairs)' : ''}</td></tr>
     <tr><td>Drones</td><td>${D.drones}: one per scout + ${D.drones - D.scouts} spare${D.drones - D.scouts === 1 ? '' : 's'} (every ram uses a drone)</td></tr><tr><td>Early warning</td><td>${D.warnText}</td></tr>
     <tr><td>Conditions</td><td>${state.weatherMode} · wind ${(+$('envWind').value).toFixed(0)} m/s · ${String(Math.floor(+$('envTime').value)).padStart(2, '0')}:00</td></tr>
-    <tr><td>Fails if</td><td>a scout crashes into ${site.aim ? site.aim.what : 'the site'}, or you run out of drones</td></tr><tr><td>You launch from</td><td>a portable field pad at ${site.name}</td></tr>`;
+    <tr><td>Fails if</td><td>a scout crashes into ${site.aim ? site.aim.what : 'the site'}, or you run out of drones</td></tr><tr><td>You launch from</td><td>a portable field pad at ${site.name}</td></tr>
+    <tr><td>Stars</td><td>★ stop every scout · ★★ lose no drone to a crash or empty battery (rams don't count) · ★★★ bring every scout down more than ${FAR_R / 1000} km from ${site.name} — the red dotted ring on the map</td></tr>`;
   updateMissionLaunchCard();
   if (opts.skipBrief) beginMission(); else { state.paused = true; gmShow('gmBrief'); }
 }
@@ -4377,7 +4382,7 @@ function missionScore() {
   const wrong = ambientActors.filter(a => a.userMark === 'threat').length, inc = state.civilianIncidents || 0;
   const far = downs.length === m.total && downs.every(s => s.downDist > FAR_R);
   const rows = [['Scouts stopped', downs.length + ' / ' + m.total, downs.length * 500],
-    ['Distance bonus (stopped far from the site)', downs.length ? 'closest ' + (Math.min(...downs.map(s => s.downDist)) / 1000).toFixed(1) + ' km' : '—', Math.round(downs.reduce((a, s) => a + clamp((s.downDist - STRIKE_R) / 2.4, 0, 500), 0))],
+    ['Distance bonus (stopped far from the site)', downs.length ? 'closest ' + (Math.min(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + clamp((s.downDist - STRIKE_R) / (FAR_R - STRIKE_R) * 500, 0, 500), 0))],
     ['Mission completed', win ? 'yes' : 'no', win ? 1000 : 0], ['Drones left', win ? left + ' of ' + m.dronesTotal : '—', win ? left * 250 : 0],
     ['Drones lost (crash / battery)', String(m.lost), -m.lost * 200], ['Civilian incidents', String(inc), -inc * 750], ['Civil traffic flagged as threat', String(wrong), -wrong * 150]];
   const base = rows.reduce((a, r) => a + r[2], 0), score = Math.max(0, Math.round(base * m.D.mult));
@@ -4394,7 +4399,7 @@ function showMissionResult() {
   const why = [
     ['★', `Mission completed — every scout stopped before one hit ${esc(site)}`, `<small>${downs.length}/${m.total} stopped</small> ${ok(r.win)}`],
     ['★★', `No drone lost — none crashed, stalled into the ground or ran out of battery <small>(drones used to ram a scout don't count)</small>`, `<small>${m.lost} lost</small> ${ok(r.win && m.lost === 0)}`],
-    ['★★★', `Stopped far out — every scout brought down more than ${FAR_R / 1000} km from ${esc(site)} <small>(the dashed ring on the map)</small>`, `<small>${closest === null ? '—' : 'closest ' + (closest / 1000).toFixed(2) + ' km'}</small> ${ok(r.win && r.far)}`]];
+    ['★★★', `Stopped far out — every scout brought down more than ${FAR_R / 1000} km from ${esc(site)} <small>(the red dotted ★★★ ring round the site on the map)</small>`, `<small>${closest === null ? '—' : 'closest ' + (closest / 1000).toFixed(2) + ' km'}</small> ${ok(r.win && r.far)}`]];
   const stars = [0, 1, 2].map(i => `<span class="slap${i < r.stars ? ' on' : ''}" style="--d:${.45 + i * .3}s">★</span>`).join('');
   const D = (t, d) => `class="slap" style="--d:${d}s"`;
   $('gmResCard').innerHTML = `
@@ -4402,7 +4407,7 @@ function showMissionResult() {
     <div class="gmSub" ${D(0, .2)}>${esc(m.result.reason)} Time ${tm}.</div>
     <div class="gmResGrid">
       <div ${D(0, 1.6)}><canvas id="gmResMap" width="720" height="720"></canvas>
-        <div class="gmLegend"><b style="color:#5ee0ff">━</b> sortie paths (numbered) · <b style="color:#7affca">⌂</b> your pad · <b style="color:#ffd27a">✕</b> ram (scout down) · <b style="color:#ff6b6b">✕</b> drone lost / civilian hit · <b style="color:#ff9a6b">◆</b> scout down by mid-air collision · <b style="color:#ff5a3c">✸</b> strike on the site · <b style="color:#ff8a6a">◌</b> ${FAR_R / 1000} km ring</div></div>
+        <div class="gmLegend"><b style="color:#5ee0ff">━</b> sortie paths (numbered) · <b style="color:#7affca">⌂</b> your pad · <b style="color:#ffd27a">✕</b> ram (scout down) · <b style="color:#ff6b6b">✕</b> drone lost / civilian hit · <b style="color:#ff9a6b">◆</b> scout down by mid-air collision · <b style="color:#ff5a3c">✸</b> strike on the site · <b style="color:#ff8a6a">◌</b> ★★★ ring (${FAR_R / 1000} km)</div></div>
       <div>
         <div class="gmBigStars">${stars}</div>
         <table class="gmStarWhy" ${D(0, 1.3)}>${why.map(w => `<tr><td>${w[0]}</td><td>${w[1]}</td><td>${w[2]}</td></tr>`).join('')}</table>
