@@ -2816,9 +2816,12 @@ function attackGuidance(t, G) {
   // Fast targets (≳ 80 m/s, e.g. the 92 m/s jet): passing beside it and turning in behind costs ~1.2 km — at the edge of
   // radar range, with only ~19 m/s of closure left — so a roughly head-on geometry is taken as a head-on attack.
   const fastT = smoothstep(80, 92, Vt);
-  // (a cut-off is only given up once the drone really is behind it — not for a moment of not closing while it turns in)
-  if (a.phase === 'headon') { if (cutoff ? !(behind < .1) : !(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) { a.phase = ''; a.cut = false; } }
-  else if (cutoff && behind < .1 && tc > 0) { a.phase = 'headon'; a.cut = true; if (!(a.cutMsgAt > state.time - 20)) { a.cutMsgAt = state.time; radioMessage('CUT-OFF · COLLISION COURSE'); } }   // any range: head for its path to the site, never its tail
+  // A cut-off is given up once the drone is behind it, or has been opening the range for 1.5 s (e.g. after a near miss
+  // it sits in front, flying the same way — it kept running away from the target) — not for a moment of not closing.
+  if (tc > 0 || a.phase !== 'headon') a.closingAt = state.time;
+  const opening = state.time - (a.closingAt ?? state.time) > 1.5;
+  if (a.phase === 'headon') { if (cutoff ? !(behind < .1) || opening : !(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) { a.phase = ''; a.cut = false; a.noCutUntil = opening ? state.time + 6 : 0; } }
+  else if (cutoff && behind < .1 && tc > 0 && !(a.noCutUntil > state.time)) { a.phase = 'headon'; a.cut = true; if (!(a.cutMsgAt > state.time - 20)) { a.cutMsgAt = state.time; radioMessage('CUT-OFF · COLLISION COURSE'); } }   // any range: head for its path to the site, never its tail
   else if (behind < -.9 + .15 * fastT && facing > .95 - .1 * fastT && tc > 0 && tc < 15 + 5 * fastT && miss < 30 + 120 * fastT && R > 200 && R < 1400 + 300 * fastT) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   { // close in on a low (or diving) target: come down to its height instead of hanging at the cruise terrain margin
@@ -2863,9 +2866,9 @@ function attackGuidance(t, G) {
   // Closing-speed profile. Far behind: catch up fast but arrive at its tail (~350 m) at a calm +10 m/s.
   // Then — only once established on its tail — build up steadily to a fast +32 m/s finish so the hit is certain.
   // Missions (on request — it sat at ~+10 m/s behind a raider heading for the site and arrived too late): arrive at
-  // ~600 m at +20 m/s with firmer braking (3 m/s²), count as 'on its tail' sooner, then sprint 20 → 35 m/s.
+  // ~600 m at +20 m/s with firmer braking (3 m/s²), then sprint 20 → 35 m/s once lined up on its tail.
   const mis = S0 ? 1 : 0, rA = mis ? 600 : 350, v0 = mis ? 20 : 10, dec = mis ? 3 : 1.5;
-  const onTail = mis ? smoothstep(.3, .7, est) : smoothstep(.55, .85, est);
+  const onTail = smoothstep(.55, .85, est);   // sprint only once really lined up behind it (sprinting while still swinging round from its side → slid past at max bank)
   const approach = Math.sqrt(v0 * v0 + 2 * dec * Math.max(0, R3 - rA));         // = v0 at rA
   const sprint = v0 + (22 + 3 * mis - (v0 - 10)) * smoothstep(rA, 25, R3);       // sandbox 10 → 32, missions 20 → 35 m/s
   const closure = Math.min(V_DASH - Vt, R3 > rA ? approach : lerp(Math.min(v0 - 2, approach), sprint, onTail) * (1 - .25 * turning));
@@ -4242,15 +4245,17 @@ function planRaider(kind, ang) {
   const travel = (Math.hypot(l1.x - ex, l1.z - ez) + Math.hypot(l2.x - l1.x, l2.z - l1.z) + Math.hypot(ip.x - l2.x, ip.z - l2.z)) * 1.12 / speed;   // +12 % for turns
   return {kind, ex, ez, ang, legs:[l1, l2, ip, {x: A.x, z: A.z}], aim: A, travel};
 }
-const FIRST_RAIDER_T = 10;   // s after BEGIN: the first raider (and its warning) appears; the rest follow by the gap
+const FIRST_RAIDER_T = [2, 15];   // s after BEGIN: the first raider (and its warning) appears; the rest follow by the gap
+const NEXT_RAIDER_T = [5, 25];    // s after the last raider in the air is down (sim time — frozen during the replay, so it
+                                  // counts from when the replay was watched or skipped): the next one comes early
 function planRaid(m) {
   const D = m.D, plan = []; let arrive = 0, i = 0;
   while (plan.length < D.scouts) {
     const p = planRaider(D.kinds[plan.length % D.kinds.length], Math.random() * TAU);
-    if (!plan.length) { p.spawnT = FIRST_RAIDER_T; arrive = p.spawnT + p.travel; }   // first contact + warning ~10 s after BEGIN
-    else p.spawnT = Math.max(FIRST_RAIDER_T + plan.length * 3, arrive - p.travel);
+    if (!plan.length) { p.spawnT = FIRST_RAIDER_T[0] + Math.random() * (FIRST_RAIDER_T[1] - FIRST_RAIDER_T[0]); arrive = p.spawnT + p.travel; }   // first contact + warning 2-15 s after BEGIN
+    else p.spawnT = Math.max(plan[0].spawnT + plan.length * 3, arrive - p.travel);
     plan.push(p);
-    if (D.pairs && plan.length < D.scouts && Math.random() < .5) { const q = planRaider(D.kinds[plan.length % D.kinds.length], p.ang + (Math.random() - .5) * .4); q.spawnT = Math.max(FIRST_RAIDER_T + 2, arrive + 8 - q.travel); plan.push(q); }
+    if (D.pairs && plan.length < D.scouts && Math.random() < .5) { const q = planRaider(D.kinds[plan.length % D.kinds.length], p.ang + (Math.random() - .5) * .4); q.spawnT = Math.max(plan[0].spawnT + 2, arrive + 8 - q.travel); plan.push(q); }
     arrive += D.gap[0] + Math.random() * (D.gap[1] - D.gap[0]); i++;
   }
   m.plan = plan.sort((a, b) => a.spawnT - b.spawnT);
@@ -4294,7 +4299,13 @@ function closeRaidBanner() { raidWarnings.length = 0; $('raidWarn').classList.re
 function missionTick(h) {
   const m = game.m; if (!m || !m.running || m.result) return;
   m.t += h;
-  while (m.spawned < m.total && m.t >= m.plan[m.spawned].spawnT) spawnRaider(m.plan[m.spawned]);
+  // Nothing left in the air (all spawned raiders down): the next one comes 5-25 s later instead of waiting for its
+  // planned time; the rest of the plan moves up by the same amount, so the spacing after it stays as planned.
+  if (m.spawned && m.spawned < m.total && m.raid.every(s => s.raidDone)) {
+    if (m.nextAt == null) m.nextAt = m.t + 1 + NEXT_RAIDER_T[0] + Math.random() * (NEXT_RAIDER_T[1] - NEXT_RAIDER_T[0]);   // +1 s: the pause before the replay starts
+    const adv = m.plan[m.spawned].spawnT - m.nextAt; if (adv > 0) for (let i = m.spawned; i < m.total; i++) m.plan[i].spawnT -= adv;
+  }
+  while (m.spawned < m.total && m.t >= m.plan[m.spawned].spawnT) { spawnRaider(m.plan[m.spawned]); m.nextAt = null; }
   countRaidDowns(m); updateRaidWarnings();
   for (const s of m.raid) if (!s.raidDone && !s.destroyed && hDist(s.pos, m.site) < 700 && raiderHitsSite(s, m.site, h)) { siteStrike(s); return; }
   if (m.downed >= m.total) finishMission(true, 'All ' + m.total + ' scouts stopped before they reached ' + m.site.name + '.');
