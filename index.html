@@ -461,7 +461,7 @@ renderer.toneMappingExposure = 1.05;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9bb4c7);
 scene.fog = new THREE.Fog(0x9bb4c7, 450, 2800);
-const camera = new THREE.PerspectiveCamera(78, 1, .3, 6000);
+const camera = new THREE.PerspectiveCamera(78, 1, .5, 6000)   // near .5 (was .3): more depth precision far away (less z-fighting);
 camera.position.set(0, 12, 22);
 const hemi = new THREE.HemisphereLight(0xd9ecff, 0x34404c, 2.0); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 3.0); sun.position.set(-35, 55, 25); scene.add(sun);
@@ -686,7 +686,11 @@ const forestField = (x, z) => smoothstep(.46, .62, fbm(x*.0055 + 5.5, z*.0055 + 
 
 const terrainGeo = new THREE.PlaneGeometry(WORLD, WORLD, SEG, SEG); terrainGeo.rotateX(-Math.PI / 2);
 const posAttr = terrainGeo.attributes.position;
-terrainBed = true; for (let i = 0; i < posAttr.count; i++) posAttr.setY(i, terrainHeight(posAttr.getX(i), posAttr.getZ(i))); terrainBed = false;
+// Lake beds: the natural lakes are only centimetres deep in places, which made the ground and the water surface
+// z-fight (flicker, 'nothing there for a split second'). The *rendered* bed drops 3 m within ±0.35 m of the waterline
+// and the shore rises up to 0.6 m just above it (a small bank) — so ground and water are never nearly level over a
+// wide band (that band flickered with depth-buffer precision) — and the water has a small depth bias for the ties; collisions/sites/map still use terrainHeight.
+terrainBed = true; for (let i = 0; i < posAttr.count; i++) { const y = terrainHeight(posAttr.getX(i), posAttr.getZ(i)); posAttr.setY(i, y - 3 * smoothstep(WATER_Y + .35, WATER_Y - .35, y) + .6 * smoothstep(WATER_Y - .35, WATER_Y + .1, y) * (1 - smoothstep(WATER_Y + .1, WATER_Y + 2.5, y))); } terrainBed = false;
 terrainGeo.computeVertexNormals();
 const nrmAttr = terrainGeo.attributes.normal;
 const cGrass = new THREE.Color(0x557a45), cHigh = new THREE.Color(0x87915b), cRock = new THREE.Color(0x777c7a), cSnow = new THREE.Color(0xe2e9ea), cSand = new THREE.Color(0x9a9468), cWet = new THREE.Color(0x58664f), cForest = new THREE.Color(0x36592f);
@@ -723,8 +727,11 @@ const thermalGroundMat = new THREE.MeshBasicMaterial({vertexColors:true, toneMap
 const ground = new THREE.Mesh(terrainGeo, terrainMat); scene.add(ground);
 
 // Lakes
-const water = new THREE.Mesh(new THREE.PlaneGeometry(WORLD, WORLD).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({color:0x2f6b86, roughness:.15, metalness:.35, transparent:true, opacity:.84, depthWrite:false}));
-water.position.y = WATER_Y; scene.add(water); th(water, .15);
+// The lake surface is a grid of ~150 m tiles, not one 14.6 km quad: depth interpolated across such a huge triangle
+// is imprecise (errors of ~1 m at 100 m that jump with tiny camera moves) — that was the shimmering / lakes briefly
+// 'missing' even while hovering still.
+const water = new THREE.Mesh(new THREE.PlaneGeometry(WORLD, WORLD, 96, 96).rotateX(-Math.PI / 2), new THREE.MeshStandardMaterial({color:0x2f6b86, roughness:.15, metalness:.35, transparent:true, opacity:.86, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2}));
+water.position.y = WATER_Y; water.renderOrder = -1; scene.add(water); th(water, .15);   // drawn first of the see-through things: a fixed order, no re-sorting against clouds/glows
 // Reservoir surfaces: the lake ellipse (to e = 1.1, inside the built-up rim) clipped at the dam, plus the strip of
 // flooded gorge up to the dam's upstream face. Terrain hides any part that lies above the ground.
 for (const R of RESERVOIRS) {   // one star-shaped outline round the lake centre: ellipse (e = 1.1) ∪ gorge strip, clipped at the dam
@@ -736,7 +743,7 @@ for (const R of RESERVOIRS) {   // one star-shaped outline round the lake centre
     if (c > 0) { const out = Math.min(s1 / c, sn > 1e-6 ? hw / sn : 1e9); if (out * c >= s0) r = Math.max(r, out); r = Math.min(r, s1 / c); }
     const x = R.cx + dx * r, z = R.cz + dz * r; i ? shape.lineTo(x, -z) : shape.moveTo(x, -z);
   }
-  const lake = new THREE.Mesh(new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2), water.material); lake.position.y = R.L; scene.add(lake); th(lake, .15);
+  const lake = new THREE.Mesh(new THREE.ShapeGeometry(shape).rotateX(-Math.PI / 2), water.material); lake.position.y = R.L; lake.renderOrder = -1; scene.add(lake); th(lake, .15);
 }
 
 // ── Village streets + road network (deterministic, before the forest so trees keep off the roads) ──
