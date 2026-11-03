@@ -1493,10 +1493,9 @@ function createLightPlane(x, z) {
   aimPlane(a, randInside(900), randInside(900)); ambientActors.push(a); return a;
 }
 function aimPlane(a, tx, tz) { const dx = tx - a.pos.x, dz = tz - a.pos.z, l = Math.hypot(dx, dz) || 1; a.vel.set(dx/l*a.speed, 0, dz/l*a.speed); a.yaw = Math.atan2(-a.vel.x, -a.vel.z); }
-createBirdFlock(-180, -100, 8, 260); createBirdFlock(520, -450, 10, 320); createBirdFlock(-650, 350, 7, 280); createBirdFlock(150, 700, 9, 300);
+// (no bird flocks any more — removed on request; createBirdFlock is kept but never called)
 createPassengerPlane(-1400, 320, -1700, 0); createPassengerPlane(1700, 450, -900, 1); createPassengerPlane(300, 260, 1900, 2);
 createLightPlane(-900, 1300); createLightPlane(1600, 600); createLightPlane(-2200, -1500);
-createBirdFlock(-2600, 1900, 9, 300); createBirdFlock(2800, 2400, 8, 280); createBirdFlock(2300, -2900, 10, 320);
 
 // ───────────────────────── State ─────────────────────────
 const game = {mode:'sandbox', m:null};   // 'sandbox' | 'mission' (see Game modes)
@@ -2492,11 +2491,11 @@ function updateWorld(h) {
   trafficSeparation(h);
   if (game.mode === 'mission') missionTick(h);
   updateFlares(h);
-  // Random traffic: every 15-45 s something new appears 1.6-2.6 km from the drone (usually outside radar range).
-  // No announcement — the radar has to find it.
+  // Random traffic: every 15-45 s (missions: per difficulty) something new appears 1.6-2.6 km from the drone (usually
+  // outside radar range). No announcement — the radar has to find it.
   state.replenishTimer -= h;
   if (state.replenishTimer <= 0) {
-    state.replenishTimer = 15 + Math.random() * 30;
+    const T = trafficCfg(); state.replenishTimer = T.every[0] + Math.random() * (T.every[1] - T.every[0]);
     if (state.launchStage === 'active') spawnRandomTraffic();
   }
 
@@ -2545,8 +2544,9 @@ function updateFlares(h) {
 // 0..1: how strongly burning flares near point p blind a thermal sensor.
 function flareGlare(p) { let g = 0; for (const f of flares) if (f.age > 0 && f.age < f.life) g += Math.max(0, 1 - f.pos.distanceTo(p) / 220) * .35; return Math.min(1, g); }
 function spawnRandomTraffic() {
-  const nS = scouts.filter(x => !x.destroyed).length, nB = ambientActors.filter(x => x.type === 'birds').length, nP = ambientActors.filter(x => x.type === 'plane').length, nC = ambientActors.filter(x => x.type === 'cessna').length;
-  const opts = []; if (nS < 6 && game.mode !== 'mission') opts.push('scout', 'scout');   // missions: only the raid's scouts if (nB < 7) opts.push('birds'); if (nP < 4) opts.push('plane'); if (nC < 4) opts.push('cessna');
+  const T = trafficCfg(), nS = scouts.filter(x => !x.destroyed).length, nP = ambientActors.filter(x => x.type === 'plane').length, nC = ambientActors.filter(x => x.type === 'cessna').length;
+  const opts = []; if (nS < 6 && game.mode !== 'mission') opts.push('scout', 'scout');   // missions: only the raid's scouts
+  if (nP < T.planes) opts.push('plane'); if (nC < T.cessnas) opts.push('cessna');
   if (!opts.length) return;
   const kind = opts[Math.floor(Math.random() * opts.length)];
   for (let tries = 0; tries < 12; tries++) {
@@ -2554,7 +2554,6 @@ function spawnRandomTraffic() {
     const x = state.pos.x + Math.cos(a) * d, z = state.pos.z + Math.sin(a) * d;
     if (Math.max(Math.abs(x), Math.abs(z)) > ARENA - 400) continue;
     if (kind === 'scout') { const k = ['light', 'heavy', 'fast'][Math.floor(Math.random() * 3)]; createScout(k, 'normal', new THREE.Vector3(x, terrainHeight(x, z) + 140 + Math.random() * 180, z)); }
-    else if (kind === 'birds') createBirdFlock(x, z, 6 + Math.floor(Math.random() * 6), 200 + Math.random() * 150);
     else if (kind === 'cessna') createLightPlane(x, z);
     else spawnTransitAirliner();
     return;
@@ -2569,7 +2568,7 @@ function spawnRandomTraffic() {
 // Readings vote, weighted by quality, so the guess keeps refining as the drone gets closer — and can be wrong.
 const CLS_NAME = {light:'PROPELLER SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'CIVILIAN AIRLINER', birds:'BIRD FLOCK', cessna:'LIGHT AIRCRAFT (CIVIL)', undefined:'UNIDENTIFIED CONTACT'};   // flagged but not yet identified
 const CLS_SHORT = {light:'PROP SCOUT', heavy:'HEAVY SCOUT', fast:'JET SCOUT', plane:'AIRLINER', birds:'BIRDS', cessna:'LIGHT PLANE', undefined:'UNIDENTIFIED'};
-const CLS_CONFUSE = {light:['cessna','birds','heavy'], heavy:['light','fast','cessna'], fast:['plane','heavy'], plane:['fast'], birds:['light'], cessna:['light','light','heavy']};
+const CLS_CONFUSE = {light:['cessna','cessna','heavy'], heavy:['light','fast','cessna'], fast:['plane','heavy'], plane:['fast'], birds:['light'], cessna:['light','light','heavy']};
 const isThreatClass = k => k === 'light' || k === 'heavy' || k === 'fast';
 const truthClass = c => c.isScout ? c.kind : (c.type === 'plane' ? 'plane' : c.type === 'cessna' ? 'cessna' : 'birds');
 const SCAN_DT = .35;
@@ -2801,7 +2800,9 @@ function attackGuidance(t, G) {
   // half, at full speed — instead of chased from behind (an 85 m/s heavy can't be caught from behind before it arrives).
   const S0 = game.mode === 'mission' && game.m ? game.m.site : null;
   const run = S0 && Vt > 1 ? (hx * (S0.x - t.pos.x) + hz * (S0.z - t.pos.z)) / (Math.hypot(S0.x - t.pos.x, S0.z - t.pos.z) || 1) : 0;
-  const cutoff = run > .8;
+  // Hysteresis: start the cut-off when it points within ~37° of the site, keep it until it turns > ~60° away (a
+  // loitering raider's sideways sweep used to flip it on and off → the drone kept switching between two plans).
+  const cutoff = run > (a.phase === 'headon' && a.cut ? .5 : .8);
   const behind = (hx * rx + hz * rz) / R;               // +1: drone sits right on the target's tail, -1: in front of it
   const fwdx = -Math.sin(state.rot.y), fwdz = -Math.cos(state.rot.y), facing = (fwdx * rx + fwdz * rz) / R;
   if (!a.side) {                                         // vertical side once per engagement: mostly from above
@@ -2815,8 +2816,9 @@ function attackGuidance(t, G) {
   // Fast targets (≳ 80 m/s, e.g. the 92 m/s jet): passing beside it and turning in behind costs ~1.2 km — at the edge of
   // radar range, with only ~19 m/s of closure left — so a roughly head-on geometry is taken as a head-on attack.
   const fastT = smoothstep(80, 92, Vt);
-  if (a.phase === 'headon') { if (cutoff ? !(behind < .1 && tc > 0) : !(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) a.phase = ''; }
-  else if (cutoff && behind < .1 && tc > 0) { a.phase = 'headon'; radioMessage('CUT-OFF · COLLISION COURSE'); }   // any range: head for its path to the site, never its tail
+  // (a cut-off is only given up once the drone really is behind it — not for a moment of not closing while it turns in)
+  if (a.phase === 'headon') { if (cutoff ? !(behind < .1) : !(behind < -.6 && facing > .6 && tc > 0 && miss < 90 + 60 * fastT)) { a.phase = ''; a.cut = false; } }
+  else if (cutoff && behind < .1 && tc > 0) { a.phase = 'headon'; a.cut = true; if (!(a.cutMsgAt > state.time - 20)) { a.cutMsgAt = state.time; radioMessage('CUT-OFF · COLLISION COURSE'); } }   // any range: head for its path to the site, never its tail
   else if (behind < -.9 + .15 * fastT && facing > .95 - .1 * fastT && tc > 0 && tc < 15 + 5 * fastT && miss < 30 + 120 * fastT && R > 200 && R < 1400 + 300 * fastT) { a.phase = 'headon'; radioMessage('HEAD-ON COLLISION COURSE'); }
   G.bank = BANK_COMBAT; G.clear = 40; G.track = true; G.vy = tv.y; G.look = Math.max(500, state.cruiseSpeed * 6);
   { // close in on a low (or diving) target: come down to its height instead of hanging at the cruise terrain margin
@@ -2860,10 +2862,13 @@ function attackGuidance(t, G) {
   const turning = smoothstep(.03, .1, Math.abs(t.turnRate || 0)) * (1 - smoothstep(250, 600, R3)) * smoothstep(60, 150, R3);
   // Closing-speed profile. Far behind: catch up fast but arrive at its tail (~350 m) at a calm +10 m/s.
   // Then — only once established on its tail — build up steadily to a fast +32 m/s finish so the hit is certain.
-  const onTail = smoothstep(.55, .85, est);
-  const approach = Math.sqrt(100 + 2 * 1.5 * Math.max(0, R3 - 350));          // = 10 m/s at 350 m
-  const sprint = 10 + 22 * smoothstep(350, 25, R3);                            // 10 → 32 m/s while closing in
-  const closure = Math.min(V_DASH - Vt, R3 > 350 ? approach : lerp(Math.min(8, approach), sprint, onTail) * (1 - .25 * turning));
+  // Missions (on request — it sat at ~+10 m/s behind a raider heading for the site and arrived too late): arrive at
+  // ~600 m at +20 m/s with firmer braking (3 m/s²), count as 'on its tail' sooner, then sprint 20 → 35 m/s.
+  const mis = S0 ? 1 : 0, rA = mis ? 600 : 350, v0 = mis ? 20 : 10, dec = mis ? 3 : 1.5;
+  const onTail = mis ? smoothstep(.3, .7, est) : smoothstep(.55, .85, est);
+  const approach = Math.sqrt(v0 * v0 + 2 * dec * Math.max(0, R3 - rA));         // = v0 at rA
+  const sprint = v0 + (22 + 3 * mis - (v0 - 10)) * smoothstep(rA, 25, R3);       // sandbox 10 → 32, missions 20 → 35 m/s
+  const closure = Math.min(V_DASH - Vt, R3 > rA ? approach : lerp(Math.min(v0 - 2, approach), sprint, onTail) * (1 - .25 * turning));
   const vTurn = Math.max(Vt + 12, 58), vFit = clamp(Math.sqrt(.45 * R * 9.81 * Math.tan(BANK_COMBAT)), vTurn, V_DASH);
   const turnLeft = smoothstep(.15, .6, (1 - align) / 2);
   // Vt and the closure are ground speeds, G.speed is airspeed: take off the wind along our heading (else a headwind
@@ -4080,13 +4085,25 @@ const MISSIONS = [
   {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'FOB Kestrel is a forward base {where} — a long flight out from your pad, so every relaunch costs precious time.'}
 ];
 const DIFFS = {
-  easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir',
+  easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
           weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance, updated every 20 s'},
-  normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound',
+  normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
-  hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3800, scoutDiff:'normal',   gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none',
+  hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3800, scoutDiff:'normal',   gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none', traffic:{planes:5, cessnas:7, every:[10, 25]},
           weather:['MIST', 'HIGH CLOUD', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
 };
+// Civil traffic (airliners + light aircraft): caps and spawn interval — per difficulty in missions (more on Hard, so
+// more civil contacts to sort out), sandbox keeps 4 + 4 every 15-45 s.
+const SANDBOX_TRAFFIC = {planes:4, cessnas:4, every:[15, 45]};
+function trafficCfg() { return game.mode === 'mission' && game.m && game.m.D.traffic || SANDBOX_TRAFFIC; }
+// At mission start: trim or top up the civil traffic to the difficulty's numbers straight away.
+function setMissionTraffic(T) {
+  for (const type of ['plane', 'cessna']) {
+    const list = ambientActors.filter(a => a.type === type), cap = type === 'plane' ? T.planes : T.cessnas;
+    for (const a of list.slice(cap)) removeAmbient(a);
+    for (let n = list.length; n < cap; n++) type === 'plane' ? spawnTransitAirliner() : createLightPlane(randInside(900), randInside(900));
+  }
+}
 const RAID_BAND = {light:[45, 90], fast:[110, 180], heavy:[130, 220]};   // AGL during the raid: propeller scouts sneak low through valleys; jets (thirsty down low) and heavies fly higher
 const siteByName = n => SITES.find(s => s.name === n);
 const COMPASS_WORDS = {N:'north', NE:'north-east', E:'east', SE:'south-east', S:'south', SW:'south-west', W:'west', NW:'north-west'};
@@ -4182,7 +4199,7 @@ function startMission(id, diff, opts = {}) {
   { let best = {x: site.x, z: site.z, h: terrainHeight(site.x, site.z)};   // surveillance radar: highest ground within ~900 m
     for (let r = 150; r <= 900; r += 150) for (let k = 0; k < 16; k++) { const x = site.x + Math.cos(k / 16 * TAU) * r, z = site.z + Math.sin(k / 16 * TAU) * r, h = terrainHeight(x, z); if (h > best.h + 5) best = {x, z, h}; }
     game.m.radar = {x: best.x, z: best.z, y: Math.max(best.h, site.type === 'dam' ? site.crest : 0) + 30}; }
-  setMissionEnv(D); state.replenishTimer = 20;
+  setMissionEnv(D); state.replenishTimer = 20; setMissionTraffic(D.traffic);
   placeFieldPad(site);
   resetToPad('manual'); setSpareDrones(D.drones - 1); state.civilianIncidents = 0; state.tagCount = 0;
   $('gmBriefKind').textContent = 'MISSION · ' + def.kind + ' · ' + D.label;
