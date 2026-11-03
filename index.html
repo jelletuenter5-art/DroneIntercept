@@ -3246,12 +3246,24 @@ function attackGuidance(t, G) {
   const onTail = smoothstep(.55, .85, est);   // sprint only once really lined up behind it (sprinting while still swinging round from its side → slid past at max bank)
   const approach = Math.sqrt(v0 * v0 + 2 * dec * Math.max(0, R3 - rA));         // = v0 at rA
   const sprint = v0 + (22 + 3 * mis - (v0 - 10)) * smoothstep(rA, 25, R3);       // sandbox 10 → 32, missions 20 → 35 m/s
-  const closure = Math.min(V_DASH - Vt, R3 > rA ? approach : lerp(Math.min(v0 - 2, approach), sprint, onTail) * (1 - .25 * turning));
+  // (the most we can close: full-dash airspeed + the wind along our heading − its ground speed; without the wind a
+  //  tailwind held it at ~105 m/s behind a 92 m/s jet)
+  const windAlong = wind.x * fwdx + wind.z * fwdz, cMax = Math.max(2, V_DASH + windAlong - Vt);
+  let closure = Math.min(cMax, R3 > rA ? approach : lerp(Math.min(v0 - 2, approach), sprint, onTail) * (1 - .25 * turning));
+  // Locked on (on request): sitting on its tail for a while and it keeps flying straight (e.g. its last run at the
+  // site) → speed up to full dash over ~3-8 s of lock; PN keeps the hit sure against a straight target. Lost again as
+  // soon as it turns or we're no longer lined up (gentle profile above for a manoeuvring target).
+  { const straight = 1 - smoothstep(.02, .06, Math.abs(t.turnRate || 0)), locked = onTail > .8 && straight > .5 && R3 < 2000;
+    if (!locked) a.lockAt = null; else if (a.lockAt == null) a.lockAt = state.time;
+    const boost = a.lockAt == null ? 0 : smoothstep(3, 8, state.time - a.lockAt) * straight;
+    // full dash far out, braked (≈4 m/s²) to the proven +35 m/s at contact — closing at the full ~70 m/s on a prop
+    // scout it passed ~1 m beside it
+    const cBrake = Math.sqrt(35 * 35 + 2 * 4 * Math.max(0, R3 - 60));
+    closure = Math.max(closure, lerp(closure, Math.min(cMax, cBrake), boost)); a.boost = boost; }
   const vTurn = Math.max(Vt + 12, 58), vFit = clamp(Math.sqrt(.45 * R * 9.81 * Math.tan(BANK_COMBAT)), vTurn, V_DASH);
   const turnLeft = smoothstep(.15, .6, (1 - align) / 2);
   // Vt and the closure are ground speeds, G.speed is airspeed: take off the wind along our heading (else a headwind
   // leaves it hanging behind a fast target and a tailwind makes it overshoot).
-  const windAlong = wind.x * fwdx + wind.z * fwdz;
   const vBehind = Vt + closure - windAlong, vAround = lerp(V_DASH, vFit, turnLeft);
   G.speed = lerp(vBehind, vAround, wL);
   // Still pointing well away from its heading (e.g. after an overshoot): turn at ≥ 66 m/s — slower, the stall margin
@@ -4500,7 +4512,7 @@ const MISSIONS = [
 const DIFFS = {
   easy:  {label:'EASY',   scouts:3, drones:6, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, ring:4200, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
           weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance, updated every 20 s'},
-  normal:{label:'NORMAL', scouts:5, drones:7, scoutDiff:'normal', gap:[100, 140], pairs:false, ring:6400, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
+  normal:{label:'NORMAL', scouts:5, drones:7, scoutDiff:'normal', gap:[100, 140], pairs:false, ring:8000, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
   hard:  {label:'HARD',   scouts:7, drones:8, scoutDiff:'normal',   gap:[60, 95], pairs:true, ring:6400, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none', traffic:{planes:5, cessnas:7, every:[10, 25]},
           weather:['MIST', 'HIGH CLOUD', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
