@@ -1773,6 +1773,13 @@ function drawMap() {
     ctx.fillStyle = 'rgba(80,220,200,.05)'; ctx.strokeStyle = 'rgba(80,220,200,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.arc(cx3, cz3, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
+  // 4a'. Mission: the site surveillance radar's coverage (fixed ring round its mast; shrinks with the weather)
+  if (game.mode === 'mission' && game.m && game.m.radar) { const R = game.m.radar, [mx, mz] = worldToMap(R.x, R.z), rr = siteRadarRange() / MAP_WORLD * MAP_SIZE;
+    ctx.fillStyle = 'rgba(255,200,90,.035)'; ctx.strokeStyle = 'rgba(255,200,90,.5)'; ctx.lineWidth = 1.1; ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.arc(mx, mz, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,200,90,.85)'; ctx.beginPath(); ctx.moveTo(mx, mz - 5); ctx.lineTo(mx - 3.5, mz + 3); ctx.lineTo(mx + 3.5, mz + 3); ctx.closePath(); ctx.fill();   // mast
+    ctx.font = '8px ui-monospace,monospace'; const lbl = 'SITE RADAR ' + (siteRadarRange() / 1000).toFixed(1) + ' km', ly = mz - rr * .71 - 3;
+    ctx.fillText(lbl, Math.min(mx + rr * .71 + 3, MAP_SIZE - 8 - ctx.measureText(lbl).width), Math.max(14, ly)); }
   // 4a. Sites (villages, dams, radar stations, forward base); in a mission the defended one with its strike and
   //     1.5 km rings
   { const k = MAP_SIZE / MAP_WORLD, tgt = game.mode === 'mission' && game.m ? game.m.site : null;
@@ -2663,13 +2670,16 @@ const RCS = {light:.6, heavy:.85, fast:.7, plane:1.4, birds:.45, cessna:.65};
 const RADAR_SWEEP = 1.0;                                     // one antenna sweep per second
 const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) * 1.41;
 // Mission site surveillance radar (on a 30 m mast on the highest ground within ~900 m of the defended site — the hill
-// overlooking a valley village): range per difficulty (DIFFS.siteRadar, for a
-// jet-sized target; scaled by radar cross-section and weather like the drone's), terrain-masked from the mast.
-// Its plots feed the same tracks as the drone's radar. Returns the range to the contact, or -1 if not seen.
+// overlooking a valley village): the same range on every difficulty — SITE_RADAR 4 km in clear air, shortened by the
+// weather like the drone's radar (mist 3.2, rain 2.4 km) — for every kind of contact (no size scaling, so the ring on
+// the map is the real coverage), terrain-masked from the mast. Its plots feed the same tracks as the drone's radar.
+// Returns the range to the contact, or -1 if not seen.
+const SITE_RADAR = 4000;
+const siteRadarRange = () => SITE_RADAR * radarRange() / 1500;
 function siteRadarSees(c) {
-  const m = game.m; if (game.mode !== 'mission' || !m || !m.D.siteRadar) return -1;
+  const m = game.m; if (game.mode !== 'mission' || !m || !m.radar) return -1;
   const R = m.radar, d = Math.hypot(c.pos.x - R.x, c.pos.z - R.z, c.pos.y - R.y);
-  if (d > Math.min(6000, m.D.siteRadar * radarRange() / 1500 * RCS[truthClass(c)] / .7)) return -1;
+  if (Math.hypot(c.pos.x - R.x, c.pos.z - R.z) > siteRadarRange()) return -1;
   const dx = c.pos.x - R.x, dy = c.pos.y - R.y, dz = c.pos.z - R.z, n = clamp(Math.ceil(Math.hypot(dx, dz) / 120), 4, 40);
   for (let i = 1; i < n; i++) { const f = i / n; if (terrainHeight(R.x + dx * f, R.z + dz * f) + 6 > R.y + dy * f) return -1; }
   return d;
@@ -4088,11 +4098,11 @@ const MISSIONS = [
   {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'FOB Kestrel is a forward base {where} — a long flight out from your pad, so every relaunch costs precious time.'}
 ];
 const DIFFS = {
-  easy:  {label:'EASY',   scouts:3, drones:6, siteRadar:4000, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
+  easy:  {label:'EASY',   scouts:3, drones:6, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
           weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance, updated every 20 s'},
-  normal:{label:'NORMAL', scouts:5, drones:7, siteRadar:3400, scoutDiff:'normal', gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
+  normal:{label:'NORMAL', scouts:5, drones:7, scoutDiff:'normal', gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
-  hard:  {label:'HARD',   scouts:7, drones:8, siteRadar:3800, scoutDiff:'normal',   gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none', traffic:{planes:5, cessnas:7, every:[10, 25]},
+  hard:  {label:'HARD',   scouts:7, drones:8, scoutDiff:'normal',   gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none', traffic:{planes:5, cessnas:7, every:[10, 25]},
           weather:['MIST', 'HIGH CLOUD', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
 };
 // Civil traffic (airliners + light aircraft): caps and spawn interval — per difficulty in missions (more on Hard, so
