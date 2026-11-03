@@ -5097,15 +5097,15 @@ function updateMissionLaunchCard() {
   $('launchHint').textContent = 'Defend ' + m.site.name + ' · raid ' + m.downed + '/' + m.total + ' down · ' + m.raid.filter(s => !s.raidDone).length + ' inbound. Launch when ready.';
   $('launchBtn').disabled = left <= 0 || !!m.result;
 }
-const distBonus = d => d * .25;   // points for one scout stopped d m from the site (on request: simply 0.25 per metre — 3 scouts at 2 km = 1500)
+const distBonus = d => Math.max(0, d - FAR_R) * .25;   // points for one scout stopped d m from the site (on request): 0.25 per metre beyond the 1 km ★★★ ring, nothing inside it (400 / 1600 / 1200 m → 150 + 50)
 function missionScore() {
   const m = game.m, win = !!(m.result && m.result.win), downs = m.raid.filter(s => s.downDist !== undefined), left = m.dronesTotal - m.dronesUsed;
   const wrong = ambientActors.filter(a => a.userMark === 'threat').length, inc = state.civilianIncidents || 0;
   const far = downs.length === m.total && downs.every(s => s.downDist > FAR_R);
   const rows = [['Scouts stopped', downs.length + ' / ' + m.total, downs.length * 500],
     // distance bonus per scout (on request — it was capped at 500 from 1 km on, so every good run scored the same):
-    // 0.25 per metre from the site, no base, no minimum, no cap
-    ['Distance bonus (0.25 per m from the site, per scout)', downs.length ? 'avg ' + (downs.reduce((a, s) => a + s.downDist, 0) / downs.length / 1000).toFixed(2) + ' km · farthest ' + (Math.max(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + distBonus(s.downDist), 0))],
+    // 0.25 per metre beyond the 1 km ★★★ ring, per scout stopped outside it; inside it nothing
+    ['Distance bonus (0.25 per m beyond 1 km, per scout)', downs.length ? downs.filter(s => s.downDist > FAR_R).length + ' of ' + downs.length + ' beyond 1 km · farthest ' + (Math.max(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + distBonus(s.downDist), 0))],
     ['Mission completed', win ? 'yes' : 'no', win ? 1000 : 0], ['Drones left', win ? left + ' of ' + m.dronesTotal : '—', win ? left * 250 : 0],
     ['Drones lost (crash / battery)', String(m.lost), -m.lost * 200], ['Civilian incidents', String(inc), -inc * 750], ['Civil traffic flagged as threat', String(wrong), -wrong * 150]];
   const base = rows.reduce((a, r) => a + r[2], 0), score = Math.max(0, Math.round(base * m.D.mult));
