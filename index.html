@@ -60,7 +60,7 @@ header{padding:0 10px!important;gap:10px!important}.brand{font-size:11px!importa
 #settingsDrawer{display:none;position:absolute;top:10px;right:10px;width:330px;max-height:calc(100% - 20px);overflow:auto;z-index:40;pointer-events:auto;background:#07131df5;border:1px solid #3c6174;border-radius:10px;box-shadow:0 10px 34px #000a;font:11px system-ui,sans-serif;color:#cfe6f5}
 #settingsDrawer.open{display:block}.sdHead{display:flex;align-items:center;gap:6px;padding:8px 8px 0;position:sticky;top:0;background:#07131df5}
 .sdTabs{display:flex;gap:3px;flex:1}.sdTabs button{flex:1;padding:5px 0;font:600 11px system-ui,sans-serif;border-radius:6px 6px 0 0;background:#0e1d2a;border:1px solid #2c4256;border-bottom:0;color:#9fb8cc}
-body.missionMode .sdTabs button[data-tab=env],body.missionMode .sdTabs button[data-tab=sim]{display:none}
+body.missionMode .sbOnly,body.missionMode .sdTabs button[data-tab=env],body.missionMode .sdTabs button[data-tab=sim]{display:none}
 .sdTabs button.active{background:#17344d;color:#e8f6ff;border-color:#4b84a8}#sdClose{padding:3px 8px;font-size:10px}
 .sdTab{padding:10px 12px 12px;border-top:1px solid #2c4256}
 table.keys{width:100%;border-collapse:collapse}table.keys th{text-align:left;color:#7affca;font:700 9.5px ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;padding:8px 0 3px}
@@ -292,7 +292,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>M</kbd></td><td>Map — click empty spot = waypoint, click contact = pursue</td></tr>
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
-          <tr><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
+          <tr class="sbOnly"><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
           <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (also ⌂ Home in the header) · press again en route to cancel · during the landing: go around (abort and fly on)</td></tr>
           <tr><th colspan="2">Gimbal camera</th></tr>
           <tr><td><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></td><td>Aim (or drag inside the camera window)</td></tr>
@@ -2329,6 +2329,7 @@ function spawnAirlinerNearby() {
   toast('Civilian airliner spawned ' + Math.round(d) + ' m out · passing through');
 }
 function spawnSelected() {
+  if (game.mode === 'mission') { logEvent('Spawning is a sandbox tool · not available in missions', 'warn'); return; }   // N / spawn button: sandbox only
   const kind = $('quickScoutType')?.value || 'heavy';
   if (kind === 'airliner') { spawnAirlinerNearby(); return; }
   if (kind === 'cessna') {                                  // civilian hobby plane ahead of the drone, random livery
