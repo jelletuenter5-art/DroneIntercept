@@ -8,7 +8,7 @@
 'use strict';
 const { args, buildTestPage, openGame } = require('./lib');
 (async () => {
-  const a = args({ missions: 'town,village,dam,radar,base', diffs: 'easy,normal,hard', seed: 1, gimbal: 'on' });
+  const a = args({ missions: 'town,village,altwil,seeboden,kalchhof,hinterried,moosweid,dam,klarsee,radar,felsnase,base', diffs: 'easy,normal,hard', seed: 1, gimbal: 'on' });
   const file = buildTestPage(), out = [];
   for (const diff of String(a.diffs).split(',')) for (const id of String(a.missions).split(',')) {
     const g = await openGame(file, { noRaf: true, seed: a.seed, mode: 'sandbox' });

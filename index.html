@@ -537,6 +537,7 @@ function terrainNatural(x, z) {
   for (const p of PEAKS) h += p[4] * Math.exp(-(((x-p[0])/p[2])**2 + ((z-p[1])/p[3])**2) * 1.7);
   const edge = Math.max(Math.abs(x), Math.abs(z));                       // natural mountain wall around the play area
   h += smoothstep(ARENA - 250, ARENA + 750, edge) * 150 * (.65 + fbm(x*.004 + 3, z*.004 - 8, 3) * .7);
+  h += 16 * (1 - smoothstep(0, 50, h));                                    // lift the low ground: ~15 % water instead of ~31 % (more land to connect places)
   if (h < 4) h = 4 - (4 - h) * .24;                                         // soft floor: shallow lake basins
   return PAD_H + (h - PAD_H) * smoothstep(60, 240, Math.hypot(x, z));    // flat launch area
 }
@@ -559,9 +560,6 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
   // forward military base: 3-5 km from home, dry and as flat as possible over ~500 m
   add('base', ['FOB Kestrel'], cells.filter(p => p.home > 3000 && p.home < 5000 && p.h > WATER_Y + 6 && p.h < 110 && p.slope < 9)
     .map(p => Object.assign(p, {fl: flatness(p)})).sort((a, b) => a.fl - b.fl), 1500);
-  // ridge radar stations: prominent high points away from home
-  add('radar', ['Hochgrat Radar', 'Felsnase Radar'], cells.filter(p => p.home > 2000 && p.h > 60 && p.h - p.ring > 22 && p.slope < 14)
-    .sort((a, b) => (b.h - b.ring + b.h * .2) - (a.h - a.ring + a.h * .2)), 3000);
   // settlements (type 'village', `size` town / village / hamlet) — realistic spacing on the 12 km map: the market
   // town on the widest flat valley floor, villages 2.5+ km apart in valleys, hamlets anywhere gentle 1.4+ km from
   // everything else. Bigger places want flatter, wider ground.
@@ -574,6 +572,12 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
     .sort((a, b) => ((b.ring - b.h) - b.slope * 3) - ((a.ring - a.h) - a.slope * 3)), 2500);
   settle('hamlet', ['Kalchhof', 'Hinterried', 'Moosweid'], cells.filter(p => p.home > 900 && p.h > WATER_Y + 5 && p.h < 95 && p.slope < 9)
     .sort((a, b) => (a.slope - b.slope) + (hash2(a.x, a.z) - hash2(b.x, b.z)) * 6), 1400);
+  // ridge radar stations: prominent high points 0.6-1.5 km from a town or village (short access track), away from home
+  const nearTown = p => Math.min(...SITES.filter(q => q.type === 'village' && q.size !== 'hamlet').map(q => Math.hypot(q.x - p.x, q.z - p.z)));
+  { let n = 0; for (const p of cells.filter(p => p.home > 2000 && p.h > 45 && p.h - p.ring > 18 && p.slope < 14 && nearTown(p) > 600 && nearTown(p) < 1500)
+      .sort((a, b) => (b.h - b.ring + b.h * .2) - (a.h - a.ring + a.h * .2))) {
+      if (n >= 2) break; if (!SITES.every(q => Math.hypot(q.x - p.x, q.z - p.z) > (q.type === 'radar' ? 3000 : 650 + (q.size === 'town' ? 300 : 0)))) continue;
+      SITES.push({type: 'radar', name: ['Hochgrat Radar', 'Felsnase Radar'][n++], x: p.x, z: p.z}); } }
   // dams: a real reservoir — an upland hollow (ellipse ~330 × 200 m) whose rim is (nearly) all above the chosen water
   // level L, with one outlet direction where the ground falls ≥ 26 m within ~160-700 m. The terrain is then shaped
   // (`shapeReservoir`): the hollow becomes the lake bed, low rim points are built up a little, and a gorge is cut
@@ -744,24 +748,33 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
       const side = rnd() < .5 ? 1 : -1, q = main.pts[Math.min(n - 1, i + 1)], o = main.pts[Math.max(0, i - 1)], ma = Math.atan2(q[1] - o[1], q[0] - o[0]);
       const st = street(p[0], p[1], ma + side * (Math.PI / 2 + (rnd() - .5) * .5), 70 + rnd() * 70, 1.5, 4.5); if (st) v.streets.push(st);
       if (rnd() < .45) { const st2 = street(p[0], p[1], ma - side * (Math.PI / 2 + (rnd() - .5) * .5), 50 + rnd() * 60, 1.5, 4.5); if (st2) v.streets.push(st2); } }
+    { // keep only streets that connect to the main street (a cross street cut short by water or a steep step can leave
+      // a parallel street on its own); points within 8 m count as a junction
+      const keep = [v.streets[0]], left = v.streets.slice(1), touch = (a, b) => a.pts.some(p => b.pts.some(q => Math.hypot(p[0] - q[0], p[1] - q[1]) < 8));
+      for (let more = true; more;) { more = false; for (let i = left.length - 1; i >= 0; i--) if (keep.some(k => touch(k, left[i]))) { keep.push(left.splice(i, 1)[0]); more = true; } }
+      v.streets = keep; }
     ROADS.push(...v.streets);
   }
   // A* grid
   const G = 40, N = Math.floor(2 * (ARENA - 150) / G), o = -(ARENA - 150), hh = new Float32Array(N * N), wet = new Uint8Array(N * N);
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const x = o + (i + .5) * G, z = o + (j + .5) * G, y = terrainHeight(x, z); hh[j * N + i] = y; wet[j * N + i] = isWater(x, z, y) ? 1 : 0; }
   const cell = (x, z) => [clamp(Math.floor((x - o) / G), 0, N - 1), clamp(Math.floor((z - o) / G), 0, N - 1)];
-  function route(A, B) {
-    const [si, sj] = cell(A[0], A[1]), [ti, tj] = cell(B[0], B[1]), S = sj * N + si, T = tj * N + ti, gs = new Float32Array(N * N).fill(1e30), from = new Int32Array(N * N).fill(-1), heap = [];
+  // A* from A towards B over the 40 m grid. With `own` set it stops at the first cell of the existing network (`net`)
+  // that isn't its own place's streets — so a new road ends on the network as a T-junction instead of running beside
+  // an existing road. Water may be crossed (a bridge), but costs 7× (short crossings only).
+  const net = new Int16Array(N * N);
+  function route(A, B, own = 0) {
+    const [si, sj] = cell(A[0], A[1]), [ti, tj] = cell(B[0], B[1]), S = sj * N + si, T0 = tj * N + ti, gs = new Float32Array(N * N).fill(1e30), from = new Int32Array(N * N).fill(-1), heap = [];
     const push = (k, f) => { heap.push([f, k]); let c = heap.length - 1; while (c) { const pa = (c - 1) >> 1; if (heap[pa][0] <= heap[c][0]) break; [heap[pa], heap[c]] = [heap[c], heap[pa]]; c = pa; } };
     const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let c = 0; for (;;) { const l = 2 * c + 1, r = l + 1; let m = c;
       if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; c = m; } } return top; };
     gs[S] = 0; push(S, 0);
-    while (heap.length) { const [, k] = pop(); if (k === T) break; const i = k % N, j = (k - i) / N;
+    let T = T0; while (heap.length) { const [, k] = pop(); if (k === T0 || (own && net[k] && net[k] !== own && k !== S)) { T = k; break; } const i = k % N, j = (k - i) / N;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= N || b >= N) continue;
-        const kk = b * N + a; if (wet[kk] && kk !== T) continue; const d = G * Math.hypot(di, dj), gr = Math.abs(hh[kk] - hh[k]) / d;
-        const g2 = gs[k] + d * (1 + 30 * gr * gr + Math.max(0, gr - .14) * 60); if (g2 < gs[kk]) { gs[kk] = g2; from[kk] = k; push(kk, g2 + G * Math.hypot(a - ti, b - tj)); } } }
+        const kk = b * N + a, d = G * Math.hypot(di, dj), gr = wet[kk] || wet[k] ? 0 : Math.abs(hh[kk] - hh[k]) / d;
+        const g2 = gs[k] + d * (wet[kk] ? 7 : 1 + 30 * gr * gr + Math.max(0, gr - .14) * 60); if (g2 < gs[kk]) { gs[kk] = g2; from[kk] = k; push(kk, g2 + G * Math.hypot(a - ti, b - tj)); } } }
     if (from[T] < 0) return null;
-    const pts = [B]; for (let k = from[T]; k !== S && k >= 0; k = from[k]) { const i = k % N; pts.push([o + (i + .5) * G, o + ((k - i) / N + .5) * G]); } pts.push(A); pts.reverse();
+    const pts = [T === T0 ? B : [o + (T % N + .5) * G, o + (Math.floor(T / N) + .5) * G]]; for (let k = from[T]; k !== S && k >= 0; k = from[k]) { const i = k % N; pts.push([o + (i + .5) * G, o + ((k - i) / N + .5) * G]); } pts.push(A); pts.reverse();
     let sm = pts; for (let it = 0; it < 3; it++) { const q = [sm[0]]; for (let i = 0; i < sm.length - 1; i++) { const [x0, z0] = sm[i], [x1, z1] = sm[i + 1];
       q.push([x0 * .75 + x1 * .25, z0 * .75 + z1 * .25], [x0 * .25 + x1 * .75, z0 * .25 + z1 * .75]); } q.push(sm[sm.length - 1]); sm = q; }
     return sm;
@@ -775,17 +788,40 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
     const wx = Math.cos(s.ang), wz = Math.sin(s.ang), sg = wx * dx + wz * dz > 0 ? 1 : -1;   // dam: off the end of the crest
     let l1 = 10; while (l1 < 260 && terrainHeight(s.x + wx * sg * l1, s.z + wz * sg * l1) < s.crest + 1) l1 += 4;
     s.roadEnd = sg; return [s.x + wx * sg * (l1 + 25), s.z + wz * sg * (l1 + 25)]; };
+  // Build the network outward from the pad in minimum-spanning-tree order: each place's road runs from its port
+  // towards its parent until it meets the network, then snaps onto the nearest existing road point (T-junction).
+  // A place's streets join the network once it is connected, so later roads may come in through a village.
+  const mark = (pts, id) => { for (const [x, z] of pts) { const [i, j] = cell(x, z); if (!net[j * N + i]) net[j * N + i] = id; } };
+  const snap = (p, own) => { let best = null, bd = 1e18; for (const R of ROADS) if (R.owner && R.owner !== own) for (const q of R.pts) { const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; if (d < bd) { bd = d; best = q; } } return bd < 90 * 90 ? best : null; };
+  nodes.forEach((n, i) => n.id = i + 1);
+  { const h0 = port(nodes[0], nodes[1] || {x: 1, z: 0}); ROADS.push({pts: [[0, 0], h0], w: 5.5, kind: 'road', owner: 1}); mark([[0, 0], h0], 1); }
   const inT = [nodes[0]], rest = nodes.slice(1), edges = [];
   while (rest.length) { let bi = 0, bj = 0, bd = 1e18; rest.forEach((r, i) => inT.forEach((t, j) => { const d = Math.hypot(r.x - t.x, r.z - t.z); if (d < bd) { bd = d; bi = i; bj = j; } }));
     edges.push([inT[bj], rest[bi]]); inT.push(rest.splice(bi, 1)[0]); }
-  for (const [a, b] of edges) { const pa = port(a, b), pb = port(b, a), r = route(pa, pb); if (r) ROADS.push({pts: r, w: 5.5, kind: 'road'}); }
-  for (const s of SITES.filter(q => q.type === 'radar')) {   // gravel track to the nearest road point
-    let bp = null, bd = 1e18; for (const R of ROADS) if (R.kind === 'road') for (const p of R.pts) { const d = Math.hypot(p[0] - s.x, p[1] - s.z); if (d < bd) { bd = d; bp = p; } }
-    if (!bp) continue; const dx = bp[0] - s.x, dz = bp[1] - s.z, l = Math.hypot(dx, dz) || 1, r = route([s.x + dx / l * 36, s.z + dz / l * 36], bp); if (r) ROADS.push({pts: r, w: 3.5, kind: 'track'});
+  for (const [par, ch] of edges) {
+    const pa = port(ch, par), r = route(pa, port(par, ch), ch.id);
+    if (r) { const end = r[r.length - 1], sn = snap(end, ch.id); if (sn) r.push(sn); const road = {pts: r, w: 5.5, kind: 'road', owner: ch.id}; ROADS.push(road); mark(r, ch.id); }
+    if (ch.s && ch.s.streets) { for (const st of ch.s.streets) st.owner = ch.id; mark(ch.s.streets.flatMap(st => st.pts), ch.id); }
+    if (ch.s && ch.s.type === 'dam') {   // the crest road joins both banks: part of the network (drawn on the map; the dam model has its own deck)
+      const d = ch.s, wx = Math.cos(d.ang), wz = Math.sin(d.ang), e = sg => { let l = 10; while (l < 260 && terrainHeight(d.x + wx * sg * l, d.z + wz * sg * l) < d.crest + 1) l += 4; return [d.x + wx * sg * (l + 25), d.z + wz * sg * (l + 25)]; };
+      const crest = {pts: [e(-1), e(1)], w: 5.5, kind: 'road', owner: ch.id, noMesh: true}; ROADS.push(crest); mark(crest.pts, ch.id); }
+  }
+  for (const s of SITES.filter(q => q.type === 'radar')) {   // short gravel track from the station to the nearest road
+    let bp = null, bd = 1e18; for (const R of ROADS) if (R.kind !== 'track') for (const p of R.pts) { const d = Math.hypot(p[0] - s.x, p[1] - s.z); if (d < bd) { bd = d; bp = p; } }
+    if (!bp) continue; const dx = bp[0] - s.x, dz = bp[1] - s.z, l = Math.hypot(dx, dz) || 1, r = route([s.x + dx / l * 36, s.z + dz / l * 36], bp, 999);
+    if (r) { const sn = snap(r[r.length - 1], 999); if (sn) r.push(sn); ROADS.push({pts: r, w: 3.5, kind: 'track', owner: 999}); }
   }
   // resample every 5 m (for draping) and mark the tree-free corridor
   for (const R of ROADS) { const q = [R.pts[0]]; for (let i = 1; i < R.pts.length; i++) { const [x0, z0] = R.pts[i - 1], [x1, z1] = R.pts[i], n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 5));
       for (let k = 1; k <= n; k++) q.push([x0 + (x1 - x0) * k / n, z0 + (z1 - z0) * k / n]); } R.pts = q;
+    // bridges: runs of points over water get a deck height — straight between the two banks, ≥ 4 m above the water
+    const wet2 = q.map(([x, z]) => !R.noMesh && isWater(x, z)), ys = q.map(([x, z]) => null); R.bridges = [];
+    for (let i = 0; i < q.length; i++) if (wet2[i]) { let j = i; while (j + 1 < q.length && wet2[j + 1]) j++;
+      const a0 = Math.max(0, i - 1), b0 = Math.min(q.length - 1, j + 1), ya = groundY(...q[a0]), yb = groundY(...q[b0]);
+      let wl = WATER_Y; for (let k = i; k <= j; k++) { const rv = reservoirAt(...q[k]); if (rv) wl = Math.max(wl, rv.L); }
+      for (let k = a0; k <= b0; k++) { const t = b0 > a0 ? (k - a0) / (b0 - a0) : 0; ys[k] = Math.max(lerp(ya, yb, t) + .3, wl + 4 * Math.sin(Math.PI * clamp(t, 0, 1)) + .6); }
+      R.bridges.push([a0, b0, wl]); i = j; }
+    R.ys = ys;
     const rad = R.w / 2 + 5; for (const [x, z] of q) for (let dx = -rad; dx <= rad; dx += 5) for (let dz = -rad; dz <= rad; dz += 5) {
       const i = Math.floor((x + dx + ARENA) / 10), j = Math.floor((z + dz + ARENA) / 10); if (i >= 0 && j >= 0 && i < RM_N && j < RM_N) roadMask[j * RM_N + i] = 1; } }
 })();
@@ -1055,7 +1091,18 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
   const inst = (geo, material, list, heat) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, material, list.length); list.forEach((m, i) => im.setMatrixAt(i, m)); scene.add(im); th(im, heat); };
   walls.forEach((l, i) => inst(wallGeo, wallMats[i], l, .44)); roofs.forEach((l, i) => inst(roofGeo, roofMats[i], l, .38));
   const roadMats = {road: M(0x4c4f52, .92), street: M(0x585a5b, .92), track: M(0x8d8572, .97)};
-  for (const R of ROADS) siteGroup.add(ribbon(R.pts.map(([x, z]) => [x, groundY(x, z) + .2, z]), R.w, roadMats[R.kind], R.kind === 'track' ? .3 : .34));
+  for (const R of ROADS) if (!R.noMesh) siteGroup.add(ribbon(R.pts.map(([x, z], i) => [x, R.ys && R.ys[i] != null ? R.ys[i] : groundY(x, z) + .2, z]), R.w, roadMats[R.kind], R.kind === 'track' ? .3 : .34));
+  // bridges: concrete deck edge beams + railings along both sides, piers down to the lake bed every ~25 m
+  // (instanced unit boxes: 3 draw calls for every bridge on the map)
+  { const beams = [], rails = [], piers = [], o3 = new THREE.Object3D(); o3.rotation.order = 'YXZ';
+    const box = (list, x, y, z, ry, rz, sx, sy, sz) => { o3.position.set(x, y, z); o3.rotation.set(0, ry, rz); o3.scale.set(sx, sy, sz); o3.updateMatrix(); list.push(o3.matrix.clone()); };
+    for (const R of ROADS) for (const [a0, b0] of R.bridges || []) {
+      for (let k = a0; k < b0; k++) { const [x0, z0] = R.pts[k], [x1, z1] = R.pts[k + 1], y0 = R.ys[k], y1 = R.ys[k + 1], L = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(z1 - z0, x1 - x0), nx = -Math.sin(ang), nz = Math.cos(ang), pitch = Math.atan2(y1 - y0, L);
+        for (const sd of [-1, 1]) { const cx = (x0 + x1) / 2 + nx * sd * (R.w / 2 + .25), cz = (z0 + z1) / 2 + nz * sd * (R.w / 2 + .25), cy = (y0 + y1) / 2;
+          box(beams, cx, cy - .35, cz, -ang, pitch, L + .2, 1.1, .5); box(rails, cx, cy + 1.05, cz, -ang, pitch, L + .2, .12, .12); }
+        if ((k - a0) % 5 === 2 && k < b0 - 1) { const bed = Math.min(terrainHeight(x0, z0), y0 - 2), h = y0 - .6 - bed; if (h > 1) box(piers, x0, bed + h / 2, z0, -ang, 0, 1.8, h, R.w * .8); } } }
+    const unit = new THREE.BoxGeometry(1, 1, 1);
+    inst(unit, M(0xa9a9a2, .85), beams, .3); inst(unit, M(0x8c939a, .5, .6), rails, .25); inst(unit, M(0x9a9a93, .9), piers, .3); }
 })();
 const craft = new THREE.Group(); scene.add(craft);
 // Bullet-shaped tail-sitter: ogive fuselage, four swept arms with nose-facing motors, four tail fins.
@@ -4136,12 +4183,21 @@ function animate(now) {
 // The world is identical in both. Switching mode / retrying reloads the page (via sessionStorage 'dl_start'), so
 // every mission starts from a clean world. Best stars + score per mission and difficulty: localStorage 'dl_missions'.
 const STRIKE_R = 300, FAR_R = 1000;   // FAR_R: the ★★★ ring (every scout down outside it); was 1.5 km   // STRIKE_R: only the distance-bonus baseline now (losing = a raider hitting the structure)
+// One defend mission for every place on the map (on request), each in all three difficulties. The ids of the first
+// five are kept so saved best scores survive.
 const MISSIONS = [
-  {id:'town', site:'Talhausen', kind:'MARKET TOWN', text:'Talhausen is the valley\'s market town {where} — hundreds of houses round the church and the town hall on its square. Any roof is a target, and the town hall is what they are after: keep them well clear of the streets.'},
-  {id:'village', site:'Bergtal', kind:'VALLEY VILLAGE', text:'Bergtal lies low in a valley {where}. Raiders will follow the valleys around it to stay under your radar until late — expect them to pop up close.'},
-  {id:'dam', site:'Grauwand Dam', kind:'DAM', text:'Grauwand Dam closes a gorge and holds back a mountain reservoir {where} — the valley below depends on it. Scouts have long, open runs over the water and up the valley: see them early, stop them early.'},
-  {id:'radar', site:'Hochgrat Radar', kind:'RIDGE RADAR STATION', text:'Hochgrat Radar sits on a ridge {where}. Scouts climb up from the valleys below and stay terrain-masked until the last moment.'},
-  {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'FOB Kestrel is a forward base {where} — a long flight out from your pad, so every relaunch costs precious time.'}
+  {id:'town', site:'Talhausen', kind:'MARKET TOWN', text:'The valley\'s market town — hundreds of houses round the church and the town hall on its square. Any roof is a target, and the town hall is what they are after: keep them well clear of the streets.'},
+  {id:'village', site:'Bergtal', kind:'VALLEY VILLAGE', text:'A village low in its valley. Raiders follow the valleys around it to stay under your radar until late — expect them to pop up close.'},
+  {id:'altwil', site:'Altwil', kind:'VALLEY VILLAGE', text:'A quiet village in a side valley, a long way from help. The hills around it hide low raiders until they are close.'},
+  {id:'seeboden', site:'Seeboden', kind:'VALLEY VILLAGE', text:'A lakeside village. Raiders can come in low over the open water — watch the shoreline approaches.'},
+  {id:'kalchhof', site:'Kalchhof', kind:'HAMLET', text:'A handful of farms and a chapel. Small, but just as easy to hit — and with little around it to hide behind, you will see them coming.'},
+  {id:'hinterried', site:'Hinterried', kind:'HAMLET', text:'A hamlet tucked into the hills along a single lane. The terrain around it masks low raiders until late.'},
+  {id:'moosweid', site:'Moosweid', kind:'HAMLET', text:'Farms on open meadow. Long sight lines, but scouts can approach from almost any direction.'},
+  {id:'dam', site:'Grauwand Dam', kind:'DAM', text:'Closes a gorge and holds back a mountain reservoir — the valley below depends on it. Scouts have long, open runs over the water and up the valley: see them early, stop them early.'},
+  {id:'klarsee', site:'Klarsee Dam', kind:'DAM', text:'The second reservoir dam. Its wall and powerhouse sit deep in the gorge; raiders dive at the wall face from the valley side.'},
+  {id:'radar', site:'Hochgrat Radar', kind:'RIDGE RADAR STATION', text:'A radar station on a ridge. Scouts climb up from the valleys below and stay terrain-masked until the last moment.'},
+  {id:'felsnase', site:'Felsnase Radar', kind:'RIDGE RADAR STATION', text:'A radar station on a rocky spur above the valleys. Raiders hug the slopes on their way up.'},
+  {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'A forward base with hangars, a tower and barracks. Keep the raiders off the hangars.'}
 ];
 const DIFFS = {
   easy:  {label:'EASY',   scouts:3, drones:6, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
@@ -4187,9 +4243,9 @@ function renderMissionList() {
   const best = loadBest();
   for (const b of $('gmDiff').children) b.classList.toggle('on', b.dataset.d === gmDiff);
   $('gmMissionList').innerHTML = MISSIONS.map(m => {
-    const s = siteByName(m.site), r = best[m.id] || {}, km = s ? (Math.hypot(s.x, s.z) / 1000).toFixed(1) : '?';
+    const r = best[m.id] || {};
     const row = ['easy', 'normal', 'hard'].map(d => `${DIFFS[d].label[0]} ${starStr(r[d] ? r[d].stars : 0)}`).join('  ');
-    return `<div class="gmMis"><em>${m.kind} · ${km} KM FROM PAD</em><b>DEFEND ${m.site.toUpperCase()}</b><p>${missionText(m)}</p>
+    return `<div class="gmMis"><em>${m.kind}</em><b>DEFEND ${m.site.toUpperCase()}</b><p>${missionText(m)}</p>
       <div class="gmStars">${row}${r[gmDiff] ? ' · best ' + r[gmDiff].score : ''}</div><div><button class="gmBtn" data-m="${m.id}">Start · ${DIFFS[gmDiff].label}</button></div></div>`;
   }).join('');
   for (const b of $('gmMissionList').querySelectorAll('button[data-m]')) b.onclick = () => restartInto({mode:'mission', id:b.dataset.m, diff:gmDiff});
