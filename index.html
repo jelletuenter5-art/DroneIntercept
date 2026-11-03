@@ -125,12 +125,15 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 
 #mapOverlay{display:none;position:fixed;inset:0;z-index:999;background:#010509f2;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;gap:8px;pointer-events:none;overflow:hidden}
 #mapOverlay.open{display:flex;pointer-events:auto}
-#mapWrap{position:relative;flex:0 0 auto}
-#mapLegend{position:absolute;left:calc(100% + 12px);top:0;width:205px;max-height:100%;overflow:auto;padding:9px 10px;box-sizing:border-box;background:#06121bee;border:1px solid #2b5568;border-radius:7px;font:10.5px/1.25 ui-monospace,monospace;color:#b9cfdc}
+#mapWrap{position:relative;flex:0 0 auto;display:flex;gap:12px;align-items:flex-start;justify-content:center;max-width:100%}
+/* legend always beside the map, never over it: with the legend open the map shrinks to leave room for it */
+#mapWrap.leg #mapCanvas{width:min(520px,calc(100vw - 32px - 217px),calc(100vh - 140px));height:min(520px,calc(100vw - 32px - 217px),calc(100vh - 140px))}
+#mapLegend{flex:0 0 205px;width:205px;max-height:min(520px,calc(100vh - 140px));overflow:auto;padding:9px 10px;box-sizing:border-box;background:#06121bee;border:1px solid #2b5568;border-radius:7px;font:10.5px/1.25 ui-monospace,monospace;color:#b9cfdc}
 #mapLegend.off{display:none}#mapLegend h5{margin:0 0 5px;font:700 9px ui-monospace,monospace;letter-spacing:.14em;color:#7fa3b8}
 #mapLegend div{display:flex;align-items:center;gap:7px;margin:3px 0}#mapLegend svg{flex:0 0 24px;height:14px}#mapLegend .sec{margin-top:8px}
 body:not(.missionMode) #mapLegend .mis{display:none}
-@media (max-width:1100px){#mapLegend{left:auto;right:6px;top:6px;width:190px;max-height:calc(100% - 12px)}}
+@media (max-width:560px){#mapWrap{flex-direction:column;align-items:center}#mapWrap.leg #mapCanvas{width:min(85vw,calc(100vh - 360px));height:min(85vw,calc(100vh - 360px))}
+  #mapLegend{flex:0 0 auto;width:min(85vw,520px);max-height:170px;columns:2;column-gap:12px}#mapLegend h5{break-after:avoid}}
 #mapCanvas{border:1.5px solid #3a778e;border-radius:6px;cursor:default;touch-action:none;box-shadow:0 0 28px #000c;flex:0 0 auto;width:min(520px,min(85vw,calc(100vh - 140px)));height:min(520px,min(85vw,calc(100vh - 140px)))}
 #mapUI{color:#9dc7db;font:700 11px ui-monospace,monospace;text-align:center;letter-spacing:.06em;display:flex;flex-direction:row;align-items:center;gap:10px;background:#07131de8;border:1px solid #2a4f62;border-radius:8px;padding:8px 16px;max-width:min(520px,85vw);box-sizing:border-box;flex-wrap:wrap;justify-content:center;flex-shrink:0}
 #mapUI b{color:#7affca}#mapUI span{font-weight:400;color:#7a9db4;font-size:10px}#cancelWpBtn,#cancelTrackBtn{padding:4px 11px;background:#1a0808;border:1px solid #c05050;border-radius:5px;color:#e09090;font:700 9.5px ui-monospace,monospace;cursor:pointer;pointer-events:auto;display:none;white-space:nowrap}#cancelWpBtn:hover,#cancelTrackBtn:hover{background:#2c1010;color:#f5c0c0}
@@ -2240,7 +2243,7 @@ function setSelectMode(on) { /* removed – direct click now active */ }
     row('<text x="12" y="10" font-size="8" font-weight="700" text-anchor="middle" fill="rgba(205,220,232,.9)">TOWN</text>', 'Town / village / hamlet (by size)');
   // shown by default on every screen size (it used to start hidden below 1100 px)
   let on = true; try { const v = localStorage.getItem('dl_legend2'); if (v) on = v === 'on'; } catch (e) {}   // new key: the old one stored 'off' on narrow screens
-  const setLeg = (v, save) => { on = v; $('mapLegend').classList.toggle('off', !on); $('legendBtn').classList.toggle('active', on); if (save) try { localStorage.setItem('dl_legend2', on ? 'on' : 'off'); } catch (e) {} };
+  const setLeg = (v, save) => { on = v; $('mapLegend').classList.toggle('off', !on); $('mapWrap').classList.toggle('leg', on); $('legendBtn').classList.toggle('active', on); if (save) try { localStorage.setItem('dl_legend2', on ? 'on' : 'off'); } catch (e) {} };
   setLeg(on); $('legendBtn').onclick = () => setLeg(!on, true); }
 function openMap()  { mapOpen = true; $('mapOverlay').classList.add('open'); const mb=$('missionBanner'); if(mb) mb.style.display='none'; }
 function closeMap() { mapOpen = false; $('mapOverlay').classList.remove('open'); $('trackConfirm').classList.remove('show'); }
