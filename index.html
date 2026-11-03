@@ -2936,6 +2936,14 @@ function losPoint(x, y, z) {
   return true;
 }
 const hasTrack = c => !!(c.trk && !c.trk.lost);
+// Where the drone should head after take-off: a manual map waypoint, or the contact ordered for pursuit (what the map
+// shows of it — its radar plot or estimate). null → nothing set.
+const _lg = new THREE.Vector3();
+function launchGoal() {
+  if (state.manualWaypointActive && mapWaypoint) return mapWaypoint;
+  const t = state.aiTarget; if (state.pursuitMode && t && !t.destroyed && !t.gone) return hasTrack(t) ? trackPos(t, _lg) : null;
+  return null;
+}
 // Best current position knowledge: live position when on radar, dead-reckoned estimate otherwise.
 // Dead reckoning from the last radar plot (also between sweeps while detected): follow the last measured turn rate
 // for up to 30 s, then straight on — and, like the real aircraft, if that path would reach the area border the
@@ -3636,6 +3644,15 @@ function physicsStep(h) {
   if (state.launchStage === 'takeoff') {
     // ~8 s sequence: 0–2.5 s straight vertical climb, 2.5–7.5 s gradual pitch-over into forward flight.
     const t = state.takeoffT = (state.takeoffT || 0) + h;
+    // Yaw towards where it has to go (on request — it always pitched over to the north): a map waypoint or the contact
+    // ordered for pursuit (its radar plot / estimate, never its true position) — turned during the vertical climb,
+    // finishing as the pitch-over builds speed. Nothing set → keeps its heading.
+    { const g = launchGoal();
+      if (g && Math.hypot(g.x - state.pos.x, g.z - state.pos.z) > 30) {
+        const want = Math.atan2(-(g.x - state.pos.x), -(g.z - state.pos.z)), e = wrapAngle(want - state.rot.y);
+        const rate = 1.2 * (t < .4 ? 0 : 1 - .75 * smoothstep(2.5, 5, t)) * (t > 6 ? 0 : 1);   // ≤ ~70°/s in the hover, easing off as it speeds up
+        state.rot.y += clamp(e * 2, -rate, rate) * h;
+      } }
     state.vel.y = damp(state.vel.y, lerp(15, 4, smoothstep(2.5, 7.5, t)), 3, h);
     state.cruiseSpeed = damp(state.cruiseSpeed, smoothstep(2.0, 7.5, t) * 55, 1.6, h);
     const fx = -Math.sin(state.rot.y), fz = -Math.cos(state.rot.y);

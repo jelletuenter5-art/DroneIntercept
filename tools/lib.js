@@ -41,6 +41,7 @@ function buildTestPage(ref, name) {
   src = src.replace('setTimeout(() => startReplay(state.lastReplay, true), 900);', 'if (!window.__noReplay) setTimeout(() => startReplay(state.lastReplay, true), 900);');
   const expose = `\nwindow.__t = {};\n` + EXPOSE.map(n => `try { window.__t.${n} = ${n}; } catch (e) {}`).join('\n') + `
 window.__t.launch = () => document.getElementById('launchBtn').click();
+window.__t.setWaypoint = (x, z) => { mapWaypoint = new THREE.Vector3(x, 0, z); state.aiTarget = null; state.pursuitMode = false; state.searchWp = new THREE.Vector3(x, 0, z); state.searchTimer = 99999; state.manualWaypointActive = true; };
 window.__t.startPursuit = c => { state.aiTarget = c; state.pursuitMode = true; state.attack = {phase:'intercept', side:0}; state.manualWaypointActive = false; try { mapWaypoint = null; } catch (e) {} state.searchWp = null; };
 `;
   const i = src.lastIndexOf('requestAnimationFrame(animate);');
