@@ -125,6 +125,12 @@ body.replaying #overlay,body.replaying #radarPanel,body.replaying #contactReadou
 
 #mapOverlay{display:none;position:fixed;inset:0;z-index:999;background:#010509f2;flex-direction:column;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;gap:8px;pointer-events:none;overflow:hidden}
 #mapOverlay.open{display:flex;pointer-events:auto}
+#mapWrap{position:relative;flex:0 0 auto}
+#mapLegend{position:absolute;left:calc(100% + 12px);top:0;width:205px;max-height:100%;overflow:auto;padding:9px 10px;box-sizing:border-box;background:#06121bee;border:1px solid #2b5568;border-radius:7px;font:10.5px/1.25 ui-monospace,monospace;color:#b9cfdc}
+#mapLegend.off{display:none}#mapLegend h5{margin:0 0 5px;font:700 9px ui-monospace,monospace;letter-spacing:.14em;color:#7fa3b8}
+#mapLegend div{display:flex;align-items:center;gap:7px;margin:3px 0}#mapLegend svg{flex:0 0 24px;height:14px}#mapLegend .sec{margin-top:8px}
+body:not(.missionMode) #mapLegend .mis{display:none}
+@media (max-width:1100px){#mapLegend{left:auto;right:6px;top:6px;width:190px;max-height:calc(100% - 12px)}}
 #mapCanvas{border:1.5px solid #3a778e;border-radius:6px;cursor:default;touch-action:none;box-shadow:0 0 28px #000c;flex:0 0 auto;width:min(520px,min(85vw,calc(100vh - 140px)));height:min(520px,min(85vw,calc(100vh - 140px)))}
 #mapUI{color:#9dc7db;font:700 11px ui-monospace,monospace;text-align:center;letter-spacing:.06em;display:flex;flex-direction:row;align-items:center;gap:10px;background:#07131de8;border:1px solid #2a4f62;border-radius:8px;padding:8px 16px;max-width:min(520px,85vw);box-sizing:border-box;flex-wrap:wrap;justify-content:center;flex-shrink:0}
 #mapUI b{color:#7affca}#mapUI span{font-weight:400;color:#7a9db4;font-size:10px}#cancelWpBtn,#cancelTrackBtn{padding:4px 11px;background:#1a0808;border:1px solid #c05050;border-radius:5px;color:#e09090;font:700 9.5px ui-monospace,monospace;cursor:pointer;pointer-events:auto;display:none;white-space:nowrap}#cancelWpBtn:hover,#cancelTrackBtn:hover{background:#2c1010;color:#f5c0c0}
@@ -253,11 +259,11 @@ html,body,#app{width:100%;height:100%;min-height:0}
         <div class="hudbox" style="text-align:right"><div class="hudlabel">Mission status</div><div class="hudvalue" id="missionState">SCOUT PATROL</div><div id="targetStatus" class="threatStats"></div><div class="hudfoot" id="lockState" style="display:none"></div></div>
       </div>
       <div id="launchOverlay"><div class="launchCard"><div class="launchEyebrow">ALPINE DRONE LAB · FLIGHT DECK</div><h2 id="launchTitle">AIRCRAFT ON LAUNCH PAD</h2><p id="launchHint">Press Launch to take off. The drone climbs vertically, transitions to cruise and starts scanning.</p><div class="btnrow"><button id="launchBtn" class="primary">Launch</button></div><div id="launchSequence">SYSTEM STANDBY · WAITING FOR LAUNCH</div></div></div><div id="radarPanel"><div class="radarHead"><span>RADAR</span><span id="radarCount">0</span></div><canvas id="radarCanvas" width="180" height="180"></canvas><button id="openMapBtn">⊕ Map <kbd>M</kbd></button></div><div class="crosshair"><div class="ch-bar"></div><div class="ch-dot"></div><div class="ch-bar"></div></div><div id="targetLock"></div><div id="contactLabels"></div><div id="contactReadout"></div><div id="raidWarn"></div><div id="trackConfirm"><div>Track and intercept?</div><div class="tc-name" id="tc-name">—</div><div class="tc-note">Identification is a sensor estimate and may be wrong.</div><div class="tc-btns"><button id="tc-auth">✓ Yes</button><button id="tc-cancel">✕ No</button></div></div><div id="mapOverlay">
-  <canvas id="mapCanvas" width="600" height="600"></canvas>
+  <div id="mapWrap"><canvas id="mapCanvas" width="600" height="600"></canvas><div id="mapLegend"></div></div>
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
     <span id="mapStatusSpan">Press ⊕ to place waypoint</span>
-    <button id="cancelWpBtn">✕ Waypoint</button><button id="cancelTrackBtn">✕ Tracking</button><button id="mapCloseBtn" style="pointer-events:auto">✕ Close</button>
+    <button id="cancelWpBtn">✕ Waypoint</button><button id="cancelTrackBtn">✕ Tracking</button><button id="legendBtn" style="pointer-events:auto">◧ Legend</button><button id="mapCloseBtn" style="pointer-events:auto">✕ Close</button>
   </div>
 </div>
 <div id="thermalScale"><span>HOT</span><i id="thermalScaleBar"></i><span>COLD</span></div>
@@ -1005,15 +1011,22 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
 // wooden upper floors, green shutters), 2 barn (vertical boards, big door). Windows/doors scale with the building
 // (floors of ~2.9 m counted from the eaves, bays of ~2.6 m); the door is on the local +z face (turned to the street).
 // At night some windows glow (`facadeU.uNight`, set in updateEnvironment).
-const facadeU = {uNight: {value: 0}};
+const facadeU = {uNight: {value: 0}, uLit: {value: .4}};
+// Share of windows lit by the hour (on request — not every window on all night): lights come on through the evening
+// twilight, most are on late in the evening and around midnight, fewer in the small hours, a few early risers.
+function litShare(hour) {
+  const k = [[0, .44], [1, .38], [2, .3], [3, .22], [4, .2], [5, .26], [6, .3], [7, .2], [8, .1], [16, .1], [17, .14], [18, .18], [19, .26], [20, .36], [21, .46], [22, .52], [23, .5], [24, .44]];
+  for (let i = 1; i < k.length; i++) if (hour <= k[i][0]) return lerp(k[i - 1][1], k[i][1], (hour - k[i - 1][0]) / (k[i][0] - k[i - 1][0]));
+  return .44;
+}
 function facadeMaterial() {
   const m = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .9, metalness: .02});
   m.onBeforeCompile = sh => {
-    sh.uniforms.uNight = facadeU.uNight;
+    sh.uniforms.uNight = facadeU.uNight; sh.uniforms.uLit = facadeU.uLit;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aInfo; attribute vec3 aTint; varying vec3 vFac; varying vec3 vSc; varying vec3 vNo; varying vec3 vInfo; varying vec3 vTint;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvec3 scl = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vSc = scl; vFac = position * scl; vNo = normal; vInfo = aInfo; vTint = aTint;');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
-uniform float uNight; varying vec3 vFac; varying vec3 vSc; varying vec3 vNo; varying vec3 vInfo; varying vec3 vTint;
+uniform float uNight; uniform float uLit; varying vec3 vFac; varying vec3 vSc; varying vec3 vNo; varying vec3 vInfo; varying vec3 vTint;
 float hsh(vec3 p) { return fract(sin(dot(p, vec3(12.99, 78.23, 37.71))) * 43758.55); }
 vec3 facade(vec3 base, out float glow) {
   glow = 0.0; float st = vInfo.x, ht = vInfo.y, sd = vInfo.z;
@@ -1039,13 +1052,16 @@ vec3 facade(vec3 base, out float glow) {
   float dx = abs(bu) - ww, dy = abs(vy - wc) - wh;
   if (dx < 0.0 && dy < 0.0) {
     if (dx > -.08 || dy > -.08 || (abs(bu) < .04 && !shop)) return vec3(.93, .92, .88);              // frame + mullion
-    glow = step(.45, hsh(vec3(bi + 3.1, fl, sd * 7.0 + (xf ? 1.0 : 0.0) + (vNo.x + vNo.z) * 2.0))) * uNight;
+    // a window is lit when its own random number is under the hour's share (so lights come on / go off one by one as
+    // the night goes on); ~15 % of houses stay dark (nobody home); each lit window has its own brightness
+    float wr = hsh(vec3(bi + 3.1, fl, sd * 7.0 + (xf ? 1.0 : 0.0) + (vNo.x + vNo.z) * 2.0)), houseOn = step(.15, fract(sd * .6180339));
+    glow = step(wr, uLit) * houseOn * uNight * (.45 + .9 * hsh(vec3(bi, fl + 9.0, sd)));
     return mix(vec3(.08, .11, .14), vec3(.16, .2, .24), step(0.0, vy - wc));
   }
   if (st > .5 && st < 1.5 && dy < 0.0 && abs(abs(bu) - ww - .3) < .26) return vec3(.17, .34, .21);     // chalet shutters
   return col;
 }`).replace('#include <color_fragment>', '#include <color_fragment>\nfloat fglow; diffuseColor.rgb = facade(diffuseColor.rgb * vTint, fglow);')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3(1.0, .78, .45) * fglow * 1.4;');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += mix(vec3(1.0, .78, .45), vec3(.72, .8, 1.0), step(.88, fract(fglow * 37.0))) * fglow * 1.4;');
   };
   return m;
 }
@@ -2020,14 +2036,14 @@ function drawMap() {
   { const [cx3, cz3] = worldToMap(state.pos.x, state.pos.z), rr = radarRange() / MAP_WORLD * MAP_SIZE;
     ctx.fillStyle = 'rgba(80,220,200,.05)'; ctx.strokeStyle = 'rgba(80,220,200,.35)'; ctx.lineWidth = 1; ctx.setLineDash([3,4]);
     ctx.beginPath(); ctx.arc(cx3, cz3, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '8px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
+    ctx.fillStyle = 'rgba(80,220,200,.6)'; ctx.font = '7px ui-monospace,monospace'; ctx.fillText('RADAR ' + (radarRange() / 1000).toFixed(1) + ' km', cx3 + rr * .72, cz3 - rr * .72); }
   // 4a'. Mission: the site surveillance radar's coverage (fixed ring round its mast; shrinks with the weather)
   if (game.mode === 'mission' && game.m && game.m.radar) { const R = game.m.radar, [mx, mz] = worldToMap(R.x, R.z), rr = siteRadarRange() / MAP_WORLD * MAP_SIZE;
     ctx.fillStyle = 'rgba(255,200,90,.035)'; ctx.strokeStyle = 'rgba(255,200,90,.5)'; ctx.lineWidth = 1.1; ctx.setLineDash([6, 4]);
     ctx.beginPath(); ctx.arc(mx, mz, rr, 0, TAU); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(255,200,90,.85)'; ctx.beginPath(); ctx.moveTo(mx, mz - 5); ctx.lineTo(mx - 3.5, mz + 3); ctx.lineTo(mx + 3.5, mz + 3); ctx.closePath(); ctx.fill();   // mast
     ctx.font = 'bold 6.5px ui-monospace,monospace'; ctx.fillText('MAST', mx + 5, mz + 2);
-    ctx.font = '8px ui-monospace,monospace'; const lbl = 'SITE RADAR ' + (siteRadarRange() / 1000).toFixed(1) + ' km', ly = mz - rr * .71 - 3;
+    ctx.font = '7px ui-monospace,monospace'; const lbl = 'SITE RADAR ' + (siteRadarRange() / 1000).toFixed(1) + ' km', ly = mz - rr * .71 - 3;
     ctx.fillText(lbl, Math.min(mx + rr * .71 + 3, MAP_SIZE - 8 - ctx.measureText(lbl).width), Math.max(14, ly)); }
   // 4a. Sites (villages, dams, radar stations, forward base); in a mission the defended one with its strike and
   //     1.5 km rings
@@ -2196,6 +2212,35 @@ $('mapCanvas').addEventListener('click', e => {
 });
 
 function setSelectMode(on) { /* removed – direct click now active */ }
+// Map legend (on request): what every symbol means, in the colours the map uses. Beside the map on wide screens,
+// over its top-right corner on narrow ones; '◧ Legend' toggles it (remembered in localStorage 'dl_legend').
+// Mission-only items (site, rings, mast) are hidden in the sandbox.
+{ const sv = b => `<svg viewBox="0 0 24 14">${b}</svg>`, row = (icon, text, cls = '') => `<div class="${cls}">${sv(icon)}<span>${text}</span></div>`;
+  $('mapLegend').innerHTML = '<h5>LEGEND</h5>' +
+    row('<path d="M12 1 L17 13 L7 13 Z" fill="#7affca"/>', 'Your drone (heading)') +
+    row('<circle cx="12" cy="7" r="5.5" fill="#0a1824" stroke="#7affca" stroke-width="1.4"/><text x="12" y="10" font-size="8" text-anchor="middle" fill="#7affca">⌂</text>', 'Home / field pad') +
+    row('<circle cx="12" cy="7" r="6" fill="none" stroke="rgba(80,220,200,.8)" stroke-dasharray="2 2"/>', 'Drone radar range') +
+    row('<path d="M3 7 H21 M12 1 V13" stroke="#ffca77" stroke-width="1.4"/><circle cx="12" cy="7" r="3.5" fill="none" stroke="#ffca77"/>', 'Your waypoint') +
+    '<h5 class="sec">CONTACTS</h5>' +
+    row('<circle cx="12" cy="7" r="5" fill="rgba(190,200,210,.75)"/>', 'Unknown (not identified)') +
+    row('<path d="M12 2 L16 12 L8 12 Z" fill="#ff9a6b"/>', 'Identified threat (scout)') +
+    row('<rect x="8" y="3" width="8" height="8" fill="#9ec4d8"/>', 'Identified civil traffic') +
+    row('<path d="M12 2 L16 12 L8 12 Z" fill="#ff9a6b" opacity=".45"/>', 'Faded + EST = estimate, off radar (age)') +
+    row('<circle cx="12" cy="7" r="5.5" fill="none" stroke="#ffee77" stroke-width="1.6"/>', 'Your pursuit target') +
+    '<h5 class="sec mis">MISSION</h5>' +
+    row('<circle cx="12" cy="7" r="4.5" fill="rgba(255,90,60,.3)" stroke="#ff8a6a" stroke-width="1.4"/>', 'Site you defend', 'mis') +
+    row('<circle cx="12" cy="7" r="6" fill="none" stroke="rgba(255,120,90,.9)" stroke-dasharray="1 2" stroke-width="1.3"/>', '★★★ ring: stop scouts outside it', 'mis') +
+    row('<circle cx="12" cy="7" r="6" fill="none" stroke="rgba(255,200,90,.8)" stroke-dasharray="3 2"/><path d="M12 3 L15 10 L9 10 Z" fill="rgba(255,200,90,.9)"/>', 'Site radar range + MAST', 'mis') +
+    '<h5 class="sec">MAP</h5>' +
+    row('<path d="M1 7 H23" stroke="rgba(226,214,176,.8)" stroke-width="1.6"/>', 'Road / street') +
+    row('<path d="M1 7 H23" stroke="rgba(214,200,160,.7)" stroke-width="1.1" stroke-dasharray="3 2"/>', 'Gravel track') +
+    row('<path d="M8 10 A4 4 0 0 1 16 10" fill="rgba(205,220,232,.8)"/><rect x="7" y="10" width="10" height="2" fill="rgba(205,220,232,.8)"/>', 'Radar station') +
+    row('<rect x="6" y="3" width="12" height="8" fill="none" stroke="rgba(205,220,232,.8)" stroke-width="1.3"/><path d="M6 3 L18 11" stroke="rgba(205,220,232,.8)" stroke-width="1.3"/>', 'Military base (FOB)') +
+    row('<path d="M5 7 H19" stroke="rgba(205,220,232,.8)" stroke-width="3"/>', 'Dam') +
+    row('<text x="12" y="10" font-size="8" font-weight="700" text-anchor="middle" fill="rgba(205,220,232,.9)">TOWN</text>', 'Town / village / hamlet (by size)');
+  let on = innerWidth >= 1100; try { const v = localStorage.getItem('dl_legend'); if (v) on = v === 'on'; } catch (e) {}
+  const setLeg = v => { on = v; $('mapLegend').classList.toggle('off', !on); $('legendBtn').classList.toggle('active', on); try { localStorage.setItem('dl_legend', on ? 'on' : 'off'); } catch (e) {} };
+  setLeg(on); $('legendBtn').onclick = () => setLeg(!on); }
 function openMap()  { mapOpen = true; $('mapOverlay').classList.add('open'); const mb=$('missionBanner'); if(mb) mb.style.display='none'; }
 function closeMap() { mapOpen = false; $('mapOverlay').classList.remove('open'); $('trackConfirm').classList.remove('show'); }
 $('openMapBtn').onclick = openMap;
@@ -3970,7 +4015,7 @@ function updateEnvironment(rdt) {
   scene.fog.near = lerp(450, 120, ws); scene.fog.far = lerp(2800, 1100, ws);
   hemi.intensity = lerp(.42, 2.0, daylight) * (1 - ws * .35); sun.intensity = lerp(.18, 3.0, daylight) * (1 - ws * .5); fill.intensity = lerp(.18, .7, daylight);
   renderer.toneMappingExposure = lerp(.78, 1.05, daylight);
-  { const nt = smoothstep(.55, .15, daylight); facadeU.uNight.value = nt; if (lampGlow) { lampGlow.material.opacity = nt * .9; lampGlow.visible = nt > .02 && !thermalOn; } }   // lit windows + street lamps at night
+  { const nt = smoothstep(.55, .15, daylight); facadeU.uNight.value = nt; facadeU.uLit.value = litShare(((12 + state.dayClock / TAU * 24) % 24 + 24) % 24); if (lampGlow) { lampGlow.material.opacity = nt * .9; lampGlow.visible = nt > .02 && !thermalOn; } }   // lit windows + street lamps at night
   cloudMat.opacity = .28 + ws * .5; cloudMat.color.setRGB(1, 1, 1).lerp(tmpC2.set(0x2a3342), 1 - daylight);
   for (const c of cloudGroup.children) { c.position.x += 6 * edt; if (c.position.x > ARENA + 1500) c.position.x -= 2 * (ARENA + 1500); }
   scene.background.copy(skyU.uHorizon.value); scene.fog.color.copy(skyU.uHorizon.value);
