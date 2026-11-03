@@ -613,7 +613,7 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
     const n = SITES.filter(s => s.type === 'dam').length;
     SITES.push({type: 'dam', name: ['Grauwand Dam', 'Klarsee Dam'][n], x: c.cx + c.ux * sDam, z: c.cz + c.uz * sDam, ang: Math.atan2(c.ux, -c.uz), crest: c.L + 3, res: R});
   }
-  for (const s of SITES) s.clear = s.size === 'town' ? 520 : s.size === 'hamlet' ? 130 : {village: 230, dam: 130, radar: 100, base: 430}[s.type];
+  for (const s of SITES) s.clear = s.size === 'town' ? 600 : s.size === 'hamlet' ? 200 : {village: 320, dam: 130, radar: 100, base: 430}[s.type];   // settlements: room for gardens and fields round them
   const b = SITES.find(s => s.type === 'base'); if (b) FLAT.push({x: b.x, z: b.z, y: Math.max(WATER_Y + 6, H(b.x, b.z)), r0: 300, r1: 520});
 })();
 // Height of the *rendered* terrain (the 25 m triangle grid of the terrain mesh) at x,z — in valleys the triangles sit
@@ -1000,16 +1000,72 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
   const m = new THREE.Mesh(geo, material); material.polygonOffset = true; material.polygonOffsetFactor = -2; material.polygonOffsetUnits = -2; th(m, heat); return m;
 }
+// ── Building façades (on request): drawn in the wall shader of the instanced house walls — no extra geometry. Per
+// instance `aInfo` = (style, wall height above ground, seed): 0 plastered (town), 1 chalet (white ground floor,
+// wooden upper floors, green shutters), 2 barn (vertical boards, big door). Windows/doors scale with the building
+// (floors of ~2.9 m counted from the eaves, bays of ~2.6 m); the door is on the local +z face (turned to the street).
+// At night some windows glow (`facadeU.uNight`, set in updateEnvironment).
+const facadeU = {uNight: {value: 0}};
+function facadeMaterial() {
+  const m = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: .9, metalness: .02});
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uNight = facadeU.uNight;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec3 aInfo; attribute vec3 aTint; varying vec3 vFac; varying vec3 vSc; varying vec3 vNo; varying vec3 vInfo; varying vec3 vTint;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvec3 scl = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz)); vSc = scl; vFac = position * scl; vNo = normal; vInfo = aInfo; vTint = aTint;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+uniform float uNight; varying vec3 vFac; varying vec3 vSc; varying vec3 vNo; varying vec3 vInfo; varying vec3 vTint;
+float hsh(vec3 p) { return fract(sin(dot(p, vec3(12.99, 78.23, 37.71))) * 43758.55); }
+vec3 facade(vec3 base, out float glow) {
+  glow = 0.0; float st = vInfo.x, ht = vInfo.y, sd = vInfo.z;
+  if (abs(vNo.y) > .5) return base;
+  bool xf = abs(vNo.x) > .5; float u = xf ? vFac.z : vFac.x, len = xf ? vSc.z : vSc.x;
+  bool front = !xf && vNo.z > .5;
+  float top = vSc.y - vFac.y; if (top > ht) return base * .72;                      // footing below the ground floor
+  float nF = max(1.0, floor(ht / 2.75 + .25)), fh = ht / nF, fl = floor(top / fh), vy = fh - (top - fl * fh);
+  bool ground = fl > nF - 1.5;
+  float nb = max(1.0, floor(len / 2.6)), bw = len / nb, uu = u + len * .5, bi = floor(uu / bw), bu = uu - bi * bw - bw * .5;
+  vec3 col = base;
+  if (st > 1.5) col = vec3(.36, .24, .15) * (.85 + .15 * step(.5, fract(uu * 1.4)));                 // barn boards
+  else if (st > .5 && !ground) col = vec3(.45, .29, .16) * (.88 + .12 * step(.5, fract(vy * 2.6)));  // chalet: wooden upper floors
+  if (vy < .05 || (st < .5 && fh - vy < .12)) col *= .82;                                            // floor lines / cornices
+  float mid = floor(nb * .5);
+  if (front && ground && bi == mid) {                                                                    // door
+    float dw = st > 1.5 ? 1.7 : .55, dh = st > 1.5 ? 3.3 : 2.15;
+    if (abs(bu) < dw && vy < dh) return (abs(bu) > dw - .1 || vy > dh - .1) ? vec3(.8) : (st > 1.5 ? vec3(.26, .17, .1) : vec3(.32, .2, .12));
+  }
+  if (st > 1.5 && (hsh(vec3(bi, fl, sd)) > .35 || ground)) return col;                                // barns: few small windows, high up
+  bool shop = st < .5 && ground && ht > 7.5;
+  float ww = shop ? .95 : (st > 1.5 ? .35 : .5), wh = shop ? .95 : (st > 1.5 ? .3 : .62), wc = shop ? 1.35 : (st > 1.5 ? fh * .7 : fh * .52);
+  float dx = abs(bu) - ww, dy = abs(vy - wc) - wh;
+  if (dx < 0.0 && dy < 0.0) {
+    if (dx > -.08 || dy > -.08 || (abs(bu) < .04 && !shop)) return vec3(.93, .92, .88);              // frame + mullion
+    glow = step(.45, hsh(vec3(bi + 3.1, fl, sd * 7.0 + (xf ? 1.0 : 0.0) + (vNo.x + vNo.z) * 2.0))) * uNight;
+    return mix(vec3(.08, .11, .14), vec3(.16, .2, .24), step(0.0, vy - wc));
+  }
+  if (st > .5 && st < 1.5 && dy < 0.0 && abs(abs(bu) - ww - .3) < .26) return vec3(.17, .34, .21);     // chalet shutters
+  return col;
+}`).replace('#include <color_fragment>', '#include <color_fragment>\nfloat fglow; diffuseColor.rgb = facade(diffuseColor.rgb * vTint, fglow);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += vec3(1.0, .78, .45) * fglow * 1.4;');
+  };
+  return m;
+}
+let lampGlow = null; const LAMP_PTS = [];   // street-lamp glow points (night only; created after glowTex below)
 (function buildSiteModels() {
+  let dseed = 5531; const drnd = () => { dseed = (dseed * 16807) % 2147483647; return (dseed - 1) / 2147483646; };   // details: own sequence, so the layout above stays the same
+  const wallList = [], chims = [], balcs = [], rails = [], trunks = [], crowns = [], hedges = [], lampPoles = [], lampHeads = [], lampPts = LAMP_PTS, fieldPos = [], fieldCol = [], o3 = new THREE.Object3D();
+  const mtx = (list, x, y, z, ry, sx, sy, sz) => { o3.position.set(x, y, z); o3.rotation.set(0, ry, 0); o3.scale.set(sx, sy, sz); o3.updateMatrix(); list.push(o3.matrix.clone()); };
+  const local = (x, z, ry, lx, lz) => [x + lx * Math.cos(ry) + lz * Math.sin(ry), z - lx * Math.sin(ry) + lz * Math.cos(ry)];
   let seed = 9173; const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
   const M = (c, r = .8, m = .05) => mat(c, r, m);
   const put = (geo, material, x, y, z, ry = 0, heat = .3, parent = siteGroup) => { const m = new THREE.Mesh(geo, material); m.position.set(x, y, z); m.rotation.y = ry; parent.add(m); th(m, heat); return m; };
   const B = (w, h, d) => new THREE.BoxGeometry(w, h, d).translate(0, h / 2, 0);
   // roof prism: footprint x,z ∈ [-.5,.5], ridge along z at y = 1
   const roofGeo = (() => { const v = [-.5,0,-.5, .5,0,-.5, 0,1,-.5,  .5,0,.5, -.5,0,.5, 0,1,.5,  -.5,0,-.5, 0,1,-.5, 0,1,.5, -.5,0,-.5, 0,1,.5, -.5,0,.5,
-    .5,0,-.5, .5,0,.5, 0,1,.5, .5,0,-.5, 0,1,.5, 0,1,-.5]; const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.computeVertexNormals(); return g; })();
+    .5,0,-.5, .5,0,.5, 0,1,.5, .5,0,-.5, 0,1,.5, 0,1,-.5];
+    for (let t = 0; t < v.length; t += 9) for (let k = 0; k < 3; k++) [v[t + 3 + k], v[t + 6 + k]] = [v[t + 6 + k], v[t + 3 + k]];   // wind every triangle outward (they were all inward → roof slopes were culled)
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(v, 3)); g.computeVertexNormals(); return g; })();
   const wallGeo = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0);
-  const walls = [[], []], roofs = [[], [], []], d = new THREE.Object3D();
+  const roofs = [[], [], []], d = new THREE.Object3D();
   // strike targets: the structures a raider must actually hit (world boxes [centre, half extents, yaw]) + its aim point
   const tgt = (s, gx, gz, rot, lx, ly, lz, hx, hy, hz) => { (s.targets = s.targets || []).push({c: new THREE.Vector3(gx + lx * Math.cos(rot) + lz * Math.sin(rot), ly, gz - lx * Math.sin(rot) + lz * Math.cos(rot)), h: [hx, hy, hz], yaw: rot}); };
   const footing = (x, z, w, l, ry) => { let lo = 1e9, hi = -1e9; for (const [a, b] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
@@ -1021,13 +1077,21 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
       const axis = s.axis, houses = [], C = s.church, size = s.size || 'village', town = size === 'town', ham = size === 'hamlet';
       const keepOut = [[C, town ? 30 : 24], ...(s.hall ? [[s.hall, 30], [{x: s.x, z: s.z}, 34]] : [])];   // church / town hall / town square
       const onStreet = (x, z, r) => s.streets.some(st => st.pts.some(p => Math.hypot(p[0] - x, p[1] - z) < st.w / 2 + r));
-      const tryHouse = (x, z, ry, w, l, ht, roofH = 2.6 + w * .18) => {
+      const tryHouse = (x, z, ry, w, l, ht, roofH, style = town ? 0 : 1) => {
+        if (roofH === undefined) roofH = style === 1 ? 1.7 + w * .1 : style === 2 ? 2.2 + w * .12 : 2.6 + w * .18;   // chalets: wide, low roofs
         const y = terrainHeight(x, z), r = Math.hypot(w, l) / 2;
         if (isWater(x, z, y) || Math.abs(terrainHeight(x + 6, z) - y) + Math.abs(terrainHeight(x, z + 6) - y) > 3.5) return false;
         if (keepOut.some(([q, k]) => Math.hypot(x - q.x, z - q.z) < k + r) || houses.some(h => Math.hypot(h.x - x, h.z - z) < h.r + r - 2.5) || onStreet(x, z, Math.min(w, l) / 2 + 1)) return false;
-        const [lo, hi] = footing(x, z, w, l, ry); houses.push({x, z, r});
-        d.position.set(x, lo, z); d.rotation.set(0, ry, 0); d.scale.set(w, hi + ht - lo, l); d.updateMatrix(); walls[houses.length % 2].push(d.matrix.clone());
-        d.position.set(x, hi + ht, z); d.scale.set(w + .8, roofH, l + .8); d.updateMatrix(); roofs[Math.floor(rnd() * 3)].push(d.matrix.clone());
+        const [lo, hi] = footing(x, z, w, l, ry); houses.push({x, z, r, ry, w, l, style});
+        const ov = style === 1 ? 2.2 : style === 2 ? 1.4 : .8;
+        d.position.set(x, lo, z); d.rotation.set(0, ry, 0); d.scale.set(w, hi + ht - lo, l); d.updateMatrix();
+        const tints = style === 0 ? [0xe8e2d4, 0xe6d6b0, 0xdcc7a6, 0xe9e4da, 0xcfd6cf, 0xe6cdb9, 0xd9d2c2] : style === 1 ? [0xefeae0, 0xe2ddd2, 0xd8d0c0] : [0xb59a7a];
+        wallList.push({m: d.matrix.clone(), c: tints[Math.floor(drnd() * tints.length)], info: [style, ht, drnd() * 97]});
+        d.position.set(x, hi + ht, z); d.scale.set(w + ov, roofH, l + ov); d.updateMatrix(); roofs[Math.floor(rnd() * 3)].push(d.matrix.clone());
+        if (style !== 2 && drnd() < .7) { const sx = (drnd() < .5 ? -1 : 1) * w * .22, [cx, cz] = local(x, z, ry, sx, (drnd() - .5) * l * .5);   // chimney on the roof slope
+          mtx(chims, cx, hi + ht + roofH * (1 - 2 * Math.abs(sx) / (w + ov)) - .5, cz, ry, .7, 1.9, .7); }
+        if (style === 1 && ht > 5.5 && drnd() < .65) { const fh = ht / Math.max(1, Math.floor(ht / 2.75 + .25)), [bx, bz] = local(x, z, ry, 0, l / 2 + .6), [rx2, rz2] = local(x, z, ry, 0, l / 2 + 1.12);   // wooden balcony
+          mtx(balcs, bx, hi + fh - .1, bz, ry, w * .78, .18, 1.2); mtx(rails, rx2, hi + fh + .08, rz2, ry, w * .78, .95, .1); }
         const top = hi + ht + roofH; tgt(s, x, z, ry, 0, (lo + top) / 2, 0, w / 2 + .4, (top - lo) / 2, l / 2 + .4); return true; };
       // town: 3-4 storey plastered blocks with low roofs in the centre (within ~220 m), ordinary houses further out
       for (const st of s.streets) {
@@ -1037,16 +1101,42 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
             const core = town && Math.hypot(P[i][0] - s.x, P[i][1] - s.z) < 220;
             const turn = !core && rnd() < .5, w = core ? 10 + rnd() * 6 : 7 + rnd() * 4, l = core ? 11 + rnd() * 5 : 8 + rnd() * 4, along = turn ? l : w, deep = turn ? w : l;
             const ht = core ? 8.5 + rnd() * 5 : rnd() < .45 ? 6 + rnd() * 1.6 : 3.6 + rnd() * 1.2, off = st.w / 2 + (core ? 1.5 + rnd() : 2.5 + rnd() * 2.5) + deep / 2;
-            if (rnd() < (core ? .95 : town ? .88 : .82)) tryHouse(P[i][0] + px * sd * off, P[i][1] + pz * sd * off, -ma + (turn ? Math.PI / 2 : 0) + (rnd() - .5) * .08, w, l, ht, core ? 1.6 + rnd() * 1.2 : undefined);
+            if (rnd() < (core ? .95 : town ? .88 : .82)) { let ry = -ma + (turn ? Math.PI / 2 : 0) + (rnd() - .5) * .08; const roofLow = core ? 1.6 + rnd() * 1.2 : undefined;
+              if (Math.sin(ry) * -px * sd + Math.cos(ry) * -pz * sd < 0) ry += Math.PI;   // door side (+z) towards the street
+              tryHouse(P[i][0] + px * sd * off, P[i][1] + pz * sd * off, ry, w, l, ht, roofLow); }
             next[k] = along + (core ? .8 + rnd() * 1.5 : 2 + rnd() * 5); } }
       }
       const cap = town ? 420 : ham ? 22 : 95, R0 = town ? 60 : ham ? 25 : 60, R1 = town ? 430 : ham ? 90 : 160;
       for (let k = 0; k < (town ? 1400 : 300) && houses.length < cap; k++) {   // farm buildings / outlying houses (town: infill between the streets too)
         const r = R0 + Math.sqrt(rnd()) * R1, a = rnd() * TAU, big = rnd() < (ham ? .5 : .35);
-        tryHouse(s.x + Math.cos(a) * r, s.z + Math.sin(a) * r, -axis + Math.floor(rnd() * 4) * Math.PI / 2 + (rnd() - .5) * .3, big ? 10 + rnd() * 4 : 7 + rnd() * 3, big ? 16 + rnd() * 8 : 8 + rnd() * 4, big ? 5 + rnd() * 2 : 3.6 + rnd() * 1.5);
+        tryHouse(s.x + Math.cos(a) * r, s.z + Math.sin(a) * r, -axis + Math.floor(rnd() * 4) * Math.PI / 2 + (rnd() - .5) * .3, big ? 10 + rnd() * 4 : 7 + rnd() * 3, big ? 16 + rnd() * 8 : 8 + rnd() * 4, big ? 5 + rnd() * 2 : 3.6 + rnd() * 1.5, undefined, big && !town ? 2 : town ? 0 : 1);
         if (houses.length > (town ? 330 : ham ? 12 : 60) && rnd() < .08) break;
       }
       s.houseCount = houses.length;
+      // greenery: a garden tree behind many houses, hedges, fields in the ring round the place (inside its tree-free
+      // clearing), street lamps along the streets of villages and the town (they glow at night)
+      const freeAt = (x, z, r) => !isWater(x, z) && !onStreet(x, z, r) && !nearRoad(x, z) && houses.every(h => Math.hypot(h.x - x, h.z - z) > h.r + r);
+      for (const h of houses) {
+        if (h.style !== 0 || !town || Math.hypot(h.x - s.x, h.z - s.z) > 220) for (let k = 0, n = drnd() < .55 ? 1 + (drnd() < .3) : 0; k < n; k++) {
+          const [tx, tz] = local(h.x, h.z, h.ry, (drnd() - .5) * h.w * 1.4, -(h.l / 2 + 3 + drnd() * 5)), ty = groundY(tx, tz), sc = 4 + drnd() * 5;
+          if (!freeAt(tx, tz, 2.5)) continue; mtx(trunks, tx, ty, tz, 0, .5, sc * .45, .5); mtx(crowns, tx, ty + sc * .55, tz, drnd() * 3, sc * .38, sc * .42, sc * .38); }
+        if (h.style === 1 && drnd() < .3) { const L = h.w + 4 + drnd() * 6, [hx, hz] = local(h.x, h.z, h.ry, 0, -(h.l / 2 + 9 + drnd() * 3));
+          if (freeAt(hx, hz, 2)) mtx(hedges, hx, groundY(hx, hz) - .1, hz, h.ry, L, 1.2, .9); }
+      }
+      { const rIn = Math.max(...houses.map(h => Math.hypot(h.x - s.x, h.z - s.z) + h.r), 60) + 12, rOut = s.clear - 8, crops = [0xb2ad62, 0x86a04f, 0x8e7350, 0xc2ba70, 0x709548, 0x9cad5a];
+        for (let k = 0, made = 0; k < 160 && made < (town ? 10 : ham ? 6 : 12) && rOut - rIn > 30; k++) {
+          const r = rIn + 25 + drnd() * (rOut - rIn - 50), a = drnd() * TAU, cx = s.x + Math.cos(a) * r, cz = s.z + Math.sin(a) * r, fw = 35 + drnd() * 45, fl2 = 22 + drnd() * 26, fr = -axis + (drnd() - .5) * .3;
+          const cs = [[-1, -1], [1, -1], [1, 1], [-1, 1], [0, 0]].map(([u, v]) => local(cx, cz, fr, u * fw / 2, v * fl2 / 2)), hs = cs.map(p => groundY(p[0], p[1]));
+          if (Math.max(...hs) - Math.min(...hs) > 7 || !cs.every(([x, z]) => freeAt(x, z, 6))) continue;
+          made++; const c = new THREE.Color(crops[Math.floor(drnd() * crops.length)]), NU = 6, NV = 4, V = [];
+          for (let i = 0; i <= NU; i++) for (let j = 0; j <= NV; j++) { const [x, z] = local(cx, cz, fr, (i / NU - .5) * fw, (j / NV - .5) * fl2); V.push([x, groundY(x, z) + .14, z]); }
+          const at = (i, j) => V[i * (NV + 1) + j], tri = (...ps) => { for (const q of ps) { fieldPos.push(...q); const sh = .93 + (Math.sin(q[0] * .7) * .5 + .5) * .1; fieldCol.push(c.r * sh, c.g * sh, c.b * sh); } };
+          for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) { tri(at(i, j), at(i, j + 1), at(i + 1, j)); tri(at(i + 1, j), at(i, j + 1), at(i + 1, j + 1)); } } }
+      if (!ham) for (const st of s.streets) { const P = st.pts; for (let i = 2, side = 1; i < P.length - 1; i += 6, side = -side) {   // a lamp every ~30 m, alternating sides
+        const dx = P[i + 1][0] - P[i - 1][0], dz = P[i + 1][1] - P[i - 1][1], ma = Math.atan2(dz, dx), px = -Math.sin(ma), pz = Math.cos(ma), off = st.w / 2 + .9;
+        const lx = P[i][0] + px * side * off, lz = P[i][1] + pz * side * off; if (houses.some(h => Math.hypot(h.x - lx, h.z - lz) < h.r)) continue;
+        const ly = groundY(lx, lz); mtx(lampPoles, lx, ly, lz, 0, 1, 6.2, 1); const hx = lx - px * side * .7, hz = lz - pz * side * .7;
+        mtx(lampHeads, hx, ly + 6.05, hz, -ma, .7, .16, .32); lampPts.push(hx, ly + 5.9, hz); } }
       // church (town: bigger; hamlet: a small chapel): nave + tower + spire
       const cy = groundY(C.x, C.z), cr = -axis + Math.PI / 2, g = new THREE.Group(); g.position.set(C.x, 0, C.z); g.rotation.y = cr; siteGroup.add(g);
       const white = M(0xe9e4d6, .9), roofM = M(0x6e3a2c, .85), k = town ? 1.45 : ham ? .55 : 1;
@@ -1124,11 +1214,33 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
         put(B(len, 2, .25), M(0x8e9396, .6, .5), fx, 0, fz, rot, .25, g);                                                   // perimeter fence
     }
   }
-  const wallMats = [M(0xe8e2d4, .92), M(0xd6c39b, .92)], roofMats = [M(0x8c3a2b, .85), M(0x5b4636, .85), M(0x55595e, .7, .2)];
+  const roofMats = [M(0x8c3a2b, .85), M(0x5b4636, .85), M(0x55595e, .7, .2)];
   const inst = (geo, material, list, heat) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, material, list.length); list.forEach((m, i) => im.setMatrixAt(i, m)); scene.add(im); th(im, heat); };
-  walls.forEach((l, i) => inst(wallGeo, wallMats[i], l, .44)); roofs.forEach((l, i) => inst(roofGeo, roofMats[i], l, .38));
+  roofs.forEach((l, i) => inst(roofGeo, roofMats[i], l, .38));
+  { const im = new THREE.InstancedMesh(wallGeo, facadeMaterial(), wallList.length), info = new Float32Array(wallList.length * 3), c = new THREE.Color();   // walls with façades
+    const tint = new Float32Array(wallList.length * 3);   // wall tint as its own attribute (instanceColor would also tint the thermal view)
+    wallList.forEach((w, i) => { im.setMatrixAt(i, w.m); c.set(w.c); tint.set([c.r, c.g, c.b], i * 3); info.set(w.info, i * 3); });
+    wallGeo.setAttribute('aInfo', new THREE.InstancedBufferAttribute(info, 3)); wallGeo.setAttribute('aTint', new THREE.InstancedBufferAttribute(tint, 3)); scene.add(im); th(im, .44); }
+  const unitB = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0), wood = M(0x6b4a2f, .9);
+  inst(unitB, M(0x6e6863, .9), chims, .5); inst(unitB, wood, balcs, .36); inst(unitB, wood, rails, .34); inst(unitB, M(0x3d6a33, 1), hedges, .3);
+  inst(new THREE.CylinderGeometry(.18, .26, 1, 6).translate(0, .5, 0), M(0x5a4532, .95), trunks, .3); inst(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({color: 0x4f7a3a, roughness: .95, flatShading: true}), crowns, .33);
+  inst(new THREE.CylinderGeometry(.07, .1, 1, 6).translate(0, .5, 0), M(0x3b4045, .5, .6), lampPoles, .28); inst(new THREE.BoxGeometry(1, 1, 1), M(0xfff2cc, .4), lampHeads, .55);
+  if (fieldPos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(fieldPos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(fieldCol, 3)); geo.computeVertexNormals();
+    const fm = new THREE.MeshStandardMaterial({vertexColors: true, roughness: 1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1}); const mesh = new THREE.Mesh(geo, fm); scene.add(mesh); th(mesh, .3); }
+
   const roadMats = {road: M(0x4c4f52, .92), street: M(0x585a5b, .92), track: M(0x8d8572, .97)};
   for (const R of ROADS) if (!R.noMesh) siteGroup.add(ribbon(R.pts.map(([x, z], i) => [x, R.ys ? R.ys[i] : groundY(x, z) + .2, z]), R.w, roadMats[R.kind], R.kind === 'track' ? .3 : .34));
+  // Road markings (on request): white edge lines and a dashed centre line (3 m dash / 6 m gap) on the regional roads,
+  // laid 3 cm above the road surface with a stronger polygon offset. One merged mesh.
+  { const pos = [], strip = (R, off, hw, dash) => { const P = R.pts;
+      for (let i = 0; i < P.length - 1; i++) { if (dash && (i % 3) !== 0) continue;
+        const [x0, z0] = P[i], [x1, z1] = P[i + 1], ang = Math.atan2(z1 - z0, x1 - x0), nx = -Math.sin(ang), nz = Math.cos(ang), y0 = R.ys[i] + .04, y1 = R.ys[i + 1] + .04;
+        const e1 = dash ? .6 : 1, xe = x0 + (x1 - x0) * e1, ze = z0 + (z1 - z0) * e1, ye = y0 + (y1 - y0) * e1;
+        const a = [x0 + nx * (off - hw), y0, z0 + nz * (off - hw)], b = [x0 + nx * (off + hw), y0, z0 + nz * (off + hw)], c2 = [xe + nx * (off + hw), ye, ze + nz * (off + hw)], d2 = [xe + nx * (off - hw), ye, ze + nz * (off - hw)];
+        pos.push(...a, ...d2, ...b, ...b, ...d2, ...c2); } };
+    for (const R of ROADS) if (R.kind === 'road' && !R.noMesh && R.ys) { strip(R, R.w / 2 - .35, .07, false); strip(R, -(R.w / 2 - .35), .07, false); strip(R, 0, .07, true); }
+    if (pos.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color: 0xeeeeea, roughness: .6, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4})); siteGroup.add(m); th(m, .36); } }
   // Embankments: where a road runs up to 4 m above the ground (its profile is smoother than the terrain), earth side
   // slopes run from the road edges down to the ground (1 : 1.6). One merged mesh for every road on the map.
   { const pos = [];
@@ -1541,6 +1653,8 @@ const PLANE_SIZES    = [48, 37, 26];                // gameplay identification s
 const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
   const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.2, 'rgba(255,255,255,.8)'); r.addColorStop(1, 'rgba(255,255,255,0)');
   g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+if (LAMP_PTS.length) { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(LAMP_PTS, 3));
+  lampGlow = new THREE.Points(geo, new THREE.PointsMaterial({map: glowTex, color: 0xffd9a0, size: 9, sizeAttenuation: true, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending})); scene.add(lampGlow); }
 const LIGHT_LAYOUT = [ // [wingtip x, wingtip y, wingtip z, tail y, tail z, body top y, body bottom y] in metres per airliner type
   [29.85, 1.2, 14.1, 2.3, 31.5, 2.95, -3.15],    // B787-9 type: raked wingtips, tail cone, top / belly beacons
   [17.35, .35, 5.3, 1.45, 18.9, 2.0, -2.15],     // A320 type: at the sharklet roots
@@ -3856,6 +3970,7 @@ function updateEnvironment(rdt) {
   scene.fog.near = lerp(450, 120, ws); scene.fog.far = lerp(2800, 1100, ws);
   hemi.intensity = lerp(.42, 2.0, daylight) * (1 - ws * .35); sun.intensity = lerp(.18, 3.0, daylight) * (1 - ws * .5); fill.intensity = lerp(.18, .7, daylight);
   renderer.toneMappingExposure = lerp(.78, 1.05, daylight);
+  { const nt = smoothstep(.55, .15, daylight); facadeU.uNight.value = nt; if (lampGlow) { lampGlow.material.opacity = nt * .9; lampGlow.visible = nt > .02 && !thermalOn; } }   // lit windows + street lamps at night
   cloudMat.opacity = .28 + ws * .5; cloudMat.color.setRGB(1, 1, 1).lerp(tmpC2.set(0x2a3342), 1 - daylight);
   for (const c of cloudGroup.children) { c.position.x += 6 * edt; if (c.position.x > ARENA + 1500) c.position.x -= 2 * (ARENA + 1500); }
   scene.background.copy(skyU.uHorizon.value); scene.fog.color.copy(skyU.uHorizon.value);
