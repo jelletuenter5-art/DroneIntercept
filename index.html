@@ -566,8 +566,9 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
   const settle = (size, names, list, sep) => { let n = 0; for (const p of list) { if (n >= names.length) break; if (!far(p, sep)) continue;
     SITES.push({type: 'village', size, name: names[n++], x: p.x, z: p.z}); } };
   const wide = p => { let lo = 1e9, hi = -1e9; for (let k = 0; k < 12; k++) for (const r of [150, 300, 420]) { const a = k / 12 * TAU, y = H(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r); lo = Math.min(lo, y); hi = Math.max(hi, y); } return hi - lo; };
+  const wetShare = p => { let w = 0, n = 0; for (let k = 0; k < 16; k++) for (const r of [80, 160, 260, 360, 460]) { n++; if (H(p.x + Math.cos(k / 16 * TAU) * r, p.z + Math.sin(k / 16 * TAU) * r) < WATER_Y + 1.5) w++; } return w / n; };
   settle('town', ['Talhausen'], cells.filter(p => p.home > 2500 && p.home < 5000 && p.h > WATER_Y + 5 && p.h < 70 && p.slope < 5)
-    .map(p => Object.assign(p, {wd: wide(p)})).sort((a, b) => a.wd - b.wd), 2600);
+    .map(p => Object.assign(p, {wd: wide(p) + wetShare(p) * 400})).sort((a, b) => a.wd - b.wd), 2600);   // dry, wide, flat ground (no lakes through the town)
   settle('village', ['Bergtal', 'Altwil', 'Seeboden'], cells.filter(p => p.home > 1000 && p.h > WATER_Y + 5 && p.h < 80 && p.slope < 7 && p.ring - p.h > 8)
     .sort((a, b) => ((b.ring - b.h) - b.slope * 3) - ((a.ring - a.h) - a.slope * 3)), 2500);
   settle('hamlet', ['Kalchhof', 'Hinterried', 'Moosweid'], cells.filter(p => p.home > 900 && p.h > WATER_Y + 5 && p.h < 95 && p.slope < 9)
@@ -763,7 +764,8 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
   // that isn't its own place's streets — so a new road ends on the network as a T-junction instead of running beside
   // an existing road. Water may be crossed (a bridge), but costs 7× (short crossings only).
   const net = new Int16Array(N * N);
-  function route(A, B, own = 0) {
+  function route(A, B, own = 0, opt = {}) {
+    const waterCost = opt.water || 7, netCost = opt.net || 1;
     const [si, sj] = cell(A[0], A[1]), [ti, tj] = cell(B[0], B[1]), S = sj * N + si, T0 = tj * N + ti, gs = new Float32Array(N * N).fill(1e30), from = new Int32Array(N * N).fill(-1), heap = [];
     const push = (k, f) => { heap.push([f, k]); let c = heap.length - 1; while (c) { const pa = (c - 1) >> 1; if (heap[pa][0] <= heap[c][0]) break; [heap[pa], heap[c]] = [heap[c], heap[pa]]; c = pa; } };
     const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let c = 0; for (;;) { const l = 2 * c + 1, r = l + 1; let m = c;
@@ -772,7 +774,7 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
     let T = T0; while (heap.length) { const [, k] = pop(); if (k === T0 || (own && net[k] && net[k] !== own && k !== S)) { T = k; break; } const i = k % N, j = (k - i) / N;
       for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { if (!di && !dj) continue; const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= N || b >= N) continue;
         const kk = b * N + a, d = G * Math.hypot(di, dj), gr = wet[kk] || wet[k] ? 0 : Math.abs(hh[kk] - hh[k]) / d;
-        const g2 = gs[k] + d * (wet[kk] ? 7 : 1 + 30 * gr * gr + Math.max(0, gr - .14) * 60); if (g2 < gs[kk]) { gs[kk] = g2; from[kk] = k; push(kk, g2 + G * Math.hypot(a - ti, b - tj)); } } }
+        const g2 = gs[k] + d * (wet[kk] ? waterCost : 1 + 30 * gr * gr + Math.max(0, gr - .14) * 60) * (net[kk] && !own ? netCost : 1); if (g2 < gs[kk]) { gs[kk] = g2; from[kk] = k; push(kk, g2 + G * Math.hypot(a - ti, b - tj)); } } }
     if (from[T] < 0) return null;
     const pts = [T === T0 ? B : [o + (T % N + .5) * G, o + (Math.floor(T / N) + .5) * G]]; for (let k = from[T]; k !== S && k >= 0; k = from[k]) { const i = k % N; pts.push([o + (i + .5) * G, o + ((k - i) / N + .5) * G]); } pts.push(A); pts.reverse();
     let sm = pts; for (let it = 0; it < 3; it++) { const q = [sm[0]]; for (let i = 0; i < sm.length - 1; i++) { const [x0, z0] = sm[i], [x1, z1] = sm[i + 1];
@@ -805,6 +807,24 @@ const nearRoad = (x, z) => { const i = Math.floor((x + ARENA) / 10), j = Math.fl
     if (ch.s && ch.s.type === 'dam') {   // the crest road joins both banks: part of the network (drawn on the map; the dam model has its own deck)
       const d = ch.s, wx = Math.cos(d.ang), wz = Math.sin(d.ang), e = sg => { let l = 10; while (l < 260 && terrainHeight(d.x + wx * sg * l, d.z + wz * sg * l) < d.crest + 1) l += 4; return [d.x + wx * sg * (l + 25), d.z + wz * sg * (l + 25)]; };
       const crest = {pts: [e(-1), e(1)], w: 5.5, kind: 'road', owner: ch.id, noMesh: true}; ROADS.push(crest); mark(crest.pts, ch.id); }
+  }
+  // Extra roads (on request): places get more than one way in — realistic, not optimal. One crosses a lake narrows
+  // on a bridge (water is cheap for it); two more come into the market town from other places. They run all the way
+  // to the other place's street end and avoid running along existing roads (net cells cost 3×).
+  { const places = nodes.filter(n => n.s && n.s.type === 'village'), ends = nodes.filter(n => n.s && (n.s.type === 'village' || n.s.type === 'base')), done = new Set(edges.map(([a, b]) => Math.min(a.id, b.id) + '-' + Math.max(a.id, b.id)));
+    const key = (a, b) => Math.min(a.id, b.id) + '-' + Math.max(a.id, b.id);
+    const add = (a, b, opt) => { const r = route(port(a, b), port(b, a), 0, opt); if (!r) return null; const sn = snap(r[r.length - 1], 0); if (sn) r.push(sn);
+      const road = {pts: r, w: 5.5, kind: 'road', owner: 700 + ROADS.length}; ROADS.push(road); mark(r, road.owner); done.add(key(a, b)); return r; };
+    // the bridge: a pair 1.5-4.5 km apart whose straight line crosses some water (8-40 %, longest stretch ≤ 450 m)
+    const cands = [];
+    for (const a of ends) for (const b of ends) { if (a.id >= b.id || done.has(key(a, b))) continue; const L = Math.hypot(a.x - b.x, a.z - b.z); if (L < 1000 || L > 5000) continue;
+      let w = 0, run = 0, maxRun = 0; for (let d = 0; d <= L; d += 20) { const x = a.x + (b.x - a.x) * d / L, z = a.z + (b.z - a.z) * d / L; if (isWater(x, z)) { w++; run += 20; maxRun = Math.max(maxRun, run); } else run = 0; }
+      const f = w / (L / 20 + 1); if (f > .02 && maxRun >= 40 && maxRun <= 600) cands.push({a, b, sc: L / 1000 + maxRun / 150 - (a.s.size === 'town' || b.s.size === 'town' ? 2 : 0)}); }
+    cands.sort((p, q) => p.sc - q.sc);
+    for (const c of cands) { const r = add(c.a, c.b, {water: 1.3, net: 3}); if (r && r.some(([x, z]) => isWater(x, z))) break; if (r) { ROADS.pop(); } }
+    // two more roads into the town, from the nearest places it isn't linked with yet
+    const town = places.find(n => n.s.size === 'town');
+    if (town) for (const b of places.filter(n => n !== town && !done.has(key(town, n))).sort((p, q) => Math.hypot(p.x - town.x, p.z - town.z) - Math.hypot(q.x - town.x, q.z - town.z)).slice(0, 2)) add(town, b, {water: 7, net: 3});
   }
   for (const s of SITES.filter(q => q.type === 'radar')) {   // short gravel track from the station to the nearest road
     let bp = null, bd = 1e18; for (const R of ROADS) if (R.kind !== 'track') for (const p of R.pts) { const d = Math.hypot(p[0] - s.x, p[1] - s.z); if (d < bd) { bd = d; bp = p; } }
@@ -1027,7 +1047,9 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
         tgt(s, H0.x, H0.z, cr, 0, hy + 7, 0, 11, 9, 15); tgt(s, H0.x, H0.z, cr, 0, hy + 22, 0, 2.5, 6, 2.5);
         s.aim = {x: H0.x, y: hy + 7, z: H0.z, what: 'the town hall'};
         // the square itself: a paved plaza between the two
-        const sq = put(new THREE.BoxGeometry(80, .3, 60).translate(0, .15, 0), M(0x8d8a82, .95), s.x, groundY(s.x, s.z) - .05, s.z, cr, .32); sq.material.polygonOffset = true; sq.material.polygonOffsetFactor = -1; }
+        { const geo = new THREE.PlaneGeometry(80, 60, 16, 12).rotateX(-Math.PI / 2), pa = geo.attributes.position, c = Math.cos(cr), sn = Math.sin(cr);   // paved square draped on the ground
+          for (let i = 0; i < pa.count; i++) { const lx = pa.getX(i), lz = pa.getZ(i), wx = s.x + lx * c + lz * sn, wz = s.z - lx * sn + lz * c; pa.setXYZ(i, wx, groundY(wx, wz) + .1, wz); }
+          geo.computeVertexNormals(); const sqM = M(0x8d8a82, .95); sqM.polygonOffset = true; sqM.polygonOffsetFactor = -2; sqM.polygonOffsetUnits = -2; put(geo, sqM, 0, 0, 0, 0, .32); } }
     } else if (s.type === 'dam') {
       // gravity dam across the gorge: vertical upstream face (lake side = local +z), sloping downstream face, crest road
       // with parapets, gate houses, a spillway chute down the middle, intake tower in the lake, powerhouse at the toe,
@@ -1056,7 +1078,7 @@ function ribbon(pts, width, material, heat = .3, lift = .18) {
       // outflow stream down the gorge floor (a thin sloped ribbon)
       { const pts = []; for (let d = R.sDam + toe; d <= R.sEnd - 40; d += 12) { const x = R.cx + R.ux * d, z = R.cz + R.uz * d; pts.push([x, groundY(x, z) + .25, z]); }
         if (pts.length > 1) siteGroup.add(ribbon(pts, 5, M(0x2f6b86, .15, .35), .15)); }
-    } else if (s.type === 'radar') {    } else if (s.type === 'radar') {
+    } else if (s.type === 'radar') {
       const y = groundY(s.x, s.z), g = new THREE.Group(); g.position.set(s.x, y, s.z); g.rotation.y = rnd() * TAU; siteGroup.add(g);
       const grey = M(0x8a9089, .8, .2), white = M(0xf1f1ee, .45, .05), gr = g.rotation.y;
       tgt(s, s.x, s.z, gr, 0, y + 6, -6, 6.6, 9, 6.6); tgt(s, s.x, s.z, gr, -10, y + 1.5, 4, 8, 3, 4.5); tgt(s, s.x, s.z, gr, 8, y + 1, 8, 4.5, 2.5, 3.5);
@@ -1955,7 +1977,7 @@ function drawMap() {
   }
 
   // 7b. Compass rose (north = map up) with the drone's heading on the ring
-  { const R = 38, [bx, by] = worldToMap(ARENA, -ARENA), cx = bx - R - 26, cy = by + R + 28, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
+  { const R = 38, [bx, by] = worldToMap(-ARENA, ARENA), cx = bx + R + 26, cy = by - R - 44, hdg = ((-state.rot.y * 180 / Math.PI) % 360 + 360) % 360;
     ctx.save(); ctx.translate(cx, cy);
     ctx.fillStyle = 'rgba(8,18,28,.72)'; ctx.strokeStyle = 'rgba(122,255,202,.35)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill(); ctx.stroke();
