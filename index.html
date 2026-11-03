@@ -5011,12 +5011,15 @@ function updateMissionLaunchCard() {
   $('launchHint').textContent = 'Defend ' + m.site.name + ' · raid ' + m.downed + '/' + m.total + ' down · ' + m.raid.filter(s => !s.raidDone).length + ' inbound. Launch when ready.';
   $('launchBtn').disabled = left <= 0 || !!m.result;
 }
+const distBonus = d => d > STRIKE_R ? 100 + (d - STRIKE_R) * .25 : 0;   // points for one scout stopped d m from the site
 function missionScore() {
   const m = game.m, win = !!(m.result && m.result.win), downs = m.raid.filter(s => s.downDist !== undefined), left = m.dronesTotal - m.dronesUsed;
   const wrong = ambientActors.filter(a => a.userMark === 'threat').length, inc = state.civilianIncidents || 0;
   const far = downs.length === m.total && downs.every(s => s.downDist > FAR_R);
   const rows = [['Scouts stopped', downs.length + ' / ' + m.total, downs.length * 500],
-    ['Distance bonus (stopped far from the site)', downs.length ? 'closest ' + (Math.min(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + clamp((s.downDist - STRIKE_R) / (FAR_R - STRIKE_R) * 500, 0, 500), 0))],
+    // distance bonus per scout (on request — it was capped at 500 from 1 km on, so every good run scored the same):
+    // a base of 100 once it is stopped beyond STRIKE_R (300 m), + 0.25 per metre further out, no cap
+    ['Distance bonus (100 per scout + 0.25 per m beyond 300 m)', downs.length ? 'avg ' + (downs.reduce((a, s) => a + s.downDist, 0) / downs.length / 1000).toFixed(2) + ' km · farthest ' + (Math.max(...downs.map(s => s.downDist)) / 1000).toFixed(2) + ' km' : '—', Math.round(downs.reduce((a, s) => a + distBonus(s.downDist), 0))],
     ['Mission completed', win ? 'yes' : 'no', win ? 1000 : 0], ['Drones left', win ? left + ' of ' + m.dronesTotal : '—', win ? left * 250 : 0],
     ['Drones lost (crash / battery)', String(m.lost), -m.lost * 200], ['Civilian incidents', String(inc), -inc * 750], ['Civil traffic flagged as threat', String(wrong), -wrong * 150]];
   const base = rows.reduce((a, r) => a + r[2], 0), score = Math.max(0, Math.round(base * m.D.mult));
