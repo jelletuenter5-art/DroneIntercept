@@ -3547,13 +3547,41 @@ function showDebrief(reason) {
   drawDebriefMap(m);
 }
 function closeDebrief() { $('debrief').classList.remove('show'); }
+// Shared background for the result/debrief maps (on request — the sandbox debrief map was the stretched low-res whole
+// map with no roads or places): sharp terrain computed for the framed area, roads, place names and site symbols.
+const _mbCache = {};
+function drawMapBase(x, W, bx, bz, span, skip) {
+  const N = Math.min(W, 360), key = [bx, bz, span, N].map(v => Math.round(v)).join();
+  let cv = _mbCache[key];
+  if (!cv) { cv = document.createElement('canvas'); cv.width = cv.height = N; const cx = cv.getContext('2d'), img = cx.createImageData(N, N);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) { const [r, g, b] = mapColour(bx + (i + .5) / N * span, bz + (j + .5) / N * span), k = (j * N + i) * 4;
+      img.data[k] = r; img.data[k + 1] = g; img.data[k + 2] = b; img.data[k + 3] = 255; }
+    cx.putImageData(img, 0, 0); for (const k in _mbCache) delete _mbCache[k]; _mbCache[key] = cv; }
+  x.imageSmoothingQuality = 'high'; x.drawImage(cv, 0, 0, W, W);
+  x.fillStyle = 'rgba(4,12,20,.28)'; x.fillRect(0, 0, W, W);
+  const k = W / span, P = (wx, wz) => [(wx - bx) * k, (wz - bz) * k], fs = Math.max(8, Math.round(W / 40));
+  x.lineCap = x.lineJoin = 'round';
+  for (const R of ROADS) { x.beginPath(); R.pts.forEach(([px, pz], i) => { const [u, v] = P(px, pz); i ? x.lineTo(u, v) : x.moveTo(u, v); });
+    x.strokeStyle = R.kind === 'track' ? 'rgba(214,200,160,.45)' : 'rgba(226,214,176,.55)'; x.lineWidth = Math.max(1, (R.kind === 'road' ? 1.6 : R.kind === 'street' ? 1.2 : .9) * W / 420);
+    x.setLineDash(R.kind === 'track' ? [3, 3] : []); x.stroke(); }
+  x.setLineDash([]);
+  for (const S of SITES) { if (S === skip) continue; const [u, v] = P(S.x, S.z); if (u < -40 || v < -40 || u > W + 40 || v > W + 40) continue;
+    x.fillStyle = x.strokeStyle = 'rgba(205,220,232,.8)'; x.lineWidth = 1.5;
+    if (S.type === 'dam') { x.beginPath(); x.moveTo(u - Math.cos(S.ang) * fs * .7, v - Math.sin(S.ang) * fs * .7); x.lineTo(u + Math.cos(S.ang) * fs * .7, v + Math.sin(S.ang) * fs * .7); x.lineWidth = 3.5; x.stroke(); }
+    else if (S.type === 'radar') { x.beginPath(); x.arc(u, v, fs * .4, Math.PI, TAU); x.fill(); x.fillRect(u - fs * .45, v, fs * .9, 2); }
+    else if (S.type !== 'village') { x.strokeRect(u - fs * .55, v - fs * .45, fs * 1.1, fs * .9); }
+    const f = S.size === 'town' ? fs * 1.15 : S.size === 'hamlet' ? fs * .75 : fs * .9;
+    x.font = (S.size === 'town' ? 'bold ' : '') + Math.round(f) + 'px ui-monospace,monospace'; x.textAlign = 'center'; x.fillText(S.name.toUpperCase(), u, S.type === 'village' ? v + f * .35 : v + fs * 1.1 + f * .6); }
+  x.textAlign = 'left';
+  return P;
+}
 function drawDebriefMap(m) {
   const cv = $('dbMap'), x = cv.getContext('2d'), W = cv.width;
   if (!mapTerrainCache) buildTerrainCache();
-  const [a0] = worldToMap(-ARENA, -ARENA), [a1] = worldToMap(ARENA, ARENA);
-  x.drawImage(mapTerrainCache, a0, a0, a1 - a0, a1 - a0, 0, 0, W, W);
-  x.fillStyle = 'rgba(4,12,20,.35)'; x.fillRect(0, 0, W, W);
-  const P = (wx, wz) => [(wx / (2 * ARENA) + .5) * W, (wz / (2 * ARENA) + .5) * W];
+  // framed on the flight (path, home, end), at least 3 km across
+  const pts = [...m.path, [PAD.x, PAD.z], m.end]; let x0 = Math.min(...pts.map(p => p[0])), x1 = Math.max(...pts.map(p => p[0])), z0 = Math.min(...pts.map(p => p[1])), z1 = Math.max(...pts.map(p => p[1]));
+  const span = clamp(Math.max(x1 - x0, z1 - z0) * 1.2 + 400, 3000, 2 * ARENA), ox = clamp((x0 + x1) / 2 - span / 2, -ARENA, ARENA - span), oz = clamp((z0 + z1) / 2 - span / 2, -ARENA, ARENA - span);
+  const P = drawMapBase(x, W, ox, oz, span);
   // flight path (ends exactly where the sortie ended)
   x.lineWidth = 2.2; x.strokeStyle = '#5ee0ff'; x.shadowColor = '#5ee0ff'; x.shadowBlur = 6; x.lineJoin = 'round'; x.beginPath();
   m.path.forEach(([px, pz], i) => { const [u, v] = P(px, pz); i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.stroke(); x.shadowBlur = 0;
@@ -5130,10 +5158,7 @@ function drawMissionMap(m, cv) {
   const span = clamp(Math.max(x1 - x0, z1 - z0, 2 * FAR_R) * 1.18 + 400, 3200, 2 * ARENA), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
   const bx = clamp(cx - span / 2, -ARENA, ARENA - span), bz = clamp(cz - span / 2, -ARENA, ARENA - span), k = W / span;
   const P = (wx, wz) => [(wx - bx) * k, (wz - bz) * k];
-  { const [a0, b0] = worldToMap(bx, bz), [a1] = worldToMap(bx + span, bz); x.drawImage(mapTerrainCache, a0, b0, a1 - a0, a1 - a0, 0, 0, W, W); }
-  x.fillStyle = 'rgba(4,12,20,.3)'; x.fillRect(0, 0, W, W);
-  x.lineCap = x.lineJoin = 'round';
-  for (const R of ROADS) { x.beginPath(); R.pts.forEach(([px, pz], i) => { const [u, v] = P(px, pz); i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.strokeStyle = 'rgba(226,214,176,.35)'; x.lineWidth = R.kind === 'road' ? 2 : 1.4; x.stroke(); }
+  drawMapBase(x, W, bx, bz, span, S0);
   const fs = Math.round(W / 36);
   // site + 1.5 km ring
   const [sx, sz] = P(S0.x, S0.z);
