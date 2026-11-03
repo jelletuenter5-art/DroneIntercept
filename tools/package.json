@@ -9,6 +9,7 @@
     "landing": "node landing.js",
     "traffic": "node traffic.js",
     "shots": "node shots.js",
+    "bake": "node bake-world.js",
     "test": "node check-syntax.js && node smoke.js && node bench.js --n 15 && node landing.js --per 4"
   },
   "devDependencies": {

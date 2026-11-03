@@ -530,9 +530,13 @@ function unregisterGroup(g) { g.traverse(o => thermalReg.delete(o)); }
 const ARENA = 6000, WORLD = 2 * (ARENA + 1300), SEG = 600, WATER_Y = 1.4, PAD_H = 7;
 const randInside = m => (Math.random() - .5) * 2 * (ARENA - m);   // random coordinate at least m inside the border
 function hash2(ix, iz) { let h = Math.imul(ix, 374761393) ^ Math.imul(iz, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
-function vnoise(x, z) {
+function vnoise(x, z) {   // hash2 inlined (same integer maths, bit-identical results, fewer calls)
   const ix = Math.floor(x), iz = Math.floor(z), fx = x - ix, fz = z - iz, u = fx*fx*(3-2*fx), v = fz*fz*(3-2*fz);
-  const a = hash2(ix, iz), b = hash2(ix+1, iz), c = hash2(ix, iz+1), d = hash2(ix+1, iz+1);
+  const X0 = Math.imul(ix, 374761393), X1 = Math.imul(ix + 1, 374761393), Z0 = Math.imul(iz, 668265263), Z1 = Math.imul(iz + 1, 668265263);
+  let h = X0 ^ Z0; h = Math.imul(h ^ (h >>> 13), 1274126177); const a = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  h = X1 ^ Z0; h = Math.imul(h ^ (h >>> 13), 1274126177); const b = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  h = X0 ^ Z1; h = Math.imul(h ^ (h >>> 13), 1274126177); const c = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  h = X1 ^ Z1; h = Math.imul(h ^ (h >>> 13), 1274126177); const d = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
   return a + (b-a)*u + (c-a)*v + (a-b-c+d)*u*v;
 }
 function fbm(x, z, oct) { let s = 0, a = .5, f = 1, n = 0; for (let i = 0; i < oct; i++) { s += a * vnoise(x*f, z*f); n += a; f *= 2.03; a *= .5; } return s / n; }
@@ -555,7 +559,8 @@ function terrainNatural(x, z) {
 // time with nothing stored: 3 valley villages, 2 dams across lake narrows, 2 ridge radar stations and 1 forward
 // military base (its ground is flattened, like the home pad). Trees and rocks keep clear of them (`nearSite`).
 const SITES = [], FLAT = [], RESERVOIRS = [];
-(function placeSites() {
+const SITE_BAKE = /*BAKE*/{"key":"6ed32e5c","res":[{"cx":3980,"cz":-4180,"ca":0.5000000000000001,"sa":0.8660254037844386,"a":330,"b":200,"L":26.909794087393003,"ux":-0.8660254037844385,"uz":0.5000000000000003,"r":199.99999999999986,"sDam":234.99999999999986,"sEnd":419.9999999999999,"Fd":6.4,"w":13,"Fend":-0.5550651302608074,"reach2":333506.25},{"cx":-2420,"cz":220,"ca":0.5000000000000001,"sa":0.8660254037844386,"a":330,"b":200,"L":29.755613553602473,"ux":0.8660254037844384,"uz":-0.5000000000000007,"r":199.9999999999999,"sDam":234.9999999999999,"sEnd":419.9999999999999,"Fd":6.755613553602473,"w":13,"Fend":-5.589111725045676,"reach2":333506.25}],"flat":[{"x":-4000,"z":1400,"y":24.18132404923454,"r0":300,"r1":520}],"sites":[{"type":"base","name":"FOB Kestrel","x":-4000,"z":1400,"clear":430},{"type":"village","size":"town","name":"Talhausen","x":3080,"z":3920,"clear":600},{"type":"village","size":"village","name":"Bergtal","x":4880,"z":-2080,"clear":320},{"type":"village","size":"village","name":"Altwil","x":3680,"z":-5080,"clear":320},{"type":"village","size":"village","name":"Seeboden","x":-4120,"z":-5080,"clear":320},{"type":"village","size":"hamlet","name":"Kalchhof","x":800,"z":1400,"clear":200},{"type":"village","size":"hamlet","name":"Hinterried","x":200,"z":3320,"clear":200},{"type":"village","size":"hamlet","name":"Moosweid","x":-2080,"z":-2680,"clear":200},{"type":"radar","name":"Hochgrat Radar","x":1760,"z":4400,"clear":100},{"type":"radar","name":"Felsnase Radar","x":-4120,"z":-4360,"clear":100},{"type":"dam","name":"Grauwand Dam","x":3776.484030110657,"z":-4062.5,"ang":-2.0943951023931957,"crest":29.909794087393003,"res":0,"clear":130},{"type":"dam","name":"Klarsee Dam","x":-2216.484030110657,"z":102.4999999999999,"ang":1.047197551196597,"crest":32.75561355360247,"res":1,"clear":130}]}/*/BAKE*/;   // baked site layout — regenerate with: node tools/bake-world.js
+function placeSites() {
   const H = terrainNatural, cells = [], far = (p, d) => SITES.every(s => Math.hypot(s.x - p.x, s.z - p.z) > d);
   for (let x = -(ARENA - 800); x <= ARENA - 800; x += 120) for (let z = -(ARENA - 800); z <= ARENA - 800; z += 120) {
     const h = H(x, z); let ring = 0, rmin = 1e9, rmax = -1e9, slope = 0;
@@ -624,7 +629,20 @@ const SITES = [], FLAT = [], RESERVOIRS = [];
   }
   for (const s of SITES) s.clear = s.size === 'town' ? 600 : s.size === 'hamlet' ? 200 : {village: 320, dam: 130, radar: 100, base: 430}[s.type];   // settlements: room for gardens and fields round them
   const b = SITES.find(s => s.type === 'base'); if (b) FLAT.push({x: b.x, z: b.z, y: Math.max(WATER_Y + 6, H(b.x, b.z)), r0: 300, r1: 520});
-})();
+}
+// ── Faster loading (on request): the site search above samples the terrain tens of millions of times (over half of
+// the start-up script time) and always gives the same answer, so its result is baked into this file (`SITE_BAKE`,
+// written by tools/bake-world.js) together with a fingerprint of the code it depends on. On load the fingerprint is
+// recomputed from that code; if it matches, the baked layout is used (identical map), otherwise — the terrain or the
+// placement code changed — the search runs as before. `window.__siteBake` reports which happened (the tools check it).
+function hashText(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+const SITE_KEY = hashText([placeSites, terrainNatural, fbm, vnoise, hash2, smoothstep, clamp, lerp].map(f => String(f)).join('|') + JSON.stringify(PEAKS) + [ARENA, WATER_Y, PAD_H].join(','));
+{ const B = typeof SITE_BAKE === 'object' && SITE_BAKE && SITE_BAKE.key === SITE_KEY ? SITE_BAKE : null;
+  if (B) { RESERVOIRS.push(...B.res.map(r => ({...r}))); FLAT.push(...B.flat.map(f => ({...f}))); for (const q of B.sites) { const o = {...q}; if (q.res != null) o.res = RESERVOIRS[q.res]; SITES.push(o); } }
+  else placeSites();
+  // snapshot right after placement — later steps add streets, targets etc. to the site objects, which must not be baked
+  const snap = JSON.stringify({key: SITE_KEY, res: RESERVOIRS, flat: FLAT, sites: SITES.map(q => ({...q, res: q.res ? RESERVOIRS.indexOf(q.res) : undefined}))});
+  window.__siteBake = {used: !!B, key: SITE_KEY, data: () => JSON.parse(snap)}; }
 // Height of the *rendered* terrain (the 25 m triangle grid of the terrain mesh) at x,z — in valleys the triangles sit
 // above the exact terrain curve, so things standing on the ground (pads, buildings) use this to not sink in.
 function meshHeight(x, z) {

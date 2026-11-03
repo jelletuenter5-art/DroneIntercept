@@ -25,6 +25,8 @@ const path = require('path'), { args, buildTestPage, openGame, outDir } = requir
     const f = path.join(outDir(), 'smoke.png'); await g.page.screenshot({ path: f, timeout: 180000 }); console.log('screenshot:', f);
   }
   console.log(g.errors.length ? 'CONSOLE ERRORS:\n  ' + g.errors.join('\n  ') : 'no console errors');
+  const baked = await g.page.evaluate(() => !!(window.__siteBake && window.__siteBake.used));   // fast-load bake still matches the code?
+  console.log(baked ? 'site layout: baked (fast load)' : 'WARNING: site layout bake is stale — run: node tools/bake-world.js (the game still works, it just loads slower)');
   const ok = !g.errors.length && r.crashes === 0 && r.stage === 'active';
   console.log(ok ? 'SMOKE OK' : 'SMOKE FAILED'); await g.close(); process.exit(ok ? 0 : 1);
 })();

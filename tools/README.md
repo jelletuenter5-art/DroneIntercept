@@ -30,6 +30,7 @@ test copy doesn't depend on the CDN).
 | `node separation.js` | Mid-air avoidance & collisions: 40 collision-course encounters (every type pair, head-on/crossing/overtake) must be avoided; an unavoidable head-on must explode both; a 95-scout crowd (collisions, stuck circling, NaNs, ms per step); 24 scouts converging on one point, with and without avoidance. `--crowd --minutes --area --band --noavoid` | ~4 min |
 | `node missions.js` | Mission playtest (`--seed n`): an auto-player plays every mission × difficulty (launches, patrols, works the gimbal, pursues identified threats, returns home / goes around) and reports win/loss, stars, score, drones. `--diffs easy --missions dam --verbose` (per-scout detection/identification/pursuit times), `--trace 150-240` (state every 2 s), `--gimbal off`. | ~10 min per difficulty |
 | `node shots.js` | Close-ups of every aircraft model and the drone → `out/models.png` + one PNG per view. | ~1 min |
+| `node bake-world.js` | Bakes the site layout (towns, dams, radars, FOB) into `index.html` (`SITE_BAKE`) so the game skips the slow site search on load. **Run it after changing the terrain or the site placement** — `smoke.js` warns when the bake is stale (the game then still works, it just computes the layout itself and loads slower). `--check` only reports. | ~20 s |
 | `npm test` | Quick set: syntax + smoke + 15-chase benchmark + 12 landings. | ~5 min |
 
 Options:
