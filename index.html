@@ -2580,9 +2580,14 @@ function scoutBand(s) {
   return s.band;
 }
 function chooseScoutWaypoint(s) {
-  if (s.raid) {   // mission raider: next leg of its attack run (dog-leg → initial point → the site)
+  if (s.raid) {   // mission raider: next leg of its attack run (dog-leg → loiter round the site → initial point → the site)
+    const R = s.raid, nextFinal = R.leg + 1 >= R.legs.length - 1;
+    if (nextFinal && R.ringAt !== undefined && !R.atIp) {   // before the run: loiter until breaking off makes the ring on time
+      const ip = raiderBreakOff(s), p = ip || raiderCarrot(s);
+      s.waypoint = new THREE.Vector3(p.x, terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = ip ? raidWpTime(s, p) : 1e9; return;
+    }
     s.raid.leg = Math.min(s.raid.leg + 1, s.raid.legs.length - 1); const p = s.raid.legs[s.raid.leg], last = s.raid.leg === s.raid.legs.length - 1;
-    s.waypoint = new THREE.Vector3(p.x, last && s.raid.aim ? s.raid.aim.y : terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = 1e9; return;
+    s.waypoint = new THREE.Vector3(p.x, last && s.raid.aim ? s.raid.aim.y : terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = last ? 1e9 : raidWpTime(s, p); return;
   }
   const from = s.pos, [lo, hi] = scoutBand(s);
   for (let tries = 0; tries < 28; tries++) {
@@ -2595,24 +2600,40 @@ function chooseScoutWaypoint(s) {
 }
 function stepScout(s, h) {
   s.prev.copy(s.pos); s.waypointTimer -= h; s.routeTimer -= h;
-  if (!s.waypoint || s.waypointTimer <= 0 || s.pos.distanceToSquared(s.waypoint) < 110 * 110) chooseScoutWaypoint(s);
+  // (raiders: reached = within 150 m horizontally — in 3D a heavy holding its height over the hills passed 100+ m above
+  //  its route point and orbited it, drifting into the ★★★ ring)
+  if (!s.waypoint || s.waypointTimer <= 0 || (s.raid ? (s.pos.x - s.waypoint.x) ** 2 + (s.pos.z - s.waypoint.z) ** 2 < 150 * 150 : s.pos.distanceToSquared(s.waypoint) < 110 * 110)) chooseScoutWaypoint(s);
   // Look ahead ≥ 20 s (≈ 2.5 turn radii — ~40 s for the 92 m/s jet, whose 30°-bank turn circle is ~1.5 km): if that
   // point is near the border, head back towards the middle now.
   const look = Math.max(20, .45 * (s.spd || s.speed)), lx = s.pos.x + s.vel.x * look, lz = s.pos.z + s.vel.z * look;
   const out = Math.max(Math.abs(s.pos.x), Math.abs(s.pos.z));
   if (out > ARENA - 250 && !s.returning) {                 // crossed: random point well inside, turn back briskly
-    s.returning = true; s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 60;
+    s.returning = true; s.waypointTimer = 60;
+    if (s.raid) { const S0 = game.m.site, P = siteRingPt(S0, Math.atan2(s.pos.z - S0.z, s.pos.x - S0.x), 2400, s.raid.lim2 || ARENA - 900); s.waypoint.set(P.x, s.waypoint.y, P.z); }   // raider: back in, but not straight at the site…
+    else s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45));
   } else if (!s.returning && !s.raid && Math.max(Math.abs(lx), Math.abs(lz)) > ARENA - 300 && Math.max(Math.abs(s.waypoint.x), Math.abs(s.waypoint.z)) > ARENA * .6) {
     s.waypoint.set(randInside(ARENA * .45), s.waypoint.y, randInside(ARENA * .45)); s.waypointTimer = 40;   // about to reach it → head back in
   }
-  if (s.returning && out < ARENA - 600) s.returning = false;
-  else if (s.hdg !== undefined) {
+  if (s.returning && out < ARENA - 600) { s.returning = false;   // …then on along its route (not to a random point)
+    const R = s.raid; if (R) { if (R.atIp && R.leg < R.legs.length - 1) s.waypoint.set(R.ipP.x, s.waypoint.y, R.ipP.z); else { if (!R.loops && R.leg < R.legs.length - 1) R.leg--; chooseScoutWaypoint(s); } } }
+  else if (s.raid && s.hdg !== undefined) {
+    // Raider: skip a route point only if it really lies inside its turn circle (a heavy's or jet's 1.6-radius rule
+    // dropped loiter legs and the initial point 2+ km away → it arrived early)
+    const r = s.spd * s.spd / (9.81 * Math.tan(.52)), wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z;
+    const sd = Math.sign(wrapAngle(Math.atan2(-wx, -wz) - s.hdg)) || 1, cx = s.pos.x + Math.cos(s.hdg) * -sd * r, cz = s.pos.z - Math.sin(s.hdg) * -sd * r;
+    if (!(s.raid.loops && !s.raid.atIp) && Math.hypot(s.waypoint.x - cx, s.waypoint.z - cz) < r * 1.1 && s.raid.leg < s.raid.legs.length - 1) chooseScoutWaypoint(s);
+  } else if (s.hdg !== undefined) {
     // Waypoint inside our turn circle and off to the side → can't reach it without orbiting: count it as passed.
     const r = s.spd * s.spd / (9.81 * Math.tan(.52)), wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z;
     if (Math.hypot(wx, wz) < r * 1.6 && Math.abs(wrapAngle(Math.atan2(-wx, -wz) - s.hdg)) > 1.2) chooseScoutWaypoint(s);
   }
   if (s.routeTimer <= 0) {
-    s.routeTimer = .3; const wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z, look = Math.min(1, 900 / Math.max(1, Math.hypot(wx, wz)));
+    s.routeTimer = .3;
+    { const R = s.raid;   // start circling early enough to turn onto the circle outside it (not on reaching a leg already inside)
+      if (R && !R.loops && !R.atIp && !s.returning && R.ringAt !== undefined && R.leg < R.legs.length - 1) { const S0 = game.m.site, rT = s.spd * s.spd / (9.81 * Math.tan(.52));
+        if (Math.hypot(s.pos.x - S0.x, s.pos.z - S0.z) < R.loitR + .6 * rT) { R.leg = Math.max(R.leg, R.legs.length - 2); chooseScoutWaypoint(s); } } }
+    if (s.raid && s.raid.loops && !s.raid.atIp && !s.returning) { const ip = raiderBreakOff(s), p = ip || raiderCarrot(s); s.waypoint.set(p.x, terrainHeight(p.x, p.z) + (s.band[0] + s.band[1]) / 2, p.z); s.waypointTimer = ip ? raidWpTime(s, p) : 1e9; }   // loitering: break off on time
+    const wx = s.waypoint.x - s.pos.x, wz = s.waypoint.z - s.pos.z, look = Math.min(1, 900 / Math.max(1, Math.hypot(wx, wz)));
     let peak = -5; for (let k = 0; k <= 12; k++) { const t = k / 12 * look; peak = Math.max(peak, terrainHeight(s.pos.x + wx*t, s.pos.z + wz*t)); }
     const [lo] = scoutBand(s);   // hold the band's height above the terrain along the route (low flyers hug it)
     s.routeY = Math.min(900, Math.max(s.waypoint.y, peak + Math.max(40, lo * .8), terrainHeight(s.waypoint.x, s.waypoint.z) + lo));
@@ -2631,7 +2652,12 @@ function stepScout(s, h) {
   // Max 30° bank (standard for small fixed-wing UAVs), roll rate ~20°/s, climb/descent ≤ ~8°.
   if (s.hdg === undefined) s.hdg = Math.atan2(-s.vel.x, -s.vel.z);
   s.spd = s.spd === undefined ? ms : s.spd + clamp(ms - s.spd, -2 * h, 2 * h);
-  const maxBank = s.returning ? .78 : s.terminal ? .7 : .52, hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
+  const uturn = s.raid && s.raid.uturnUntil > state.time;   // raider reversing its loiter: inwards, up to 45°
+  const maxBank = s.returning || uturn ? .78 : s.terminal ? .7 : .52; let hdgErr = wrapAngle(crabHeading(Math.atan2(-hx, -hz), s.spd) - s.hdg);
+  if (uturn && Math.abs(hdgErr) > 1.2 && s.raid.uturnSide) hdgErr = s.raid.uturnSide * Math.abs(hdgErr);
+  // (nearly) straight behind: keep turning the way it started — the error's sign flips at ±180° (wing rocking, then
+  // flying on straight — a reversing raider went straight through the site)
+  if (Math.abs(hdgErr) > 2.6) { if (s.turnDir && Math.sign(hdgErr) !== s.turnDir) hdgErr += s.turnDir * 2 * Math.PI; else s.turnDir = Math.sign(hdgErr) || 1; } else if (Math.abs(hdgErr) < 2.2) s.turnDir = 0;
   let bankCmd = clamp(Math.atan(hdgErr * .5 * s.spd / 9.81), -maxBank, maxBank);
   const av = s.avoid && state.time < s.avoid.until ? s.avoid : null; if (av) bankCmd = clamp(av.bank, -maxBank, maxBank);   // traffic avoidance
   s.bank = moveToward(s.bank || 0, bankCmd, .35 * h);
@@ -4455,11 +4481,11 @@ const MISSIONS = [
   {id:'base', site:'FOB Kestrel', kind:'FORWARD MILITARY BASE', text:'A forward base with hangars, a tower and barracks. Keep the raiders off the hangars.'}
 ];
 const DIFFS = {
-  easy:  {label:'EASY',   scouts:3, drones:6, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
+  easy:  {label:'EASY',   scouts:3, drones:6, scoutDiff:'easy',   gap:[150, 190], pairs:false, sweep:.35, ring:4200, kinds:['light', 'heavy', 'light'], warn:'dir', traffic:{planes:1, cessnas:2, every:[40, 75]},
           weather:['CLEAR'], wind:[1, 4], hours:[10, 11, 13, 14], mult:1, warnText:'Radio warning with bearing + distance, updated every 20 s'},
-  normal:{label:'NORMAL', scouts:5, drones:7, scoutDiff:'normal', gap:[100, 140], pairs:false, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
+  normal:{label:'NORMAL', scouts:5, drones:7, scoutDiff:'normal', gap:[100, 140], pairs:false, ring:6400, kinds:['light', 'heavy', 'fast', 'light', 'heavy'], warn:'inbound', traffic:{planes:3, cessnas:4, every:[20, 45]},
           weather:['CLEAR', 'HIGH CLOUD'], wind:[4, 9], hours:[8, 10, 12, 15, 17], mult:1.5, warnText:'Radio warning, no direction'},
-  hard:  {label:'HARD',   scouts:7, drones:8, scoutDiff:'normal',   gap:[60, 95], pairs:true, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none', traffic:{planes:5, cessnas:7, every:[10, 25]},
+  hard:  {label:'HARD',   scouts:7, drones:8, scoutDiff:'normal',   gap:[60, 95], pairs:true, ring:6400, kinds:['light', 'fast', 'heavy', 'light', 'fast', 'heavy', 'fast'], warn:'none', traffic:{planes:5, cessnas:7, every:[10, 25]},
           weather:['MIST', 'HIGH CLOUD', 'HIGH CLOUD'], wind:[8, 13], hours:[22, 23, 2, 6, 19], mult:2, warnText:'No warning — only your radar'}
 };
 // Civil traffic (airliners + light aircraft): caps and spawn interval — per difficulty in missions (more on Hard, so
@@ -4622,7 +4648,10 @@ function lowestOf(cands) { let best = cands[0], bh = 1e9; for (const p of cands)
 // arrival at its initial point (IP) — arrivals spaced by the difficulty's gap — so a slow loitering propeller scout and
 // a fast heavy launched later don't end up arriving together.
 function planRaider(kind, ang) {
-  const S0 = game.m.site, lim = ARENA - 500, lim2 = ARENA - 900;
+  const D = game.m.D, speed = Math.min(SCOUT_SPEC[kind].speed * (D.scoutDiff === 'easy' ? .82 : D.scoutDiff === 'hard' ? 1.15 : 1), 101);
+  // route points keep half a turn radius (30° bank) more from the border: a heavy or jet (≈1.3-1.5 km radius) turning
+  // at a leg near the edge used to cross it and go off to a random 'way back in' point
+  const S0 = game.m.site, lim = ARENA - 500, lim2 = ARENA - 900 - .5 * speed * speed / (9.81 * Math.tan(.52));
   let ex = 0, ez = 0;
   for (let k = 0; k < 40; k++) {
     const d = 3600 + Math.random() * 900; ex = clamp(S0.x + Math.cos(ang) * d, -lim, lim); ez = clamp(S0.z + Math.sin(ang) * d, -lim, lim);
@@ -4631,15 +4660,102 @@ function planRaider(kind, ang) {
   const aE = Math.atan2(ez - S0.z, ex - S0.x), side = Math.random() < .5 ? -1 : 1;
   // loiter / search legs: two points sweeping sideways round the outer ring (3.0-3.8 km out, lowest ground of a few
   // candidates — valleys), then an initial point ~2.4 km out on the lowest approach, then the run at the site
-  const ring = (a, r) => ({x: clamp(S0.x + Math.cos(a) * r, -lim2, lim2), z: clamp(S0.z + Math.sin(a) * r, -lim2, lim2)});
+  // (points are never clamped to the border — near the edge that put them right next to, even inside, the ★★★ ring;
+  //  where the circle leaves the map a smaller radius or the nearest angle that fits is used: siteRingPt)
+  const ring = (a, r) => siteRingPt(S0, a, r, lim2);
   const sw = game.m.D.sweep ?? 1;   // Easy: much narrower sideways sweep (the warned bearing stays useful)
   const l1 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400, 3800].map(r => ring(aE + side * o * sw, r))));
   const a1 = Math.atan2(l1.z - S0.z, l1.x - S0.x), l2 = lowestOf([.45, .6, .75].flatMap(o => [3000, 3400].map(r => ring(a1 + side * o * sw, r))));
   const a2 = Math.atan2(l2.z - S0.z, l2.x - S0.x), ip = lowestOf([-.45, -.2, 0, .2, .45].map(o => ring(a2 + o * sw, 2400)));
   const A = S0.aim || {x: S0.x, y: terrainHeight(S0.x, S0.z) + 5, z: S0.z};
-  const D = game.m.D, speed = Math.min(SCOUT_SPEC[kind].speed * (D.scoutDiff === 'easy' ? .82 : D.scoutDiff === 'hard' ? 1.15 : 1), 101);
-  const travel = (Math.hypot(l1.x - ex, l1.z - ez) + Math.hypot(l2.x - l1.x, l2.z - l1.z) + Math.hypot(ip.x - l2.x, ip.z - l2.z)) * 1.12 / speed;   // +12 % for turns
-  return {kind, ex, ez, ang, legs:[l1, l2, ip, {x: A.x, z: A.z}], aim: A, travel};
+  // Same time to the ★★★ ring every time (on request — near the map edge the entry point got clamped, so some raiders
+  // were inside the ring after ~25 s, others after ~100 s): each raider gets a planned moment to reach the ring
+  // (spawn + D.ring / speed). Its route without extra loitering is measured; if that is longer than D.ring it spawns
+  // further along it. On the way in it *circles the site* (loiter, ~2.8 km out — wider for heavies/jets: ≥ 2.1 turn
+  // radii so they can fly it) until breaking off now, via the initial point, gets it to the ring on time
+  // (chooseScoutWaypoint / raiderCarrot). So it doesn't depend on where it spawned.
+  const target = D.ring || 6400, final = {x: A.x, z: A.z}, rT = speed * speed / (9.81 * Math.tan(.52));
+  let legs = [l1, l2, ip, final]; const L = routeToRing({x: ex, z: ez}, legs, {x: S0.x, z: S0.z});
+  if (L > target) { ({ex, ez, legs} = advanceRoute({x: ex, z: ez}, legs, L - target)); }
+  const ip0 = legs.includes(ip) ? ip : null; legs = legs.filter(q => q !== ip);   // the IP is picked when it breaks off
+  const run = Math.hypot(ip.x - A.x, ip.z - A.z) - FAR_R;
+  return {kind, ex, ez, ang, legs, aim: A, ip0, side, sw, loitR: Math.max(2800, 2.1 * rT + 200, 2 * speed * speed / (9.81 * Math.tan(.78)) + 1500), loitMin: Math.max(2300, 2 * speed * speed / (9.81 * Math.tan(.78)) + 1500), lim2,
+    ringT: target / speed, travel: Math.max(0, target - run) * 1.05 / speed};   // travel = to the IP (planRaid spacing)
+}
+// Point r m from the site in direction a, inside ±lim; if that is off the map: a smaller radius (down to 2.3 km — 1.8 km
+// for the 2.4 km initial point), else the nearest direction where it fits. Never clamped onto the border.
+function siteRingPt(S0, a, r, lim) {
+  const radii = r <= 2400 ? [r, r - 300, r - 600] : [r, r - 400, r - 800, 2300].filter(q => q >= 2300);
+  for (let d = 0; d < Math.PI; d += .1) for (const sg of d ? [1, -1] : [1]) for (const q of radii) {
+    const x = S0.x + Math.cos(a + sg * d) * q, z = S0.z + Math.sin(a + sg * d) * q; if (Math.abs(x) <= lim && Math.abs(z) <= lim) return {x, z}; }
+  return {x: clamp(S0.x + Math.cos(a) * r, -lim, lim), z: clamp(S0.z + Math.sin(a) * r, -lim, lim)};
+}
+// Raider: time to break off for the run? (via the IP — the planned one if it hasn't loitered, else one just ahead on
+// the circle — it would reach the ★★★ ring at its planned moment). Returns the IP then (and marks it), else null.
+function raiderBreakOff(s) {
+  const R = s.raid, S0 = game.m.site, A = R.aim || S0, spd = s.spd || s.speed, sw = R.sw ?? 1, a = Math.atan2(s.pos.z - S0.z, s.pos.x - S0.x);
+  const ipP = R.loops ? lowestOf([-.2, 0, .2].map(o => siteRingPt(S0, a + R.dir * .3 + o * sw, 2400, R.lim2)))
+    : R.ip0 || {x: s.pos.x, z: s.pos.z};
+  if (state.time + timeToRing(s, ipP, A, S0) < R.ringAt) return null;
+  R.atIp = true; R.ipP = ipP; R.uturnUntil = 0; return ipP;   // (a forced U-turn side mustn't carry on into the run)
+}
+// How long would the raider take from here, via point P, to the ★★★ ring? A quick 1-s-step replay of its own flying:
+// turns at ≤ 30° bank, skips a point inside its turn circle (as stepScout does) — so cutting in from inside the loiter
+// circle isn't mistaken for the long way round.
+function timeToRing(s, P, A, S0) {
+  const spd = s.spd || s.speed, w = 9.81 * Math.tan(.52) / spd, r = spd / w; let x = s.pos.x, z = s.pos.z, h = s.hdg ?? s.yaw ?? 0, wp = 0;
+  const pts = [P, A];
+  for (let t = 0; t < 400; t++) {
+    if (Math.hypot(x - S0.x, z - S0.z) < FAR_R) return t;
+    const q = pts[wp], dx = q.x - x, dz = q.z - z, e = wrapAngle(Math.atan2(-dx, -dz) - h);
+    if (wp === 0) { const sd = Math.sign(e) || 1, cx = x - sd * r * Math.cos(h), cz = z + sd * r * Math.sin(h);
+      if (Math.hypot(dx, dz) < 150 || Math.hypot(q.x - cx, q.z - cz) < r * 1.1) { wp = 1; continue; } }
+    const wt = wp && Math.hypot(A.x - x, A.z - z) < 2200 ? w * Math.tan(.7) / Math.tan(.52) : w;   // the final dive turns at up to 40°
+    h += clamp(e, -wt, wt); x -= Math.sin(h) * spd; z -= Math.cos(h) * spd;
+  }
+  return 400;
+}
+// a raider not at its route point by ~straight-line time + 25 s (circling it) moves on to the next one
+const raidWpTime = (s, p) => Math.hypot(p.x - s.pos.x, p.z - s.pos.z) / Math.max(20, s.spd || s.speed) + 25;
+// Raider loiter round the site: steering point 1.5 km ahead along the circle's tangent (+ a correction towards its
+// radius), in the direction it is already going round — refreshed every 0.3 s from stepScout, never 'reached' or
+// skipped. Where the circle leaves the map it reverses: a U-turn inwards.
+function raiderCarrot(s) {
+  const R = s.raid, S0 = game.m.site, lim = R.lim2, spd = s.spd || s.speed, rT = spd * spd / (9.81 * Math.tan(.52));
+  const rx = s.pos.x - S0.x, rz = s.pos.z - S0.z, a0 = Math.atan2(rz, rx);
+  const at = a => { for (const r of [R.loitR, R.loitR - 250, R.loitR - 500].filter(q => q >= (R.loitMin || 2300))) { const x = S0.x + Math.cos(a) * r, z = S0.z + Math.sin(a) * r; if (Math.abs(x) <= lim && Math.abs(z) <= lim) return {x, z}; } return null; };
+  if (!R.loops) { R.loops = 1; const tg = rx * s.vel.z - rz * s.vel.x; if (tg) R.dir = Math.sign(tg); }   // the way it's already going round
+  const da = Math.min(.9, 1.5 * rT / R.loitR);   // look-ahead on the circle for the border check
+  let P = at(a0 + R.dir * da);
+  if (!P && !(R.uturnUntil > state.time - 10)) {   // reverse: U-turn inwards at up to 45° (outwards a jet's ~3 km-wide turn crossed the border)
+    R.dir = -R.dir; R.uturnUntil = state.time + Math.PI * spd / (9.81 * Math.tan(.78)) + 6; P = at(a0 + R.dir * da);
+    // turn inwards (towards the site) when it is really flying round; else the generic keep-turning rule decides
+    R.uturnSide = Math.abs(rx * s.vel.z - rz * s.vel.x) > .7 * Math.hypot(rx, rz) * spd ? (Math.sign(wrapAngle(Math.atan2(rx, rz) - s.hdg)) || 1) : 0; }
+  let corner = false;
+  for (let d = da; !P && d < Math.PI; d += .15) { P = at(a0 + R.dir * d) || at(a0 - R.dir * d); corner = true; }   // nearest part of the circle that fits
+  if (!P) return {x: S0.x + rx * 1.1, z: S0.z + rz * 1.1};
+  if (corner) return P;
+  // circle following: along the tangent, turned towards the circle's radius by the radial error (a point far ahead *on*
+  // the circle would make it settle on a much smaller circle, ≈ R·cos(lead angle) — through the ★★★ ring for a jet)
+  const rho = Math.hypot(rx, rz) || 1, Rc = Math.hypot(P.x - S0.x, P.z - S0.z), ux = rx / rho, uz = rz / rho;
+  const tx = -uz * R.dir, tz = ux * R.dir, k = clamp((Rc - rho) / 800, -1, 1), dx = tx + k * ux, dz = tz + k * uz, dl = Math.hypot(dx, dz);
+  return {x: s.pos.x + dx / dl * 1500, z: s.pos.z + dz / dl * 1500};
+}
+// Length of the route (start → legs…) until it first comes within FAR_R of the site (whole length if it never does).
+function routeToRing(p0, legs, site) {
+  let L = 0, a = p0;
+  for (const b of legs) { const d = Math.hypot(b.x - a.x, b.z - a.z), n = Math.max(1, Math.ceil(d / 20));
+    for (let k = 1; k <= n; k++) { L += d / n; if (Math.hypot(a.x + (b.x - a.x) * k / n - site.x, a.z + (b.z - a.z) * k / n - site.z) < FAR_R) return L; }
+    a = b; }
+  return L;
+}
+// Move the start point `cut` metres along the route; legs already passed are dropped.
+function advanceRoute(p0, legs, cut) {
+  let a = p0;
+  for (let i = 0; i < legs.length - 1; i++) { const b = legs[i], d = Math.hypot(b.x - a.x, b.z - a.z);
+    if (cut < d) { const f = cut / d; return {ex: a.x + (b.x - a.x) * f, ez: a.z + (b.z - a.z) * f, legs: legs.slice(i)}; }
+    cut -= d; a = b; }
+  return {ex: a.x, ez: a.z, legs: legs.slice(legs.length - 1)};
 }
 const FIRST_RAIDER_T = [2, 15];   // s after BEGIN: the first raider (and its warning) appears; the rest follow by the gap
 const NEXT_RAIDER_T = [5, 25];    // s after the last raider in the air is down (sim time — frozen during the replay, so it
@@ -4659,7 +4775,7 @@ function planRaid(m) {
 function spawnRaider(p) {
   const m = game.m, S0 = m.site, D = m.D, band = RAID_BAND[p.kind], y = terrainHeight(p.ex, p.ez) + band[1];
   const s = createScout(p.kind, D.scoutDiff, new THREE.Vector3(p.ex, y, p.ez));
-  s.band = band; s.raid = {legs:p.legs, leg:-1, aim:p.aim}; chooseScoutWaypoint(s);
+  s.band = band; s.raid = {legs:p.legs, leg:-1, aim:p.aim, ip0:p.ip0, dir:p.side, sw:p.sw, loitR:p.loitR, loitMin:p.loitMin, lim2:p.lim2, ringAt: state.time + p.ringT}; chooseScoutWaypoint(s);
   const l1 = p.legs[0]; s.hdg = Math.atan2(-(l1.x - p.ex), -(l1.z - p.ez)); s.yaw = s.hdg; s.vel.set(-Math.sin(s.hdg) * s.speed, 0, -Math.cos(s.hdg) * s.speed);
   m.raid.push(s); m.spawned++;
   if (D.warn !== 'none') { s.warnNo = m.spawned; s.warnAt = m.t; s.warnPos = s.pos.clone(); raidWarnings.unshift(s); raidWarnings.length = Math.min(raidWarnings.length, 4);
