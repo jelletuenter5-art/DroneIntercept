@@ -268,7 +268,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
   <div id="mapUI">
     <b id="mapCoordLabel">Map · click to browse</b>
     <span id="mapStatusSpan">Press ⊕ to place waypoint</span>
-    <button id="boostBtnMap" title="Hold (or hold E): fly to the waypoint at up to 350 km/h">⏩ Boost (hold E)</button><button id="cancelWpBtn">✕ Waypoint</button><button id="cancelTrackBtn">✕ Tracking</button><button id="legendBtn" style="pointer-events:auto">◧ Legend</button><button id="mapCloseBtn" style="pointer-events:auto">✕ Close</button>
+    <button id="boostBtnMap" title="Hold (or hold E): fly to the waypoint at up to 350 km/h">Boost (hold E)</button><button id="cancelWpBtn">✕ Waypoint</button><button id="cancelTrackBtn">✕ Tracking</button><button id="legendBtn" style="pointer-events:auto">◧ Legend</button><button id="mapCloseBtn" style="pointer-events:auto">✕ Close</button>
   </div>
 </div>
 <div id="thermalScale"><span>HOT</span><i id="thermalScaleBar"></i><span>COLD</span></div>
@@ -295,7 +295,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
           <tr><td><kbd>X</kbd></td><td>Terminate pursuit</td></tr>
           <tr><td><kbd>Space</kbd></td><td>Pause / resume · skip replay</td></tr>
           <tr class="sbOnly"><td><kbd>N</kbd></td><td>Spawn selected traffic (Simulation tab)</td></tr>
-          <tr><td><kbd>E</kbd></td><td>Hold: boost to the waypoint (also ⏩ BOOST) — only while flying to a map waypoint; speeds up to 350 km/h over ~4 s and stays there while held (uses much more battery); released or at the waypoint it eases back to cruise</td></tr>
+          <tr><td><kbd>E</kbd></td><td>Hold: boost to the waypoint (also the BOOST button) — only while flying to a map waypoint; speeds up to 350 km/h over ~4 s and stays there while held (uses much more battery); released or at the waypoint it eases back to cruise</td></tr>
           <tr><td><kbd>K</kbd></td><td>Emergency abort (also ⚠ Abort in the header) — press twice: motors off, the drone falls and is lost (counts as a lost drone; crashing into a building is a civilian incident); short replay, then the next drone on the pad</td></tr>
           <tr><td><kbd>B</kbd></td><td>Return to base &amp; land (also ⌂ Home in the header) · press again en route to cancel · during the landing: go around (abort and fly on)</td></tr>
           <tr><th colspan="2">Gimbal camera</th></tr>
@@ -351,7 +351,7 @@ html,body,#app{width:100%;height:100%;min-height:0}
       <div class="zvInfo"><b id="zvInfo">NO TARGET</b><small id="zvStatus"></small></div>
       <div class="zvBtns"><button id="zvMarkT" title="Flag what's in the scope as threat (1) · permanent, Civil switches it">★ Threat [1]</button><button id="zvMarkC" title="Flag what's in the scope as civil (2) · permanent, Threat switches it">★ Civil [2]</button><button id="zvCentre" title="Centre on the nose (V)">⌖</button></div></div>
     <div id="replayOverlay"><div class="lb top"></div><div class="lb bot"></div><div id="replayInfo">▶ REPLAY</div><div id="replayTag"><i></i><span>TARGET</span></div><button id="skipReplayBtn">Skip replay ⏭</button></div>
-    <button id="boostBtn" title="Hold (or hold E): fly to the waypoint at up to 350 km/h — uses much more battery"><b>⏩ BOOST</b><small>hold · up to 350 km/h</small><kbd>E</kbd></button><button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
+    <button id="boostBtn" title="Hold (or hold E): fly to the waypoint at up to 350 km/h — uses much more battery"><b>BOOST</b><small>hold · up to 350 km/h</small><kbd>E</kbd></button><button id="abortBtn"><b>■ TERMINATE PURSUIT</b><small id="abortInfo">—</small><kbd>X</kbd></button>
 
   </section>
   <aside id="right" class="panel">
@@ -3948,7 +3948,7 @@ function physicsStep(h) {
     G_.aim.set(state.searchWp.x, state.searchAlt, state.searchWp.z); G_.alt = state.userAlt ?? state.searchAlt; G_.clear = 120;
     { const bx = state.searchWp.x - px, bz = state.searchWp.z - pz, bl = Math.hypot(bx, bz) || 1, head = -(wind.x * bx + wind.z * bz) / bl;
       G_.speed = (game.mode === 'mission' ? 50 : V_CRUISE) + clamp(head * .45, -6, 10); }   // best-range speed rises in a headwind, drops in a tailwind; missions: economical ~50 m/s patrol loiter (≈2× endurance)
-    // Waypoint boost (on request): hold E / ⏩ BOOST while flying to a manual waypoint → the commanded speed ramps up to
+    // Waypoint boost (on request): hold E / BOOST while flying to a manual waypoint → the commanded speed ramps up to
     // 350 km/h over ~4 s and stays there (costs power: ∝ V^2.3); released or at the waypoint it eases back over ~7 s.
     { const want = state.manualWaypointActive && !!mapWaypoint && (keys.has('e') || boostHeld) && !state.rtb;
       state.wpBoost = want ? Math.min(1, (state.wpBoost || 0) + h / 4) : Math.max(0, (state.wpBoost || 0) - h / 7);
